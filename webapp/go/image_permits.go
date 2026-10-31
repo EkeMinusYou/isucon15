@@ -135,6 +135,7 @@ type permitResponseKey struct{}
 type permitResponse struct {
 	request *http.Request
 	writer  http.ResponseWriter
+	local   *regionalImagePermits
 }
 
 func issueImagePermits(ctx context.Context, refs []imageReference) {
@@ -159,6 +160,7 @@ func issueImagePermits(ctx context.Context, refs []imageReference) {
 	// Compute signatures before admission, then validate the entire response
 	// against one coherent snapshot instead of queuing once per image.
 	a := refs[0].app
+	r := response.request.WithContext(ctx)
 	a.mu.RLock()
 	a.snapshots.lock(&a.globalGate)
 	for _, candidate := range candidates {
@@ -166,7 +168,7 @@ func issueImagePermits(ctx context.Context, refs []imageReference) {
 		if ref.app.appCore != a.appCore {
 			continue
 		}
-		grant, ok := a.issueImagePermit(response.request, candidate.address, ref.id, ref.secret, ref.exp)
+		grant, ok := a.issueImagePermit(r, candidate.address, ref.id, ref.secret, ref.exp)
 		if ok {
 			grants = append(grants, grant)
 		}
@@ -174,13 +176,27 @@ func issueImagePermits(ctx context.Context, refs []imageReference) {
 	a.snapshots.unlock(&a.globalGate)
 	a.mu.RUnlock()
 	if len(grants) != 0 {
-		b, _ := json.Marshal(grants)
-		response.writer.Header().Add(imagePermitHeader, base64.RawURLEncoding.EncodeToString(b))
+		publishImagePermits(ctx, response.writer, grants)
 	}
 }
 
+func publishImagePermits(ctx context.Context, w http.ResponseWriter, grants []imagePermit) {
+	response, _ := ctx.Value(permitResponseKey{}).(*permitResponse)
+	if response == nil {
+		return
+	}
+	if response.local != nil {
+		response.local.installGrants(response.request, grants)
+		return
+	}
+	b, _ := json.Marshal(grants)
+	w.Header().Add(imagePermitHeader, base64.RawURLEncoding.EncodeToString(b))
+}
+
 func (a *App) issueImagePermit(r *http.Request, address, imageID, secret string, exp int64) (imagePermit, bool) {
-	if a.imagePermits == nil || !isInternal(r) || exp <= time.Now().Unix() || time.Now().Before(a.s.Bans.Get(ipOf(r))) {
+	response, _ := r.Context().Value(permitResponseKey{}).(*permitResponse)
+	local := response != nil && response.local != nil
+	if a.imagePermits == nil || (!isInternal(r) && !local) || exp <= time.Now().Unix() || time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 		return imagePermit{}, false
 	}
 	im := a.s.Images.get(imageID)
@@ -188,7 +204,11 @@ func (a *App) issueImagePermit(r *http.Request, address, imageID, secret string,
 		return imagePermit{}, false
 	}
 	region := requestRegion(r)
-	if im.Part == "" && im.StorageRegion != region {
+	storageRegion := im.StorageRegion
+	if storageRegion == "" {
+		storageRegion = a.permitRegion
+	}
+	if im.Part == "" && storageRegion != region {
 		return imagePermit{}, false
 	}
 	wire := imagePermit{URL: address, Part: im.Part, Offset: im.Offset, Size: im.Size, Exp: exp, MediaType: im.MediaType, Post: im.Kind == 'p'}
@@ -286,6 +306,14 @@ func (a *App) sendImageRevocations() {
 	a.revocations = nil
 	var completed sync.WaitGroup
 	for region, grants := range byRegion {
+		if region == a.permitRegion && a.regionalPermits != nil {
+			ids := make([]string, len(grants))
+			for i, grant := range grants {
+				ids[i] = grant.ID
+			}
+			a.regionalPermits.revokeIDs(ids)
+			continue
+		}
 		address := regionalPeer(region) + imageRevokePath
 		if !strict {
 			select {

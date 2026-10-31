@@ -296,8 +296,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a = &App{appCore: a.appCore}
-	if a.imagePermits != nil && isInternal(r) {
-		r = r.WithContext(context.WithValue(r.Context(), permitResponseKey{}, &permitResponse{r, w}))
+	if a.imagePermits != nil && (isInternal(r) || a.regionalPermits != nil) {
+		response := &permitResponse{request: r, writer: w}
+		if !isInternal(r) {
+			response.local = a.regionalPermits
+		}
+		r = r.WithContext(context.WithValue(r.Context(), permitResponseKey{}, response))
 	}
 	if r.URL.Path == "/api/notifications" && r.Method == "GET" {
 		a.notifications(w, r)
@@ -813,8 +817,7 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 		}
 		w.Header().Set("Date", checkedAt.UTC().Format(http.TimeFormat))
 		if permitted {
-			b, _ := json.Marshal([]imagePermit{grant})
-			w.Header().Add(imagePermitHeader, base64.RawURLEncoding.EncodeToString(b))
+			publishImagePermits(r.Context(), w, []imagePermit{grant})
 		}
 		if copyImage.Kind == 'p' {
 			maxAge := min(int64(5), exp-checkedAt.Unix())

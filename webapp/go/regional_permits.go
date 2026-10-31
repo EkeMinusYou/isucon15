@@ -59,17 +59,6 @@ func (p *regionalImagePermits) sweep(now time.Time) {
 func (p *regionalImagePermits) install(resp *http.Response) {
 	headers := resp.Header.Values(imagePermitHeader)
 	resp.Header.Del(imagePermitHeader)
-	start, ok := resp.Request.Context().Value(regionRequestStart{}).(time.Time)
-	if !ok || len(headers) == 0 || !time.Now().Before(start.Add(imagePermitLifetime)) {
-		return
-	}
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if start.Before(p.notBefore) {
-		return
-	}
-	now := time.Now()
-	p.sweep(now)
 	for _, header := range headers {
 		if len(header) > 256<<10 {
 			continue
@@ -79,26 +68,41 @@ func (p *regionalImagePermits) install(resp *http.Response) {
 		if err != nil || json.Unmarshal(data, &grants) != nil || len(grants) > 128 {
 			continue
 		}
-		for _, grant := range grants {
-			deadline := start.Add(imagePermitLifetime)
-			if expiry := time.Unix(grant.Exp, 0); expiry.Before(deadline) {
-				deadline = expiry
-			}
-			if grant.ID == "" || grant.Part == "" || grant.Part != filepath.Base(grant.Part) || grant.Offset < 0 || grant.Size < 0 || !strings.HasPrefix(grant.URL, "/api/images/") || !now.Before(deadline) || now.Before(p.revoked[grant.ID]) {
-				continue
-			}
-			key := localPermitKey{ipOf(resp.Request), grant.URL}
-			if previous, ok := p.entries[key]; ok {
-				if previous.deadline.After(deadline) {
-					continue
-				}
-				delete(p.byID, previous.ID)
-			} else if len(p.entries) >= 32768 {
-				continue
-			}
-			p.entries[key] = localImagePermit{grant, deadline, start}
-			p.byID[grant.ID] = key
+		p.installGrants(resp.Request, grants)
+	}
+}
+
+func (p *regionalImagePermits) installGrants(r *http.Request, grants []imagePermit) {
+	start, ok := r.Context().Value(regionRequestStart{}).(time.Time)
+	if !ok || !time.Now().Before(start.Add(imagePermitLifetime)) {
+		return
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if start.Before(p.notBefore) {
+		return
+	}
+	now := time.Now()
+	p.sweep(now)
+	for _, grant := range grants {
+		deadline := start.Add(imagePermitLifetime)
+		if expiry := time.Unix(grant.Exp, 0); expiry.Before(deadline) {
+			deadline = expiry
 		}
+		if grant.ID == "" || grant.Part == "" || grant.Part != filepath.Base(grant.Part) || grant.Offset < 0 || grant.Size < 0 || !strings.HasPrefix(grant.URL, "/api/images/") || !now.Before(deadline) || now.Before(p.revoked[grant.ID]) {
+			continue
+		}
+		key := localPermitKey{ipOf(r), grant.URL}
+		if previous, ok := p.entries[key]; ok {
+			if previous.deadline.After(deadline) {
+				continue
+			}
+			delete(p.byID, previous.ID)
+		} else if len(p.entries) >= 32768 {
+			continue
+		}
+		p.entries[key] = localImagePermit{grant, deadline, start}
+		p.byID[grant.ID] = key
 	}
 }
 
@@ -116,6 +120,11 @@ func (p *regionalImagePermits) revoke(w http.ResponseWriter, r *http.Request) {
 		failure(w, 400, "invalid_revocation")
 		return
 	}
+	p.revokeIDs(ids)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (p *regionalImagePermits) revokeIDs(ids []string) {
 	p.mu.Lock()
 	now := time.Now()
 	p.sweep(now)
@@ -129,7 +138,6 @@ func (p *regionalImagePermits) revoke(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	p.mu.Unlock()
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func (p *regionalImagePermits) reset() {

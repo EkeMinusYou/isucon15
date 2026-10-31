@@ -159,6 +159,7 @@ type appCore struct {
 	regionalImages       regionalImageMetrics
 	imagePermits         *ownerImagePermits
 	regionalPermits      *regionalImagePermits
+	permitRegion         string
 	mu                   sync.RWMutex
 	globalGate           sync.RWMutex
 	snapshots            snapshotBatch
@@ -615,6 +616,9 @@ func newApp(initial, durable string) (*App, error) {
 	return a, nil
 }
 func (a *App) reset() error {
+	if a.regionalPermits != nil {
+		a.regionalPermits.reset()
+	}
 	if a.imagePermits != nil {
 		a.revocations = append(a.revocations, a.imagePermits.revoke("")...)
 	}

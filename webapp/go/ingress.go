@@ -79,17 +79,7 @@ func serviceHandler() (http.Handler, *App, error) {
 		if remaining := time.Until(started.Add(imagePermitLifetime)); remaining > 0 {
 			time.Sleep(remaining)
 		}
-		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !isInternal(r) {
-				r.Header.Del("X-ISU-Region")
-				r.Header.Del("X-ISU-Source")
-			} else if !validRegion(r.Header.Get("X-ISU-Region")) {
-				failure(w, 400, "invalid_region")
-				return
-			}
-			a.ServeHTTP(w, r)
-		})
-		return h, a, nil
+		return ownerHandler(a, region), a, nil
 	}
 	target, e := url.Parse(os.Getenv("OWNER_URL"))
 	if e != nil || target.Scheme != "http" || target.Host == "" {
@@ -168,4 +158,24 @@ func serviceHandler() (http.Handler, *App, error) {
 		}
 		proxy.ServeHTTP(w, r)
 	}), edge, nil
+}
+
+func ownerHandler(a *App, region string) http.Handler {
+	a.permitRegion = region
+	a.regionalPermits = newRegionalImagePermits()
+	files := &regionalUploads{root: a.durable}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !isInternal(r) {
+			r.Header.Del("X-ISU-Region")
+			r.Header.Del("X-ISU-Source")
+			r = withRegionRequestStart(r)
+			if a.regionalPermits.serve(w, r, filepath.Join(a.initial, "images"), files, &a.regionalImages) {
+				return
+			}
+		} else if !validRegion(r.Header.Get("X-ISU-Region")) {
+			failure(w, 400, "invalid_region")
+			return
+		}
+		a.ServeHTTP(w, r)
+	})
 }
