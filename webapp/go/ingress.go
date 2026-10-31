@@ -86,9 +86,13 @@ func serviceHandler() (http.Handler, *App, error) {
 				master.close()
 				return nil, nil, err
 			}
+			// Requests obtain the current view from appCore. The service handler
+			// must not retain an obsolete view after an initialize request.
+			a.s = nil
 			h, err := master.route(a)
 			return h, a, err
 		}
+		a.s = nil
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !isInternal(r) {
 				r.Header.Del("X-ISU-Region")
