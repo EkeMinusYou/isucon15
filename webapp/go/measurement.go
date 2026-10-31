@@ -55,12 +55,7 @@ func metricRoute(path string) int {
 	}
 }
 func (a *App) snapshot() measurement.Snapshot {
-	validation := 0
-	if validateImageContent() {
-		validation = 1
-	}
 	m := map[string]any{
-		"app_image_content_validation":   validation,
 		"app_jpeg_queue_depth":           jpegQueued.Load(),
 		"app_jpeg_active":                jpegActive.Load(),
 		"app_jpeg_requests_total":        jpegRequests.Load(),
