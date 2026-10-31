@@ -1,0 +1,104 @@
+# host=asia1 kernel load_window=2026-10-31T02:52:31.257236689Z..2026-10-31T02:53:56.935130691Z
+2026-10-31T02:53:46.122597+00:00 ip-192-168-1-10 kernel: isureal invoked oom-killer: gfp_mask=0x140cca(GFP_HIGHUSER_MOVABLE|__GFP_COMP), order=0, oom_score_adj=0
+2026-10-31T02:53:46.251718+00:00 ip-192-168-1-10 kernel: CPU: 1 UID: 1100 PID: 52105 Comm: isureal Not tainted 7.0.0-1014-aws #14~24.04.1-Ubuntu PREEMPTLAZY 
+2026-10-31T02:53:46.253589+00:00 ip-192-168-1-10 kernel: Hardware name: Amazon EC2 c5.large/, BIOS 1.0 10/16/2017
+2026-10-31T02:53:46.253624+00:00 ip-192-168-1-10 kernel: Call Trace:
+2026-10-31T02:53:46.257593+00:00 ip-192-168-1-10 kernel:  <TASK>
+2026-10-31T02:53:46.257633+00:00 ip-192-168-1-10 kernel:  dump_stack_lvl+0x76/0xa0
+2026-10-31T02:53:46.259367+00:00 ip-192-168-1-10 kernel:  dump_stack+0x10/0x20
+2026-10-31T02:53:46.259401+00:00 ip-192-168-1-10 kernel:  dump_header+0x48/0x220
+2026-10-31T02:53:46.263023+00:00 ip-192-168-1-10 kernel:  oom_kill_process+0xd7/0x250
+2026-10-31T02:53:46.263381+00:00 ip-192-168-1-10 kernel:  ? oom_evaluate_task+0x105/0x200
+2026-10-31T02:53:46.263412+00:00 ip-192-168-1-10 kernel:  out_of_memory+0x101/0x350
+2026-10-31T02:53:46.263432+00:00 ip-192-168-1-10 kernel:  __alloc_pages_may_oom+0x109/0x1d0
+2026-10-31T02:53:46.264163+00:00 ip-192-168-1-10 kernel:  __alloc_pages_slowpath.constprop.0+0x42d/0x9f0
+2026-10-31T02:53:46.264868+00:00 ip-192-168-1-10 kernel:  __alloc_frozen_pages_noprof+0x329/0x350
+2026-10-31T02:53:46.264910+00:00 ip-192-168-1-10 kernel:  alloc_pages_mpol+0x7e/0x1a0
+2026-10-31T02:53:46.264935+00:00 ip-192-168-1-10 kernel:  folio_alloc_noprof+0x65/0xf0
+2026-10-31T02:53:46.265679+00:00 ip-192-168-1-10 kernel:  filemap_alloc_folio_noprof+0x61/0x80
+2026-10-31T02:53:46.266425+00:00 ip-192-168-1-10 kernel:  __filemap_get_folio_mpol+0x201/0x340
+2026-10-31T02:53:46.268014+00:00 ip-192-168-1-10 kernel:  filemap_fault+0x112/0xce0
+2026-10-31T02:53:46.268043+00:00 ip-192-168-1-10 kernel:  ? filemap_map_pages+0xc0/0x4c0
+2026-10-31T02:53:46.268063+00:00 ip-192-168-1-10 kernel:  __do_fault+0x3f/0x1a0
+2026-10-31T02:53:46.268083+00:00 ip-192-168-1-10 kernel:  do_read_fault+0x126/0x240
+2026-10-31T02:53:46.268482+00:00 ip-192-168-1-10 kernel:  do_fault+0x16e/0x2b0
+2026-10-31T02:53:46.269135+00:00 ip-192-168-1-10 kernel:  handle_pte_fault+0xa5/0x1f0
+2026-10-31T02:53:46.269161+00:00 ip-192-168-1-10 kernel:  __handle_mm_fault+0x56a/0x760
+2026-10-31T02:53:46.269178+00:00 ip-192-168-1-10 kernel:  handle_mm_fault+0x13d/0x3b0
+2026-10-31T02:53:46.269723+00:00 ip-192-168-1-10 kernel:  do_user_addr_fault+0x1d2/0x8c0
+2026-10-31T02:53:46.270296+00:00 ip-192-168-1-10 kernel:  exc_page_fault+0x81/0x1c0
+2026-10-31T02:53:46.270876+00:00 ip-192-168-1-10 kernel:  asm_exc_page_fault+0x27/0x30
+2026-10-31T02:53:46.270909+00:00 ip-192-168-1-10 kernel: RIP: 0033:0x470ac9
+2026-10-31T02:53:46.270936+00:00 ip-192-168-1-10 kernel: Code: Unable to access opcode bytes at 0x470a9f.
+2026-10-31T02:53:46.270984+00:00 ip-192-168-1-10 kernel: RSP: 002b:000035b381dfcdd0 EFLAGS: 00010202
+2026-10-31T02:53:46.271004+00:00 ip-192-168-1-10 kernel: RAX: 0000000000d13800 RBX: 0000000000457b0b RCX: 0000000000ae2270
+2026-10-31T02:53:46.271712+00:00 ip-192-168-1-10 kernel: RDX: 0000000000bb3260 RSI: 0000000000000004 RDI: 0000000000457b0b
+2026-10-31T02:53:46.271738+00:00 ip-192-168-1-10 kernel: RBP: 000035b381dfce08 R08: 0000000000000000 R09: 0000000000000000
+2026-10-31T02:53:46.271759+00:00 ip-192-168-1-10 kernel: R10: 0000000000000040 R11: 000035b381dfcfc0 R12: 0000000000457b0c
+2026-10-31T02:53:46.271779+00:00 ip-192-168-1-10 kernel: R13: 000035b381dfd020 R14: 000035b3d29a63c0 R15: 000035b3c7939510
+2026-10-31T02:53:46.271799+00:00 ip-192-168-1-10 kernel:  </TASK>
+2026-10-31T02:53:46.271824+00:00 ip-192-168-1-10 kernel: Mem-Info:
+2026-10-31T02:53:46.273073+00:00 ip-192-168-1-10 kernel: active_anon:48096 inactive_anon:850817 isolated_anon:0
+                                                          active_file:19 inactive_file:148 isolated_file:0
+                                                          unevictable:10973 dirty:0 writeback:0
+                                                          slab_reclaimable:7871 slab_unreclaimable:15169
+                                                          mapped:2199 shmem:692 pagetables:2702
+                                                          sec_pagetables:0 bounce:0
+                                                          kernel_misc_reclaimable:0
+                                                          free:25065 free_pcp:353 free_cma:229
+2026-10-31T02:53:46.273108+00:00 ip-192-168-1-10 kernel: Node 0 active_anon:192384kB inactive_anon:3403268kB active_file:76kB inactive_file:592kB unevictable:43892kB isolated(anon):0kB isolated(file):0kB mapped:8796kB dirty:0kB writeback:0kB shmem:2768kB shmem_thp:0kB shmem_pmdmapped:0kB anon_thp:2048kB kernel_stack:2928kB pagetables:10808kB sec_pagetables:0kB all_unreclaimable? yes Balloon:0kB gpu_active:0kB gpu_reclaim:0kB
+2026-10-31T02:53:46.273130+00:00 ip-192-168-1-10 kernel: Node 0 DMA free:14848kB boost:0kB min:328kB low:408kB high:488kB reserved_highatomic:0KB free_highatomic:0KB active_anon:0kB inactive_anon:0kB active_file:0kB inactive_file:0kB unevictable:0kB writepending:0kB zspages:0kB present:15996kB managed:15360kB mlocked:0kB bounce:0kB free_pcp:0kB local_pcp:0kB free_cma:0kB
+2026-10-31T02:53:46.273154+00:00 ip-192-168-1-10 kernel: lowmem_reserve[]: 0 2940 3775 3775 3775
+2026-10-31T02:53:46.273172+00:00 ip-192-168-1-10 kernel: Node 0 DMA32 free:71296kB boost:10240kB min:68376kB low:82908kB high:97440kB reserved_highatomic:0KB free_highatomic:0KB active_anon:136456kB inactive_anon:2775696kB active_file:4kB inactive_file:552kB unevictable:0kB writepending:0kB zspages:0kB present:3125680kB managed:3011472kB mlocked:0kB bounce:0kB free_pcp:1412kB local_pcp:524kB free_cma:512kB
+2026-10-31T02:53:46.273193+00:00 ip-192-168-1-10 kernel: lowmem_reserve[]: 0 0 834 834 834
+2026-10-31T02:53:46.273210+00:00 ip-192-168-1-10 kernel: Node 0 Normal free:14116kB boost:20500kB min:29616kB low:31892kB high:34168kB reserved_highatomic:0KB free_highatomic:0KB active_anon:55932kB inactive_anon:627568kB active_file:28kB inactive_file:68kB unevictable:43892kB writepending:0kB zspages:0kB present:927744kB managed:854364kB mlocked:27260kB bounce:0kB free_pcp:0kB local_pcp:0kB free_cma:404kB
+2026-10-31T02:53:46.273229+00:00 ip-192-168-1-10 kernel: lowmem_reserve[]: 0 0 0 0 0
+2026-10-31T02:53:46.273249+00:00 ip-192-168-1-10 kernel: Node 0 DMA: 0*4kB 0*8kB 0*16kB 0*32kB 0*64kB 0*128kB 0*256kB 1*512kB (U) 0*1024kB 1*2048kB (M) 3*4096kB (M) = 14848kB
+2026-10-31T02:53:46.273267+00:00 ip-192-168-1-10 kernel: Node 0 DMA32: 546*4kB (UMEC) 1051*8kB (UMEC) 911*16kB (UMEC) 614*32kB (UMEC) 258*64kB (UME) 71*128kB (UME) 3*256kB (M) 0*512kB 0*1024kB 0*2048kB 0*4096kB = 71184kB
+2026-10-31T02:53:46.273289+00:00 ip-192-168-1-10 kernel: Node 0 Normal: 255*4kB (UMEC) 273*8kB (UMEC) 292*16kB (UMEC) 117*32kB (UE) 31*64kB (UE) 4*128kB (U) 0*256kB 0*512kB 0*1024kB 0*2048kB 0*4096kB = 14116kB
+2026-10-31T02:53:46.273310+00:00 ip-192-168-1-10 kernel: Node 0 hugepages_total=0 hugepages_free=0 hugepages_surp=0 hugepages_size=1048576kB
+2026-10-31T02:53:46.273794+00:00 ip-192-168-1-10 kernel: Node 0 hugepages_total=0 hugepages_free=0 hugepages_surp=0 hugepages_size=2048kB
+2026-10-31T02:53:46.273815+00:00 ip-192-168-1-10 kernel: 6747 total pagecache pages
+2026-10-31T02:53:46.273838+00:00 ip-192-168-1-10 kernel: 0 pages in swap cache
+2026-10-31T02:53:46.273889+00:00 ip-192-168-1-10 kernel: Free swap  = 0kB
+2026-10-31T02:53:46.274674+00:00 ip-192-168-1-10 kernel: Total swap = 0kB
+2026-10-31T02:53:46.274701+00:00 ip-192-168-1-10 kernel: 1017355 pages RAM
+2026-10-31T02:53:46.274721+00:00 ip-192-168-1-10 kernel: 0 pages HighMem/MovableOnly
+2026-10-31T02:53:46.274740+00:00 ip-192-168-1-10 kernel: 47056 pages reserved
+2026-10-31T02:53:46.274760+00:00 ip-192-168-1-10 kernel: 0 pages cma reserved
+2026-10-31T02:53:46.274781+00:00 ip-192-168-1-10 kernel: 0 pages hwpoisoned
+2026-10-31T02:53:46.274800+00:00 ip-192-168-1-10 kernel: Memory cgroup min protection 0kB -- low protection 0kB
+2026-10-31T02:53:46.274821+00:00 ip-192-168-1-10 kernel: Tasks state (memory values in pages):
+2026-10-31T02:53:46.274852+00:00 ip-192-168-1-10 kernel: [  pid  ]   uid  tgid total_vm      rss rss_anon rss_file rss_shmem pgtables_bytes swapents oom_score_adj name
+2026-10-31T02:53:46.274877+00:00 ip-192-168-1-10 kernel: [    127]     0   127    12777     1221      417      802         2   110592        0          -250 systemd-journal
+2026-10-31T02:53:46.274897+00:00 ip-192-168-1-10 kernel: [    188]     0   188    72242     6825     4633     2192         0   114688        0         -1000 multipathd
+2026-10-31T02:53:46.274917+00:00 ip-192-168-1-10 kernel: [    192]     0   192     7309     1432      811      621         0    77824        0         -1000 systemd-udevd
+2026-10-31T02:53:46.274942+00:00 ip-192-168-1-10 kernel: [    424]   991   424     5370     1284      549      735         0    90112        0             0 systemd-resolve
+2026-10-31T02:53:46.274969+00:00 ip-192-168-1-10 kernel: [    537]   998   537     5608     1036      300      736         0    94208        0             0 systemd-network
+2026-10-31T02:53:46.275514+00:00 ip-192-168-1-10 kernel: [    606]     0   606      683      491       36      455         0    49152        0             0 acpid
+2026-10-31T02:53:46.275543+00:00 ip-192-168-1-10 kernel: [    611]   101   611     2482     1150      253      897         0    57344        0          -900 dbus-daemon
+2026-10-31T02:53:46.275569+00:00 ip-192-168-1-10 kernel: [    616]     0   616    20734      956       94      862         0    65536        0             0 irqbalance
+2026-10-31T02:53:46.275594+00:00 ip-192-168-1-10 kernel: [    619]     0   619     8111     3365     2560      805         0   102400        0             0 networkd-dispat
+2026-10-31T02:53:46.275615+00:00 ip-192-168-1-10 kernel: [    620]   989   620    96013     1562      639      923         0   118784        0             0 polkitd
+2026-10-31T02:53:46.275632+00:00 ip-192-168-1-10 kernel: [    622]     0   622   458205     2241     2239        2         0   204800        0             0 amazon-ssm-agen
+2026-10-31T02:53:46.275652+00:00 ip-192-168-1-10 kernel: [    624]     0   624   463539     3891     3451      440         0   274432        0          -900 snapd
+2026-10-31T02:53:46.275672+00:00 ip-192-168-1-10 kernel: [    629]     0   629     4548     1077      287      790         0    73728        0             0 systemd-logind
+2026-10-31T02:53:46.275693+00:00 ip-192-168-1-10 kernel: [    646]     0   646   117247     1466      557      909         0   135168        0             0 udisksd
+2026-10-31T02:53:46.275710+00:00 ip-192-168-1-10 kernel: [    648]     0   648     3009      869      286      583         0    73728        0         -1000 sshd
+2026-10-31T02:53:46.275729+00:00 ip-192-168-1-10 kernel: [    672]   102   672    55631     1305      450      855         0    86016        0             0 rsyslogd
+2026-10-31T02:53:46.275748+00:00 ip-192-168-1-10 kernel: [    707]   110   707     4854      832      190      642         0    61440        0             0 chronyd
+2026-10-31T02:53:46.275812+00:00 ip-192-168-1-10 kernel: [    711]   110   711     2772      523      154      369         0    57344        0             0 chronyd
+2026-10-31T02:53:46.275830+00:00 ip-192-168-1-10 kernel: [    730]     0   730     1540      475       36      439         0    53248        0             0 agetty
+2026-10-31T02:53:46.275850+00:00 ip-192-168-1-10 kernel: [    819]     0   819    79541     1295      463      832         0   131072        0             0 ModemManager
+2026-10-31T02:53:46.275869+00:00 ip-192-168-1-10 kernel: [    834]     0   834     1529      456       33      423         0    49152        0             0 agetty
+2026-10-31T02:53:46.275889+00:00 ip-192-168-1-10 kernel: [   3630]     0  3630     3687     1106      423      683         0    65536        0             0 sshd
+2026-10-31T02:53:46.275906+00:00 ip-192-168-1-10 kernel: [   3638]  1100  3638     5069     1248      517      731         0    86016        0           100 systemd
+2026-10-31T02:53:46.275926+00:00 ip-192-168-1-10 kernel: [   3639]  1100  3639     5293      678      430      248         0    73728        0           100 (sd-pam)
+2026-10-31T02:53:46.275949+00:00 ip-192-168-1-10 kernel: [   3823]  1100  3823     4291     1461     1028      433         0    69632        0             0 sshd
+2026-10-31T02:53:46.275969+00:00 ip-192-168-1-10 kernel: [  50487]  1100 50487  1499949   879410   879019      391         0  7405568        0             0 isureal
+2026-10-31T02:53:46.275988+00:00 ip-192-168-1-10 kernel: [  52047]     0 52047   307014     1422     1420        2         0   110592        0             0 proc-metrics
+2026-10-31T02:53:46.276009+00:00 ip-192-168-1-10 kernel: [  52059]     0 52059   316290      635      633        2         0   102400        0             0 runtime-metrics
+2026-10-31T02:53:46.276888+00:00 ip-192-168-1-10 kernel: [  52070]  1100 52070     6049      902      363      539         0    94208        0             0 curl
+2026-10-31T02:53:46.276913+00:00 ip-192-168-1-10 kernel: [  52074]  1100 52074     6049      888      349      539         0    81920        0             0 curl
+2026-10-31T02:53:46.276930+00:00 ip-192-168-1-10 kernel: oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/system.slice/isureal-go.service,task=isureal,pid=50487,uid=1100
+2026-10-31T02:53:46.276949+00:00 ip-192-168-1-10 kernel: Out of memory: Killed process 50487 (isureal) total-vm:5999796kB, anon-rss:3516076kB, file-rss:1564kB, shmem-rss:0kB, UID:1100 pgtables:7232kB oom_score_adj:0

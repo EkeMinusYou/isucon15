@@ -1,0 +1,46 @@
+# host=asia1 services=isureal-go load_window=2026-10-31T02:52:31.257236689Z..2026-10-31T02:53:56.935130691Z
+# unit=isureal-go
+2026-10-31T02:52:31.672409+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:31 loaded accounts.jsonl.gz
+2026-10-31T02:52:31.673144+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:31 loaded administrators.jsonl.gz
+2026-10-31T02:52:31.677751+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:31 loaded posting-windows.jsonl.gz
+2026-10-31T02:52:31.801743+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:31 loaded friend-requests.jsonl.gz
+2026-10-31T02:52:31.934771+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:31 loaded friendships.jsonl.gz
+2026-10-31T02:52:31.978795+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:31 loaded follows.jsonl.gz
+2026-10-31T02:52:31.980359+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:31 loaded blocks.jsonl.gz
+2026-10-31T02:52:33.366441+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:33 loaded index.part-000.jsonl.gz
+2026-10-31T02:52:34.789501+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:34 loaded index.part-001.jsonl.gz
+2026-10-31T02:52:36.038100+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:36 loaded index.part-002.jsonl.gz
+2026-10-31T02:52:37.649225+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:37 loaded index.part-003.jsonl.gz
+2026-10-31T02:52:38.902015+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:38 loaded index.part-004.jsonl.gz
+2026-10-31T02:52:40.169317+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:40 loaded index.part-005.jsonl.gz
+2026-10-31T02:52:41.607516+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:41 loaded index.part-006.jsonl.gz
+2026-10-31T02:52:42.214461+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:42 loaded index.part-007.jsonl.gz
+2026-10-31T02:52:48.263713+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:48 loaded posts.jsonl.gz
+2026-10-31T02:52:50.113330+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:50 loaded realmojis.part-000.jsonl.gz
+2026-10-31T02:52:52.354541+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:52 loaded realmojis.part-001.jsonl.gz
+2026-10-31T02:52:54.187362+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:54 loaded realmojis.part-002.jsonl.gz
+2026-10-31T02:52:56.275109+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:56 loaded realmojis.part-003.jsonl.gz
+2026-10-31T02:52:58.525364+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:52:58 loaded realmojis.part-004.jsonl.gz
+2026-10-31T02:53:02.192164+00:00 ip-192-168-1-10 isureal[50487]: 2026/10/31 02:53:02 loaded comments.jsonl.gz
+2026-10-31T02:53:46.195751+00:00 ip-192-168-1-10 systemd[1]: isureal-go.service: A process of this unit has been killed by the OOM killer.
+2026-10-31T02:53:46.353986+00:00 ip-192-168-1-10 systemd[1]: isureal-go.service: Main process exited, code=killed, status=9/KILL
+2026-10-31T02:53:46.354390+00:00 ip-192-168-1-10 systemd[1]: isureal-go.service: Failed with result 'oom-kill'.
+2026-10-31T02:53:46.358552+00:00 ip-192-168-1-10 systemd[1]: isureal-go.service: Consumed 1min 39.653s CPU time.
+2026-10-31T02:53:46.519865+00:00 ip-192-168-1-10 systemd[1]: isureal-go.service: Scheduled restart job, restart counter is at 1.
+2026-10-31T02:53:46.529559+00:00 ip-192-168-1-10 systemd[1]: Started isureal-go.service - ISUCON Go application.
+2026-10-31T02:53:46.675942+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:46 native multi-buffer HMAC ready: architecture=5
+2026-10-31T02:53:46.694568+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:46 region=asia state_owner=true
+2026-10-31T02:53:46.725940+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:46 loaded accounts.jsonl.gz
+2026-10-31T02:53:46.726921+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:46 loaded administrators.jsonl.gz
+2026-10-31T02:53:46.731534+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:46 loaded posting-windows.jsonl.gz
+2026-10-31T02:53:46.860889+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:46 loaded friend-requests.jsonl.gz
+2026-10-31T02:53:46.993211+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:46 loaded friendships.jsonl.gz
+2026-10-31T02:53:47.027124+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:47 loaded follows.jsonl.gz
+2026-10-31T02:53:47.028551+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:47 loaded blocks.jsonl.gz
+2026-10-31T02:53:48.419833+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:48 loaded index.part-000.jsonl.gz
+2026-10-31T02:53:49.857677+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:49 loaded index.part-001.jsonl.gz
+2026-10-31T02:53:51.122512+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:51 loaded index.part-002.jsonl.gz
+2026-10-31T02:53:52.753664+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:52 loaded index.part-003.jsonl.gz
+2026-10-31T02:53:54.012405+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:54 loaded index.part-004.jsonl.gz
+2026-10-31T02:53:55.282729+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:55 loaded index.part-005.jsonl.gz
+2026-10-31T02:53:56.723260+00:00 ip-192-168-1-10 isureal[52109]: 2026/10/31 02:53:56 loaded index.part-006.jsonl.gz

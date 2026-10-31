@@ -1,0 +1,39 @@
+time=2026-10-31T02:53:05.874Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:53:08.853Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:53:11.855Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:53:14.872Z level=INFO msg="asia 2 日目: 46 人"
+time=2026-10-31T02:53:17.850Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T02:53:20.850Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T02:53:23.917Z level=INFO msg="asia 3 日目: 130 人"
+time=2026-10-31T02:53:25.529Z level=INFO msg="user moved" user=shira-5641 from=asia to=america
+time=2026-10-31T02:53:26.937Z level=INFO msg="europe 3 日目: 53 人"
+time=2026-10-31T02:53:27.967Z level=INFO msg="user moved" user=anfuleo.5772 from=asia to=europe
+time=2026-10-31T02:53:29.860Z level=INFO msg="america 3 日目: 47 人"
+time=2026-10-31T02:53:50.850Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "負荷走行を打ち切りました: 40s〜45s のエラー率 161.5%（2431/1505 件）が上限 10.0% を超えました",
+    "asia の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "europe の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "neho5491: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "yuxin_wu_3722: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "miazoe_5270: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "ruyo-5751: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "noakuchi-5997: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "raolu_huojian_1247: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "keheul5020: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "liahi-5045: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "anyaben_5058: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "nuke5731: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "evasoho5068: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "chiistor_5871: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "sais-5636: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "hanema-5864: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "hina_nakamura_2261: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "triple_kenkyukai_4395: ログアウトできません: POST /api/auth/logout: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/logout\": EOF",
+    "yang_liu_2051: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "noatonu-6027: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
