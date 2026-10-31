@@ -119,6 +119,7 @@ type banChange struct {
 	Until time.Time
 }
 type State struct {
+	dayPostCache  map[string]dayPostState
 	imageLinks    map[[16]byte]imageLink
 	LivePosts     map[string][]string
 	Accounts      map[string]*Account
@@ -251,6 +252,7 @@ func (s *State) apply(kind string, data []byte) error {
 	case "post":
 		var v Post
 		decode(&v)
+		delete(s.dayPostCache, v.AuthorID)
 		if s.Posts.get(v.ID) == nil {
 			s.UserPosts[v.AuthorID] = append(s.UserPosts[v.AuthorID], v.ID)
 			if win := s.Windows[v.WindowID]; win != nil && win.EndedAt == nil {
@@ -592,10 +594,20 @@ func (a *App) imageReader(im *Image) (*os.File, int64, error) {
 	return f, im.Offset, e
 }
 func (s *State) window(u *Account) *Window { return s.Windows[s.Current[u.Region]] }
+
+type dayPostState struct {
+	date    string
+	post    *Post
+	deleted int
+}
+
 func (s *State) dayPosts(u *Account) (*Post, int) {
 	w := s.window(u)
 	if w == nil {
 		return nil, 0
+	}
+	if cached, ok := s.dayPostCache[u.ID]; ok && cached.date == w.LocalDate {
+		return cached.post, cached.deleted
 	}
 	var p *Post
 	deleted := 0
@@ -609,6 +621,10 @@ func (s *State) dayPosts(u *Account) (*Post, int) {
 			}
 		}
 	}
+	if s.dayPostCache == nil {
+		s.dayPostCache = make(map[string]dayPostState)
+	}
+	s.dayPostCache[u.ID] = dayPostState{date: w.LocalDate, post: p, deleted: deleted}
 	return p, deleted
 }
 func (s *State) canPost(u *Account) bool {
