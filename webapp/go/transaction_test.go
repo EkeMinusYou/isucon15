@@ -137,6 +137,27 @@ func TestConcurrentUsernameRegistration(t *testing.T) {
 	}
 }
 
+func TestLoginLocksFollowRequestDecoder(t *testing.T) {
+	a := fixtureApp(t)
+	registered := requireCall(t, a, "POST", "/api/auth/register", "", object{"username": "login_decoder", "displayName": "Decoder", "region": "asia"}, 201)
+	uid := registered["user"].(map[string]any)["id"].(string)
+	b, _ := json.Marshal(object{"username": "login_decoder", "secretKey": registered["secretKey"]})
+	b = append(b, []byte(" {}")...)
+	r := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(b))
+	keys, _ := a.mutationKeys(r)
+	found := false
+	for _, key := range keys {
+		found = found || key == "user:"+uid
+	}
+	if !found {
+		t.Fatal("login did not lock the user accepted by the request decoder")
+	}
+	var input struct{ Username string }
+	if !decode(r, &input) || input.Username != "login_decoder" {
+		t.Fatal("lock selection changed the request body")
+	}
+}
+
 func TestIndependentRelationshipsShareTarget(t *testing.T) {
 	a := fixtureApp(t)
 	target := idInRegion("asia")

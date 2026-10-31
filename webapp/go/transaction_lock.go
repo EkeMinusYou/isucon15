@@ -166,7 +166,7 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 		if r.Body != nil {
 			b, _ := io.ReadAll(r.Body)
 			r.Body = io.NopCloser(bytes.NewReader(b))
-			json.Unmarshal(b, &input)
+			json.NewDecoder(bytes.NewReader(b)).Decode(&input)
 		}
 	}
 	if signatureReport && input.IP != "" {
