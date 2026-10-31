@@ -33,7 +33,7 @@ type regionalMaster struct {
 	stats                       *regionalImageMetrics
 }
 
-func loadMasterInitial(initial, region string) (*State, *masterHomes, error) {
+func loadMasterInitial(initial, region, backingDir string) (*State, *masterHomes, error) {
 	s := emptyState()
 	homes := &masterHomes{users: map[string]string{}, images: map[[16]byte]uint8{}, posts: map[[16]byte]uint8{}}
 	complete := false
@@ -42,6 +42,11 @@ func loadMasterInitial(initial, region string) (*State, *masterHomes, error) {
 			s.closeHistory()
 		}
 	}()
+	for _, setBacking := range []func(string) error{s.Posts.useFileBacking, s.Reactions.useFileBacking, s.Images.useFileBacking} {
+		if err := setBacking(backingDir); err != nil {
+			return nil, nil, err
+		}
+	}
 	if err := loadLines(filepath.Join(initial, "accounts.jsonl.gz"), func(b []byte) error {
 		var v Account
 		if err := json.Unmarshal(b, &v); err != nil {
@@ -122,7 +127,7 @@ func newRegionalMaster(initial, durable, imageRoot, region string, files *region
 	if err := os.MkdirAll(durable, 0700); err != nil {
 		return nil, err
 	}
-	s, homes, err := loadMasterInitial(initial, region)
+	s, homes, err := loadMasterInitial(initial, region, durable)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +300,7 @@ func (m *regionalMaster) reset(epoch string) error {
 	m.s.closeHistory()
 	m.s = emptyState()
 	runtime.GC()
-	s, _, err := loadMasterInitial(m.initial, m.region)
+	s, _, err := loadMasterInitial(m.initial, m.region, m.durable)
 	if err != nil {
 		return err
 	}

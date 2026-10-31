@@ -4,12 +4,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"golang.org/x/sys/unix"
 )
 
-// Historical rows stay in anonymous memory, outside the filesystem page cache
-// and Go's heap limit.
+// Historical rows use mmap outside Go's heap limit. The aggregated read view
+// uses anonymous memory; regional masters use reclaimable file-backed pages.
 // The fixed-width index requires no pointer tracing by the garbage collector.
 // Mutations are an overlay, persisted by the existing journal.
 const recordChunkBytes = 4 << 20
@@ -24,6 +25,23 @@ type recordStore[T any] struct {
 	data     [][]byte
 	decorate func(string, *T)
 	borrowed bool
+	backing  *os.File
+}
+
+// Derived regional history can be reclaimed by the OS under memory pressure.
+// Its authoritative input remains the initial data; the temporary backing file
+// is unlinked immediately and is never part of accepted-update persistence.
+func (s *recordStore[T]) useFileBacking(root string) error {
+	f, err := os.CreateTemp(root, ".initial-history-")
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(f.Name()); err != nil {
+		f.Close()
+		return err
+	}
+	s.backing = f
+	return nil
 }
 
 func newRecordStore[T any]() *recordStore[T] {
@@ -110,7 +128,14 @@ func (s *recordStore[T]) add(id string, raw []byte, v *T) error {
 	}
 	n := len(s.data) - 1
 	if n < 0 || len(s.data[n])+len(raw) > recordChunkBytes {
-		block, err := unix.Mmap(-1, 0, recordChunkBytes, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
+		fd, offset, flags := -1, int64(0), unix.MAP_PRIVATE|unix.MAP_ANON
+		if s.backing != nil {
+			fd, offset, flags = int(s.backing.Fd()), int64(len(s.data))*recordChunkBytes, unix.MAP_SHARED
+			if err := s.backing.Truncate(offset + recordChunkBytes); err != nil {
+				return err
+			}
+		}
+		block, err := unix.Mmap(fd, offset, recordChunkBytes, unix.PROT_READ|unix.PROT_WRITE, flags)
 		if err != nil {
 			return err
 		}
@@ -130,6 +155,10 @@ func (s *recordStore[T]) close() {
 		unix.Munmap(chunk[:cap(chunk)])
 	}
 	s.data = nil
+	if s.backing != nil {
+		s.backing.Close()
+		s.backing = nil
+	}
 }
 func (s *recordStore[T]) len() int { return len(s.index) + s.live.Len() }
 
