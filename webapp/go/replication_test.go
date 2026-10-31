@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -30,6 +31,24 @@ type replicationFixture struct {
 	keyFile               string
 }
 
+type pausedAckBody struct {
+	io.ReadCloser
+	ctx     context.Context
+	fixture *replicationFixture
+}
+
+func (body *pausedAckBody) Read(buffer []byte) (int, error) {
+	n, err := body.ReadCloser.Read(buffer)
+	if body.fixture.blockAck.Load() {
+		select {
+		case <-body.fixture.releaseAck:
+		case <-body.ctx.Done():
+			return 0, body.ctx.Err()
+		}
+	}
+	return n, err
+}
+
 func awaitReplica(t *testing.T, app *App) {
 	t.Helper()
 	deadline := time.Now().Add(3 * time.Second)
@@ -52,12 +71,8 @@ func newReplicationFixture(t *testing.T) *replicationFixture {
 		t.Fatal(err)
 	}
 	f.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == replicationAckPath && f.blockAck.Load() {
-			select {
-			case <-f.releaseAck:
-			case <-r.Context().Done():
-				return
-			}
+		if r.URL.Path == replicationAckPath {
+			r.Body = &pausedAckBody{ReadCloser: r.Body, ctx: r.Context(), fixture: f}
 		}
 		if !strings.HasPrefix(r.URL.Path, "/api/internal/replication/") {
 			f.business.Add(1)

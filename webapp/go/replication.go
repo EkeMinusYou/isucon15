@@ -60,6 +60,7 @@ type replicationHub struct {
 	baseAcked bool
 	changed   chan struct{}
 	epochPath string
+	stopped   chan struct{}
 }
 
 func readEpoch(dir string) (string, error) {
@@ -82,7 +83,7 @@ func newReplicationHub(a *App, peers []string) (*replicationHub, error) {
 	if err != nil {
 		return nil, err
 	}
-	h := &replicationHub{epoch: epoch, ready: true, peers: make(map[string]replicationProgress), baseDone: make(chan struct{}), changed: make(chan struct{}), epochPath: a.durable}
+	h := &replicationHub{epoch: epoch, ready: true, peers: make(map[string]replicationProgress), baseDone: make(chan struct{}), changed: make(chan struct{}), epochPath: a.durable, stopped: make(chan struct{})}
 	for _, peer := range peers {
 		h.peers[peer] = replicationProgress{}
 	}
@@ -177,6 +178,7 @@ func (h *replicationHub) stop() {
 	defer h.mu.Unlock()
 	if !h.closed {
 		h.closed = true
+		close(h.stopped)
 		if !h.baseAcked {
 			close(h.baseDone)
 			h.baseAcked = true
@@ -270,12 +272,7 @@ func (a *App) replicationHTTP(w http.ResponseWriter, r *http.Request) bool {
 	case r.URL.Path == replicationStreamPath && r.Method == "GET":
 		a.replication.stream(w, r)
 	case r.URL.Path == replicationAckPath && r.Method == "POST":
-		var progress replicationProgress
-		if !decode(r, &progress) || !a.replication.ack(progress) {
-			failure(w, 409, "invalid_replica_ack")
-		} else {
-			w.WriteHeader(204)
-		}
+		a.replication.receiveAcks(w, r)
 	case r.URL.Path == replicationFailurePath && r.Method == "POST":
 		var report struct{ IP, Region string }
 		if !decode(r, &report) || !validRegion(report.Region) {
@@ -468,32 +465,96 @@ func (r *replicaReader) notify(changes []change) {
 	}
 }
 func (r *replicaReader) ackLoop(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
+	for ctx.Err() == nil {
+		_ = r.ackSession(ctx)
+		if !pauseReplication(ctx) {
 			return
-		case <-r.ackWake:
-		}
-		for ctx.Err() == nil {
-			progress := r.progress.Load()
-			data, _ := json.Marshal(progress)
-			req, _ := http.NewRequestWithContext(ctx, "POST", r.owner+replicationAckPath, strings.NewReader(string(data)))
-			req.Header.Set("X-ISU-Transport", transportSecret)
-			resp, err := replicationControl.Do(req)
-			ok := err == nil && resp.StatusCode == 204
-			if resp != nil {
-				io.Copy(io.Discard, resp.Body)
-				resp.Body.Close()
-			}
-			if ok {
-				break
-			}
-			if !pauseReplication(ctx) {
-				return
-			}
 		}
 	}
 }
+
+// ACKs are uploaded continuously. Waiting for an HTTP response after each ACK
+// would add another round trip to commits arriving during that wait.
+func (r *replicaReader) ackSession(ctx context.Context) error {
+	reader, writer := io.Pipe()
+	defer reader.Close()
+	defer writer.Close()
+	req, err := http.NewRequestWithContext(ctx, "POST", r.owner+replicationAckPath, reader)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-ndjson")
+	req.Header.Set("X-ISU-Transport", transportSecret)
+	done := make(chan error, 1)
+	go func() {
+		resp, err := (&http.Client{Transport: replicationTransport}).Do(req)
+		if resp != nil {
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+			if err == nil && resp.StatusCode != 204 {
+				err = fmt.Errorf("replication ACK: HTTP %d", resp.StatusCode)
+			}
+		}
+		if err == nil {
+			err = io.EOF
+		}
+		reader.CloseWithError(err)
+		done <- err
+	}()
+	encoder := json.NewEncoder(writer)
+	var sent replicationProgress
+	for {
+		progress := r.progress.Load()
+		if *progress != sent {
+			if err := encoder.Encode(progress); err != nil {
+				writer.CloseWithError(err)
+				<-done
+				return err
+			}
+			sent = *progress
+		}
+		select {
+		case <-ctx.Done():
+			writer.CloseWithError(ctx.Err())
+			<-done
+			return ctx.Err()
+		case err := <-done:
+			return err
+		case <-r.ackWake:
+		}
+	}
+}
+
+func (h *replicationHub) receiveAcks(w http.ResponseWriter, r *http.Request) {
+	if err := http.NewResponseController(w).EnableFullDuplex(); err != nil {
+		failure(w, 500, "duplex_unavailable")
+		return
+	}
+	finished := make(chan struct{})
+	defer close(finished)
+	go func() {
+		select {
+		case <-h.stopped:
+			r.Body.Close()
+		case <-finished:
+		case <-r.Context().Done():
+		}
+	}()
+	decoder := json.NewDecoder(r.Body)
+	for {
+		var progress replicationProgress
+		err := decoder.Decode(&progress)
+		if err == io.EOF {
+			w.WriteHeader(204)
+			return
+		}
+		if err != nil || !h.ack(progress) {
+			failure(w, 409, "invalid_replica_ack")
+			return
+		}
+	}
+}
+
 func (a *App) stopReplication() {
 	if a.replica != nil {
 		a.replica.cancel()
