@@ -1,0 +1,11 @@
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "初期データの検証に失敗しました: 初期データのユーザー panya_shugyo_386: Memories（2026-02）: 画像 URL \"/api/images/c69ab22a-6ef1-44d2-a368-0d71f1017e55?exp=1793505600\u0026sig=dQ9hwMvMa7lOeivHkgaTogQlVmG96yGFAt5VKLu9rlA\" の有効期限 2026-11-01T04:00:00Z が範囲外です",
+    "初期データのユーザー tankao_mini_huoji_200: Memories（2025-11）: 画像 URL \"/api/images/7e5adb72-e033-46db-b156-89091f3f0ac8?exp=1793505600\u0026sig=tIAw5HMJXTT1hDaeeVS6o8FLgnFP8OLg2GW4sF7O8Aw\" の有効期限 2026-11-01T04:00:00Z が範囲外です",
+    "初期データのユーザー elias_hoffmann_1411: Memories（2026-10）: 画像 URL \"/api/images/41380e9a-4355-47f4-a9ff-bb358e424055?exp=1793505600\u0026sig=wgWTkah1Ggi3x5X8YcxLVd15E0laMD5LhXPcHzpO68w\" の有効期限 2026-11-01T04:00:00Z が範囲外です",
+    "初期データのユーザー mia_jackson_423: Memories（2025-10）: 画像 URL \"/api/images/3f6bec3a-b244-4a76-bfe3-7504e584f8d4?exp=1793505600\u0026sig=lOIZN_mZV3pb6N5TR3BcJtODx3Rq_imMpELsFc0qiA8\" の有効期限 2026-11-01T04:00:00Z が範囲外です",
+    "初期データのユーザー elias_hoffmann_8: Memories（2025-12）: 画像 URL \"/api/images/1766875a-57bb-49dc-9111-45ff483f35d7?exp=1793505600\u0026sig=dnsLJSokXZAU-HJy35EZTSbKTMtycGbic1pY5-Gb0f0\" の有効期限 2026-11-01T04:00:00Z が範囲外です"
+  ]
+}
