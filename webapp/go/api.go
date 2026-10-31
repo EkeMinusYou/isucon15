@@ -132,8 +132,8 @@ func ipOf(r *http.Request) string {
 func (a *App) failIP(r *http.Request, kind string, limit int, period time.Duration) {
 	key := r.Header.Get("X-ISU-Source") + "/" + kind + "/" + ipOf(r)
 	now := time.Now()
-	xs := a.failures[key][:0]
-	for _, t := range a.failures[key] {
+	xs := a.failures.Get(key)[:0]
+	for _, t := range a.failures.Get(key) {
 		if now.Sub(t) < period {
 			xs = append(xs, t)
 		}
@@ -141,12 +141,12 @@ func (a *App) failIP(r *http.Request, kind string, limit int, period time.Durati
 	xs = append(xs, now)
 	if len(xs) >= limit {
 		until := now.Add(2 * time.Minute)
-		if a.s.Bans[ipOf(r)].Before(until) {
+		if a.s.Bans.Get(ipOf(r)).Before(until) {
 			a.put("ban", banChange{ipOf(r), until})
 		}
 		xs = nil
 	}
-	a.failures[key] = xs
+	a.failures.Set(key, xs)
 }
 func (a *App) auth(w http.ResponseWriter, r *http.Request, region bool) *Account {
 	if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
@@ -154,7 +154,7 @@ func (a *App) auth(w http.ResponseWriter, r *http.Request, region bool) *Account
 		return nil
 	}
 	t := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	u := a.s.Accounts[a.s.Sessions[t]]
+	u := a.s.Accounts.Get(a.s.Sessions.Get(t))
 	if u == nil || u.Status != "active" {
 		failure(w, 401, "invalid_session")
 		return nil
@@ -175,7 +175,7 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	t := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	if a.s.AdminSessions[t] == "" {
+	if a.s.AdminSessions.Get(t) == "" {
 		failure(w, 401, "invalid_administrator_session")
 		return false
 	}
@@ -188,7 +188,7 @@ func requestRegion(r *http.Request) string {
 	return fixedRegion
 }
 func (a *App) signed(im *Image, exp int64) string {
-	return a.signImage(im.ID, a.s.Accounts[im.OwnerID].Secret, exp)
+	return a.signImage(im.ID, a.s.Accounts.Get(im.OwnerID).Secret, exp)
 }
 func (a *App) signImage(imageID, secret string, exp int64) string {
 	key := signatureKey(imageID, secret, exp)
@@ -237,7 +237,7 @@ func (a *App) imageURL(i string) any {
 		return nil
 	}
 	exp := time.Now().Unix() + 86400
-	return imageReference{a, i, a.s.Accounts[im.OwnerID].Secret, exp}
+	return imageReference{a, i, a.s.Accounts.Get(im.OwnerID).Secret, exp}
 }
 func (a *App) user(u *Account, bio bool) object {
 	b := ""
@@ -265,18 +265,18 @@ func windowJSON(v *Window) object {
 	return object{"id": v.ID, "region": v.Region, "localDate": v.LocalDate, "startsAt": v.StartsAt, "onTimeDeadline": v.Deadline}
 }
 func (a *App) post(p *Post) object {
-	w := a.s.Windows[p.WindowID]
+	w := a.s.Windows.Get(p.WindowID)
 	late := int64(p.PostedAt.Sub(w.Deadline) / time.Second)
 	if late < 0 {
 		late = 0
 	}
-	return object{"id": p.ID, "author": a.user(a.s.Accounts[p.AuthorID], true), "postingWindowId": p.WindowID, "imageUrl": a.imageURL(p.ImageID), "caption": p.Caption, "visibility": p.Visibility, "location": p.Location, "postedAt": p.PostedAt, "onTime": !p.PostedAt.After(w.Deadline), "lateSeconds": late}
+	return object{"id": p.ID, "author": a.user(a.s.Accounts.Get(p.AuthorID), true), "postingWindowId": p.WindowID, "imageUrl": a.imageURL(p.ImageID), "caption": p.Caption, "visibility": p.Visibility, "location": p.Location, "postedAt": p.PostedAt, "onTime": !p.PostedAt.After(w.Deadline), "lateSeconds": late}
 }
 func (a *App) comment(c *Comment) object {
-	return object{"id": c.ID, "author": a.user(a.s.Accounts[c.AuthorID], true), "body": c.Body, "createdAt": c.CreatedAt}
+	return object{"id": c.ID, "author": a.user(a.s.Accounts.Get(c.AuthorID), true), "body": c.Body, "createdAt": c.CreatedAt}
 }
 func (a *App) reaction(c *Reaction) object {
-	return object{"id": c.ID, "reactor": a.user(a.s.Accounts[c.ReactorID], true), "reactionType": c.Type, "imageUrl": a.imageURL(c.ImageID), "createdAt": c.CreatedAt}
+	return object{"id": c.ID, "reactor": a.user(a.s.Accounts.Get(c.ReactorID), true), "reactionType": c.Type, "imageUrl": a.imageURL(c.ImageID), "createdAt": c.CreatedAt}
 }
 func page(w http.ResponseWriter, x []object) {
 	more := len(x) > 50
@@ -316,6 +316,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok\n"))
 		return
 	}
+	a = &App{appCore: a.appCore}
 	if r.URL.Path == "/api/notifications" && r.Method == "GET" {
 		a.notifications(w, r)
 		return
@@ -326,7 +327,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Reject banned or unauthenticated uploads before retaining their bodies.
 		a.mu.RLock()
 		check := httptest.NewRecorder()
-		if time.Now().Before(a.s.Bans[ipOf(r)]) {
+		if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 			failure(check, 403, "ip_banned")
 		} else {
 			a.auth(check, r, !profile)
@@ -382,15 +383,16 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	stats := &a.routeMetrics[metricRoute(r.URL.Path)]
 	started := time.Now()
 	readOnly := r.Method == "GET"
-	if readOnly {
-		a.mu.RLock()
-	} else {
-		a.mu.Lock()
-	}
+	unlock := a.lockRequest(r)
+	defer func() {
+		if unlock != nil {
+			unlock()
+		}
+	}()
 	locked := time.Now()
 	stats.waitNS.Add(uint64(locked.Sub(started)))
 	stats.requests.Add(1)
-	if time.Now().Before(a.s.Bans[ipOf(r)]) {
+	if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 		failure(rr, 403, "ip_banned")
 	} else {
 		a.dispatch(rr, r)
@@ -399,11 +401,8 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.commit()
 	}
 	stats.holdNS.Add(uint64(time.Since(locked)))
-	if readOnly {
-		a.mu.RUnlock()
-	} else {
-		a.mu.Unlock()
-	}
+	unlock()
+	unlock = nil
 	started = time.Now()
 	for k, vs := range rr.Header() {
 		for _, v := range vs {
@@ -440,7 +439,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 			failure(w, 400, "invalid_registration")
 			return
 		}
-		if s.Names[v.Username] != "" {
+		if s.Names.Get(v.Username) != "" {
 			failure(w, 409, "username_taken")
 			return
 		}
@@ -453,16 +452,14 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 	if path == "/api/auth/login" && method == "POST" {
 		var v struct{ Username, SecretKey string }
 		decode(r, &v)
-		u := s.Accounts[s.Names[v.Username]]
+		u := s.Accounts.Get(s.Names.Get(v.Username))
 		if !usernameRE.MatchString(v.Username) || u == nil || u.Status != "active" || !hmac.Equal([]byte(u.Secret), []byte(secretHash(v.SecretKey))) {
 			a.failIP(r, "login", 10, 10*time.Second)
 			failure(w, 401, "invalid_credentials")
 			return
 		}
-		for t, uid := range s.Sessions {
-			if uid == u.ID {
-				a.put("session", tokenChange{t, ""})
-			}
+		for t := range s.UserTokens.Get(u.ID) {
+			a.put("session", tokenChange{t, ""})
 		}
 		token := id()
 		a.put("session", tokenChange{token, u.ID})
@@ -476,7 +473,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 	if path == "/api/admin/auth/login" && method == "POST" {
 		var v struct{ Username, Password string }
 		decode(r, &v)
-		u := s.Admins[v.Username]
+		u := s.Admins.Get(v.Username)
 		if !usernameRE.MatchString(v.Username) || u == nil || !hmac.Equal([]byte(u.Password), []byte(secretHash(v.Password))) {
 			failure(w, 401, "invalid_credentials")
 			return
@@ -566,17 +563,15 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		n := *u
 		n.Status = "deleted"
 		a.put("account", n)
-		for t, uid := range s.Sessions {
-			if uid == u.ID {
-				a.put("session", tokenChange{t, ""})
-			}
+		for t := range s.UserTokens.Get(u.ID) {
+			a.put("session", tokenChange{t, ""})
 		}
 		a.wake()
 		w.WriteHeader(204)
 	case path == "/api/users" && method == "GET":
 		a.search(w, r, u)
 	case strings.HasPrefix(path, "/api/users/") && method == "GET":
-		v := s.Accounts[strings.TrimPrefix(path, "/api/users/")]
+		v := s.Accounts.Get(strings.TrimPrefix(path, "/api/users/"))
 		if v == nil || v.Status != "active" || s.blocked(u.ID, v.ID) {
 			failure(w, 404, "relationship_not_found")
 			return
@@ -636,7 +631,7 @@ func (a *App) adminAPI(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(path, "/api/admin/users/") && strings.HasSuffix(path, "/certification") {
 		uid := strings.TrimSuffix(strings.TrimPrefix(path, "/api/admin/users/"), "/certification")
-		u := s.Accounts[uid]
+		u := s.Accounts.Get(uid)
 		if r.Method == "DELETE" {
 			failure(w, 409, "certification_irreversible")
 			return
@@ -669,7 +664,7 @@ func (a *App) adminAPI(w http.ResponseWriter, r *http.Request) {
 			failure(w, 400, "invalid_posting_window")
 			return
 		}
-		for _, x := range s.Windows {
+		for _, x := range s.Windows.All() {
 			if x.Region == v.Region && x.LocalDate >= v.LocalDate {
 				failure(w, 409, "posting_window_conflict")
 				return
@@ -680,14 +675,14 @@ func (a *App) adminAPI(w http.ResponseWriter, r *http.Request) {
 		if v.OnTimeSeconds != nil {
 			seconds = *v.OnTimeSeconds
 		}
-		if old := s.Windows[s.Current[v.Region]]; old != nil {
+		if old := s.Windows.Get(s.Current.Get(v.Region)); old != nil {
 			c := *old
 			c.EndedAt = &now
 			a.put("window", c)
 		}
 		n := Window{ID: id(), Region: v.Region, LocalDate: v.LocalDate, StartsAt: now, Deadline: now.Add(time.Duration(seconds) * time.Second)}
 		a.put("window", n)
-		for _, u := range s.Accounts {
+		for _, u := range s.Accounts.All() {
 			if u.Status == "active" && u.Region == v.Region {
 				a.put("notification", Notification{id(), u.ID, n.ID, now})
 			}
@@ -712,7 +707,7 @@ func (a *App) search(w http.ResponseWriter, r *http.Request, u *Account) {
 	}
 	term = foldSearch(term)
 	var us []*Account
-	for _, x := range a.s.Accounts {
+	for _, x := range a.s.Accounts.All() {
 		if x.ID == u.ID || x.Status != "active" || (bi != "" && (x.Username < bu || x.Username == bu && x.ID <= bi)) {
 			continue
 		}
@@ -753,7 +748,7 @@ func (a *App) validImage(im *Image) bool {
 	if im == nil || !s.active(im.OwnerID) {
 		return false
 	}
-	u := s.Accounts[im.OwnerID]
+	u := s.Accounts.Get(im.OwnerID)
 	if u.ProfileImageID != nil && *u.ProfileImageID == im.ID {
 		return true
 	}
@@ -787,13 +782,16 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 		return
 	}
 	copyImage, valid := *im, a.validImage(im)
-	secret := a.s.Accounts[im.OwnerID].Secret
+	secret := a.s.Accounts.Get(im.OwnerID).Secret
 	responseWork(w, func(w http.ResponseWriter) {
 		if !hmac.Equal([]byte(ss[0]), []byte(a.signImage(i, secret, exp))) {
-			a.mu.Lock()
+			a.mu.RLock()
+			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
+			stripe.Lock()
 			a.failIP(r, "signature", 3, 5*time.Second)
 			a.commit()
-			a.mu.Unlock()
+			stripe.Unlock()
+			a.mu.RUnlock()
 			failure(w, 403, "image_forbidden")
 			return
 		}
@@ -943,7 +941,7 @@ func (a *App) postAPI(w http.ResponseWriter, r *http.Request, u *Account, i stri
 			failure(w, 400, "invalid_post")
 			return
 		}
-		if p.AuthorID != u.ID || a.s.Windows[p.WindowID].EndedAt != nil {
+		if p.AuthorID != u.ID || a.s.Windows.Get(p.WindowID).EndedAt != nil {
 			failure(w, 403, "post_not_editable")
 			return
 		}
@@ -963,11 +961,11 @@ func (a *App) postAPI(w http.ResponseWriter, r *http.Request, u *Account, i stri
 			failure(w, 403, "post_not_editable")
 			return
 		}
-		date := a.s.Windows[p.WindowID].LocalDate
+		date := a.s.Windows.Get(p.WindowID).LocalDate
 		n := 0
-		for _, pid := range a.s.UserPosts[u.ID] {
+		for _, pid := range a.s.UserPosts.Get(u.ID) {
 			x := a.s.Posts.get(pid)
-			if x.DeletedAt != nil && a.s.Windows[x.WindowID].LocalDate == date {
+			if x.DeletedAt != nil && a.s.Windows.Get(x.WindowID).LocalDate == date {
 				n++
 			}
 		}

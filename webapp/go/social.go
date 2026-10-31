@@ -15,7 +15,7 @@ import (
 
 func (a *App) listComments(pid string) []*Comment {
 	out := []*Comment{}
-	for _, i := range a.s.PostComments[pid] {
+	for _, i := range a.s.PostComments.Get(pid) {
 		c := a.s.Comments.get(i)
 		if c.DeletedAt == nil && a.s.active(c.AuthorID) {
 			out = append(out, c)
@@ -26,7 +26,7 @@ func (a *App) listComments(pid string) []*Comment {
 }
 func (a *App) listReactions(pid string) []*Reaction {
 	out := []*Reaction{}
-	for _, i := range a.s.PostReactions[pid] {
+	for _, i := range a.s.PostReactions.Get(pid) {
 		c := a.s.Reactions.get(i)
 		if c.DeletedAt == nil && c.ReplacedAt == nil && a.s.active(c.ReactorID) {
 			out = append(out, c)
@@ -76,7 +76,7 @@ func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, p
 				return
 			}
 			now := time.Now().UTC()
-			for _, i := range s.PostReactions[pid] {
+			for _, i := range s.PostReactions.Get(pid) {
 				old := s.Reactions.get(i)
 				if old.ReactorID == u.ID && old.ReplacedAt == nil && old.DeletedAt == nil {
 					v := *old
@@ -192,18 +192,18 @@ func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind stri
 	if kind == "friends-of-friends" {
 		ranking = s.snapshotRanking(u.ID)
 	}
-	for aid, ids := range s.LivePosts {
-		author := s.Accounts[aid]
+	for aid, ids := range s.LivePosts.All() {
+		author := s.Accounts.Get(aid)
 		if author.ID == u.ID || author.Status != "active" {
 			continue
 		}
-		match := kind == "public" || kind == "friends" && s.friend(u.ID, aid) || kind == "following" && s.Follows[directed(u.ID, aid)] != nil || kind == "friends-of-friends" && !s.friend(u.ID, aid) && s.common(u.ID, aid) > 0
+		match := kind == "public" || kind == "friends" && s.friend(u.ID, aid) || kind == "following" && s.Follows.Get(directed(u.ID, aid)) != nil || kind == "friends-of-friends" && !s.friend(u.ID, aid) && s.common(u.ID, aid) > 0
 		if !match {
 			continue
 		}
 		for _, pid := range ids {
 			p := s.Posts.get(pid)
-			if s.Windows[p.WindowID].EndedAt != nil || !s.view(u, p) || kind == "public" && p.Visibility != "public" {
+			if s.Windows.Get(p.WindowID).EndedAt != nil || !s.view(u, p) || kind == "public" && p.Visibility != "public" {
 				continue
 			}
 			x := entry{post: a.snapshotPost(p), author: aid}
@@ -212,13 +212,13 @@ func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind stri
 				for _, id := range ranking.graph[aid] {
 					ranking.capture(s, id)
 				}
-				for _, id := range s.PostComments[pid] {
+				for _, id := range s.PostComments.Get(pid) {
 					c := s.Comments.get(id)
 					if c.DeletedAt == nil && s.active(c.AuthorID) {
 						x.engaged = append(x.engaged, c.AuthorID)
 					}
 				}
-				for _, id := range s.PostReactions[pid] {
+				for _, id := range s.PostReactions.Get(pid) {
 					v := s.Reactions.get(id)
 					if v.DeletedAt == nil && v.ReplacedAt == nil && s.active(v.ReactorID) {
 						x.engaged = append(x.engaged, v.ReactorID)
@@ -293,13 +293,13 @@ func (a *App) memories(w http.ResponseWriter, r *http.Request, u *Account) {
 			continue
 		}
 		m := memory{post: a.snapshotPost(p)}
-		for _, id := range a.s.PostComments[p.ID] {
+		for _, id := range a.s.PostComments.Get(p.ID) {
 			c := a.s.Comments.get(id)
 			if c.DeletedAt == nil && a.s.active(c.AuthorID) {
 				m.comments = append(m.comments, a.snapshotComment(c))
 			}
 		}
-		for _, id := range a.s.PostReactions[p.ID] {
+		for _, id := range a.s.PostReactions.Get(p.ID) {
 			v := a.s.Reactions.get(id)
 			if v.DeletedAt == nil && v.ReplacedAt == nil && a.s.active(v.ReactorID) {
 				m.reactions = append(m.reactions, a.snapshotReaction(v))
@@ -352,7 +352,7 @@ func (a *App) export(w http.ResponseWriter, r *http.Request, u *Account) {
 		image Image
 	}
 	entries := []entry{}
-	for _, id := range a.s.UserPosts[u.ID] {
+	for _, id := range a.s.UserPosts.Get(u.ID) {
 		p := a.s.Posts.get(id)
 		if p.DeletedAt != nil {
 			continue
@@ -456,13 +456,13 @@ func (a *App) relationshipAPI(w http.ResponseWriter, r *http.Request, u *Account
 			return
 		}
 		var reverse *Relation
-		for _, q := range s.RequestOut[u.ID] {
+		for _, q := range s.RequestOut.Get(u.ID) {
 			if q.RecipientID == v.RecipientID {
 				failure(w, 409, "relationship_conflict")
 				return
 			}
 		}
-		for _, q := range s.RequestIn[u.ID] {
+		for _, q := range s.RequestIn.Get(u.ID) {
 			if q.RequesterID == v.RecipientID {
 				reverse = q
 				break
@@ -488,7 +488,7 @@ func (a *App) relationshipAPI(w http.ResponseWriter, r *http.Request, u *Account
 			failure(w, 404, "relationship_not_found")
 			return
 		}
-		v := s.Requests[parts[0]]
+		v := s.Requests.Get(parts[0])
 		action := parts[1]
 		if v == nil {
 			failure(w, 404, "relationship_not_found")
@@ -550,13 +550,13 @@ func (a *App) relationshipAPI(w http.ResponseWriter, r *http.Request, u *Account
 		a.put("unfriend", [2]string{u.ID, uid})
 	case "follows":
 		if r.Method == "PUT" {
-			if s.Follows[directed(u.ID, uid)] != nil || s.Accounts[uid].AccountType != "certified_public" || s.blocked(u.ID, uid) {
+			if s.Follows.Get(directed(u.ID, uid)) != nil || s.Accounts.Get(uid).AccountType != "certified_public" || s.blocked(u.ID, uid) {
 				failure(w, 409, "relationship_conflict")
 				return
 			}
 			a.put("follow", Relation{ID: id(), FollowerID: u.ID, FolloweeID: uid, CreatedAt: now, UpdatedAt: now})
 		} else if r.Method == "DELETE" {
-			if s.Follows[directed(u.ID, uid)] == nil {
+			if s.Follows.Get(directed(u.ID, uid)) == nil {
 				failure(w, 409, "relationship_conflict")
 				return
 			}
@@ -567,7 +567,7 @@ func (a *App) relationshipAPI(w http.ResponseWriter, r *http.Request, u *Account
 		}
 	case "blocks":
 		if r.Method == "PUT" {
-			if s.Blocks[directed(u.ID, uid)] != nil {
+			if s.Blocks.Get(directed(u.ID, uid)) != nil {
 				failure(w, 409, "relationship_conflict")
 				return
 			}
@@ -577,7 +577,7 @@ func (a *App) relationshipAPI(w http.ResponseWriter, r *http.Request, u *Account
 			}
 			a.put("unfollow", [2]string{u.ID, uid})
 			a.put("unfollow", [2]string{uid, u.ID})
-			for _, requests := range []map[string]*Relation{s.RequestOut[u.ID], s.RequestIn[u.ID]} {
+			for _, requests := range []map[string]*Relation{s.RequestOut.Get(u.ID), s.RequestIn.Get(u.ID)} {
 				for _, v := range requests {
 					if v.RequesterID == uid || v.RecipientID == uid {
 						q := *v
@@ -588,7 +588,7 @@ func (a *App) relationshipAPI(w http.ResponseWriter, r *http.Request, u *Account
 				}
 			}
 		} else if r.Method == "DELETE" {
-			if s.Blocks[directed(u.ID, uid)] == nil {
+			if s.Blocks.Get(directed(u.ID, uid)) == nil {
 				failure(w, 403, "relationship_action_forbidden")
 				return
 			}
@@ -625,11 +625,11 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 	}
 	switch kind {
 	case "friends":
-		for uid := range s.Adj[u.ID] {
-			add(s.Friends[pair(u.ID, uid)], uid)
+		for uid := range s.Adj.Get(u.ID) {
+			add(s.Friends.Get(pair(u.ID, uid)), uid)
 		}
 	case "following", "followers":
-		for _, v := range s.Follows {
+		for _, v := range s.Follows.All() {
 			if kind == "following" && v.FollowerID == u.ID {
 				add(v, v.FolloweeID)
 			}
@@ -638,9 +638,9 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 			}
 		}
 	case "incoming-requests", "outgoing-requests":
-		requests := s.RequestIn[u.ID]
+		requests := s.RequestIn.Get(u.ID)
 		if kind == "outgoing-requests" {
-			requests = s.RequestOut[u.ID]
+			requests = s.RequestOut.Get(u.ID)
 		}
 		for _, v := range requests {
 			if kind == "incoming-requests" {
@@ -660,7 +660,7 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 		if strings.HasSuffix(kind, "requests") {
 			status = "pending"
 		}
-		other := s.Accounts[x.uid]
+		other := s.Accounts.Get(x.uid)
 		items = append(items, object{"relationId": x.v.ID, "user": a.user(other, kind == "friends" || other.AccountType == "certified_public"), "status": status, "updatedAt": x.v.UpdatedAt})
 		if len(items) == 51 {
 			break
@@ -670,20 +670,20 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 }
 func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
-	a.mu.RLock()
-	if started.Before(a.s.Bans[ipOf(r)]) {
-		a.mu.RUnlock()
+	a.lockSnapshot()
+	if started.Before(a.s.Bans.Get(ipOf(r))) {
+		a.unlockSnapshot()
 		failure(w, 403, "ip_banned")
 		return
 	}
 	u := a.auth(w, r, true)
 	if u == nil {
-		a.mu.RUnlock()
+		a.unlockSnapshot()
 		return
 	}
 	uid, region := u.ID, u.Region
 	signal := a.signal
-	a.mu.RUnlock()
+	a.unlockSnapshot()
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(200)
@@ -691,16 +691,16 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 	for {
-		a.mu.RLock()
+		a.lockSnapshot()
 		s := a.s
-		u = s.Accounts[uid]
+		u = s.Accounts.Get(uid)
 		if u == nil || u.Status != "active" || u.Region != region {
-			a.mu.RUnlock()
+			a.unlockSnapshot()
 			return
 		}
 		var selected *Notification
-		for _, v := range s.Notifications[uid] {
-			win := s.Windows[v.WindowID]
+		for _, v := range s.Notifications.Get(uid) {
+			win := s.Windows.Get(v.WindowID)
 			if v.CreatedAt.After(started) && win != nil && win.EndedAt == nil && (selected == nil || before(v.CreatedAt, v.ID, selected.CreatedAt, selected.ID)) {
 				c := v
 				selected = &c
@@ -708,16 +708,16 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		}
 		signal = a.signal
 		if selected != nil {
-			v := object{"id": selected.ID, "postingWindowId": selected.WindowID, "region": s.Windows[selected.WindowID].Region, "createdAt": selected.CreatedAt}
+			v := object{"id": selected.ID, "postingWindowId": selected.WindowID, "region": s.Windows.Get(selected.WindowID).Region, "createdAt": selected.CreatedAt}
 			b, _ := json.Marshal(v)
-			a.mu.RUnlock()
+			a.unlockSnapshot()
 			fmt.Fprintf(w, "data: %s\n\n", b)
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
 			}
 			return
 		}
-		a.mu.RUnlock()
+		a.unlockSnapshot()
 		select {
 		case <-signal:
 		case <-r.Context().Done():

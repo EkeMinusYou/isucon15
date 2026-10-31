@@ -89,9 +89,9 @@ func (w *discardResponseWriter) Write(p []byte) (int, error) {
 }
 
 func BenchmarkImageResponseBuffering(b *testing.B) {
-	a := &App{s: emptyState(), durable: b.TempDir(), signatures: map[string]string{}}
+	a := &App{appCore: &appCore{s: emptyState(), durable: b.TempDir(), signatures: map[string]string{}}}
 	uid, pid, iid := id(), id(), id()
-	a.s.Accounts[uid] = &Account{ID: uid, Status: "active", Secret: secretHash("key")}
+	a.s.Accounts.Set(uid, &Account{ID: uid, Status: "active", Secret: secretHash("key")})
 	a.s.Posts.set(pid, &Post{ID: pid, AuthorID: uid})
 	a.s.Images.set(iid, &Image{ID: iid, OwnerID: uid, MediaType: "image/jpeg", Size: 1 << 20, Ref: pid, Kind: 'p'})
 	if err := os.MkdirAll(filepath.Join(a.durable, "images"), 0755); err != nil {
@@ -101,7 +101,7 @@ func BenchmarkImageResponseBuffering(b *testing.B) {
 		b.Fatal(err)
 	}
 	exp := time.Now().Add(time.Hour).Unix()
-	url := "/api/images/" + iid + "?exp=" + strconv.FormatInt(exp, 10) + "&sig=" + a.signImage(iid, a.s.Accounts[uid].Secret, exp)
+	url := "/api/images/" + iid + "?exp=" + strconv.FormatInt(exp, 10) + "&sig=" + a.signImage(iid, a.s.Accounts.Get(uid).Secret, exp)
 	r := httptest.NewRequest("GET", url, nil)
 	b.ReportAllocs()
 	b.SetBytes(1 << 20)

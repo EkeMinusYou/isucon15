@@ -60,6 +60,11 @@ func (a *App) snapshot() measurement.Snapshot {
 		entropy = 1
 	}
 	m := map[string]any{
+		"app_transaction_requests_total": a.transactionRequests.Load(),
+		"app_transaction_shards_total":   a.transactionShards.Load(),
+		"app_transaction_global_total":   a.transactionGlobal.Load(),
+		"app_journal_wait_ns_total":      a.journalWaitNS.Load(),
+		"app_journal_write_ns_total":     a.journalWriteNS.Load(),
 		"app_upload_stage_ns_total":      a.uploadStageNS.Load(),
 		"app_upload_stage_bytes_total":   a.uploadStageBytes.Load(),
 		"app_history_resident_bytes":     a.historyResidentBytes.Load(),

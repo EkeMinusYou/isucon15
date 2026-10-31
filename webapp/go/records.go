@@ -19,14 +19,14 @@ type recordSpan struct {
 	Length uint32
 }
 type recordStore[T any] struct {
-	live     map[string]*T
+	live     *shardedMap[string, *T]
 	index    map[[16]byte]recordSpan
 	data     [][]byte
 	decorate func(string, *T)
 }
 
 func newRecordStore[T any]() *recordStore[T] {
-	return &recordStore[T]{live: map[string]*T{}, index: map[[16]byte]recordSpan{}}
+	return &recordStore[T]{live: newShardedMapWith(map[string]*T{}), index: map[[16]byte]recordSpan{}}
 }
 func uuidKey(id string) (key [16]byte, ok bool) {
 	if len(id) != 36 || id[8] != '-' || id[13] != '-' || id[18] != '-' || id[23] != '-' {
@@ -61,7 +61,7 @@ func uuidString(k [16]byte) string {
 	return string(out[:])
 }
 func (s *recordStore[T]) get(id string) *T {
-	if v := s.live[id]; v != nil {
+	if v := s.live.Get(id); v != nil {
 		return v
 	}
 	key, ok := uuidKey(id)
@@ -83,7 +83,7 @@ func (s *recordStore[T]) get(id string) *T {
 	return &v
 }
 func (s *recordStore[T]) has(id string) bool {
-	if s.live[id] != nil {
+	if s.live.Get(id) != nil {
 		return true
 	}
 	key, ok := uuidKey(id)
@@ -93,7 +93,7 @@ func (s *recordStore[T]) has(id string) bool {
 	_, ok = s.index[key]
 	return ok
 }
-func (s *recordStore[T]) set(id string, v *T) { s.live[id] = v }
+func (s *recordStore[T]) set(id string, v *T) { s.live.Set(id, v) }
 func (s *recordStore[T]) add(id string, raw []byte, v *T) error {
 	key, ok := uuidKey(id)
 	if !ok {
@@ -123,7 +123,7 @@ func (s *recordStore[T]) close() {
 	}
 	s.data = nil
 }
-func (s *recordStore[T]) len() int { return len(s.index) + len(s.live) }
+func (s *recordStore[T]) len() int { return len(s.index) + s.live.Len() }
 
 type imageLink struct {
 	Ref  [16]byte
@@ -134,11 +134,13 @@ func (s *State) linkImage(id, ref string, kind byte) {
 	key, ok := uuidKey(id)
 	target, targetOK := uuidKey(ref)
 	if ok && targetOK {
-		s.imageLinks[key] = imageLink{target, kind}
+		s.imageLinks.Set(key, imageLink{target, kind})
 	}
-	if im := s.Images.live[id]; im != nil {
-		im.Ref = ref
-		im.Kind = kind
+	if im := s.Images.live.Get(id); im != nil {
+		v := *im
+		v.Ref = ref
+		v.Kind = kind
+		s.Images.live.Set(id, &v)
 	}
 }
 func (s *State) closeHistory() {

@@ -62,7 +62,7 @@ func serviceHandler() (http.Handler, *App, error) {
 	}
 	log.Printf("region=%s state_owner=%v", region, owner)
 	if region == "compute" {
-		a := &App{}
+		a := &App{appCore: &appCore{}}
 		return computeHandler(a), a, nil
 	}
 	if owner {

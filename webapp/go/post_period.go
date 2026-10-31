@@ -17,25 +17,25 @@ func dateNumber(date string) int32 {
 }
 
 func (s *State) indexPostPeriod(p *Post) {
-	w := s.Windows[p.WindowID]
+	w := s.Windows.Get(p.WindowID)
 	if w == nil {
 		return
 	}
 	entry := datedPostRef{dateNumber(w.LocalDate), p.ID}
-	entries := s.PostPeriods[p.AuthorID]
+	entries := s.PostPeriods.Get(p.AuthorID)
 	if !s.periodsReady {
-		s.PostPeriods[p.AuthorID] = append(entries, entry)
+		s.PostPeriods.Set(p.AuthorID, append(entries, entry))
 		return
 	}
 	i := sort.Search(len(entries), func(i int) bool { return entries[i].day > entry.day })
 	entries = append(entries, datedPostRef{})
 	copy(entries[i+1:], entries[i:])
 	entries[i] = entry
-	s.PostPeriods[p.AuthorID] = entries
+	s.PostPeriods.Set(p.AuthorID, entries)
 }
 
 func (s *State) finishPostPeriods() {
-	for _, entries := range s.PostPeriods {
+	for _, entries := range s.PostPeriods.All() {
 		sort.SliceStable(entries, func(i, j int) bool { return entries[i].day < entries[j].day })
 	}
 	s.periodsReady = true
@@ -43,7 +43,7 @@ func (s *State) finishPostPeriods() {
 
 // The returned index view is used only while holding the state lock.
 func (s *State) postsInPeriod(uid string, start, end int32) []datedPostRef {
-	entries := s.PostPeriods[uid]
+	entries := s.PostPeriods.Get(uid)
 	i := sort.Search(len(entries), func(i int) bool { return entries[i].day >= start })
 	j := sort.Search(len(entries), func(i int) bool { return entries[i].day >= end })
 	return entries[i:j]

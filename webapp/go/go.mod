@@ -1,6 +1,6 @@
 module isuconapp
 
-go 1.21
+go 1.23.0
 
 require (
 	github.com/EkeMinusYou/isucon-template/tools/measurement v0.0.0

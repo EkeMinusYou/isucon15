@@ -78,8 +78,8 @@ type postSnapshot struct {
 }
 
 func (a *App) snapshotPost(p *Post) postSnapshot {
-	u := a.s.Accounts[p.AuthorID]
-	return postSnapshot{p.ID, p.WindowID, p.Caption, p.Visibility, a.snapshotUser(u, true), a.snapshotImage(p.ImageID, u.Secret), snapshotLocation(p.Location), p.PostedAt, a.s.Windows[p.WindowID].Deadline}
+	u := a.s.Accounts.Get(p.AuthorID)
+	return postSnapshot{p.ID, p.WindowID, p.Caption, p.Visibility, a.snapshotUser(u, true), a.snapshotImage(p.ImageID, u.Secret), snapshotLocation(p.Location), p.PostedAt, a.s.Windows.Get(p.WindowID).Deadline}
 }
 func (p postSnapshot) object() object {
 	late := int64(p.postedAt.Sub(p.deadline) / time.Second)
@@ -96,7 +96,7 @@ type commentSnapshot struct {
 }
 
 func (a *App) snapshotComment(c *Comment) commentSnapshot {
-	return commentSnapshot{c.ID, c.Body, a.snapshotUser(a.s.Accounts[c.AuthorID], true), c.CreatedAt}
+	return commentSnapshot{c.ID, c.Body, a.snapshotUser(a.s.Accounts.Get(c.AuthorID), true), c.CreatedAt}
 }
 func (c commentSnapshot) object() object {
 	return object{"id": c.id, "body": c.body, "author": c.author.object(), "createdAt": c.createdAt}
@@ -110,7 +110,7 @@ type reactionSnapshot struct {
 }
 
 func (a *App) snapshotReaction(r *Reaction) reactionSnapshot {
-	u := a.s.Accounts[r.ReactorID]
+	u := a.s.Accounts.Get(r.ReactorID)
 	return reactionSnapshot{r.ID, r.Type, a.snapshotUser(u, true), a.snapshotImage(r.ImageID, u.Secret), r.CreatedAt}
 }
 func (r reactionSnapshot) object() object {
@@ -123,8 +123,8 @@ type rankingSnapshot struct {
 }
 
 func (s *State) snapshotRanking(uid string) *rankingSnapshot {
-	r := &rankingSnapshot{friends: make(map[string]bool, len(s.Adj[uid])), graph: map[string][]string{}}
-	for id := range s.Adj[uid] {
+	r := &rankingSnapshot{friends: make(map[string]bool, len(s.Adj.Get(uid))), graph: map[string][]string{}}
+	for id := range s.Adj.Get(uid) {
 		r.friends[id] = true
 	}
 	return r
@@ -133,8 +133,8 @@ func (r *rankingSnapshot) capture(s *State, id string) {
 	if _, ok := r.graph[id]; ok {
 		return
 	}
-	ids := make([]string, 0, len(s.Adj[id]))
-	for other := range s.Adj[id] {
+	ids := make([]string, 0, len(s.Adj.Get(id)))
+	for other := range s.Adj.Get(id) {
 		ids = append(ids, other)
 	}
 	r.graph[id] = ids

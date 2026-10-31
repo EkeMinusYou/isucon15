@@ -15,7 +15,7 @@ func TestJPEGWorkerPreservesValidation(t *testing.T) {
 	old := transportSecret
 	transportSecret = "jpeg-test-secret"
 	t.Cleanup(func() { transportSecret = old })
-	server := httptest.NewServer(computeHandler(&App{}))
+	server := httptest.NewServer(computeHandler(&App{appCore: &appCore{}}))
 	defer server.Close()
 	t.Setenv("COMPUTE_URL", server.URL)
 	var b bytes.Buffer
@@ -46,7 +46,7 @@ func TestAuthenticatedComputePreservesResults(t *testing.T) {
 	old := transportSecret
 	transportSecret = "compute-test-secret"
 	t.Cleanup(func() { transportSecret = old })
-	worker := &App{signatures: map[string]string{}}
+	worker := &App{appCore: &appCore{signatures: map[string]string{}}}
 	server := httptest.NewServer(computeHandler(worker))
 	defer server.Close()
 	t.Setenv("COMPUTE_URL", server.URL)
@@ -58,7 +58,7 @@ func TestAuthenticatedComputePreservesResults(t *testing.T) {
 	if response.StatusCode != 403 {
 		t.Fatal("compute endpoint accepted an unauthenticated request")
 	}
-	a := &App{signatures: map[string]string{}}
+	a := &App{appCore: &appCore{signatures: map[string]string{}}}
 	secret := secretHash("signing-secret")
 	refs := []object{{"image": imageReference{a, "first", secret, 1800000000}}, {"image": imageReference{a, "second", secret, 1800000001}}}
 	var wg sync.WaitGroup
@@ -72,7 +72,7 @@ func TestAuthenticatedComputePreservesResults(t *testing.T) {
 	if a.remoteSignatures.Load() != 2 || worker.signatureMisses.Load() != 2 {
 		t.Fatal("signatures were not delegated")
 	}
-	local := &App{signatures: map[string]string{}}
+	local := &App{appCore: &appCore{signatures: map[string]string{}}}
 	for _, id := range []string{"first", "second"} {
 		exp := int64(1800000000)
 		if id == "second" {
@@ -85,7 +85,7 @@ func TestAuthenticatedComputePreservesResults(t *testing.T) {
 }
 
 func TestSignatureCacheUsesEveryInput(t *testing.T) {
-	a := &App{signatures: map[string]string{}}
+	a := &App{appCore: &appCore{signatures: map[string]string{}}}
 	for _, secret := range []string{secretHash("old"), secretHash("new")} {
 		got := a.signImage("image", secret, 1800000000)
 		if got != computeImageSignature("image", secret, 1800000000) {

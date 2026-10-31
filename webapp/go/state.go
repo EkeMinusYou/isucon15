@@ -120,41 +120,53 @@ type banChange struct {
 }
 type State struct {
 	dayPostCache  sync.Map
-	imageLinks    map[[16]byte]imageLink
-	LivePosts     map[string][]string
-	Accounts      map[string]*Account
-	Names         map[string]string
-	Admins        map[string]*Administrator
-	Windows       map[string]*Window
-	Current       map[string]string
+	imageLinks    *shardedMap[[16]byte, imageLink]
+	LivePosts     *shardedMap[string, []string]
+	Accounts      *shardedMap[string, *Account]
+	Names         *shardedMap[string, string]
+	Admins        *shardedMap[string, *Administrator]
+	Windows       *shardedMap[string, *Window]
+	Current       *shardedMap[string, string]
 	Posts         *recordStore[Post]
-	UserPosts     map[string][]string
-	PostPeriods   map[string][]datedPostRef
+	UserPosts     *shardedMap[string, []string]
+	PostPeriods   *shardedMap[string, []datedPostRef]
 	periodsReady  bool
 	Reactions     *recordStore[Reaction]
-	PostReactions map[string][]string
+	PostReactions *shardedMap[string, []string]
 	Comments      *recordStore[Comment]
-	PostComments  map[string][]string
+	PostComments  *shardedMap[string, []string]
 	Images        *recordStore[Image]
-	Requests      map[string]*Relation
-	RequestOut    map[string]map[string]*Relation
-	RequestIn     map[string]map[string]*Relation
-	Friends       map[string]*Relation
-	Adj           map[string]map[string]bool
-	Follows       map[string]*Relation
-	Blocks        map[string]*Relation
-	Sessions      map[string]string
-	AdminSessions map[string]string
-	Bans          map[string]time.Time
-	Notifications map[string][]Notification
+	Requests      *shardedMap[string, *Relation]
+	RequestOut    *shardedMap[string, map[string]*Relation]
+	RequestIn     *shardedMap[string, map[string]*Relation]
+	Friends       *shardedMap[string, *Relation]
+	Adj           *shardedMap[string, map[string]bool]
+	Follows       *shardedMap[string, *Relation]
+	Blocks        *shardedMap[string, *Relation]
+	Sessions      *shardedMap[string, string]
+	UserTokens    *shardedMap[string, map[string]bool]
+	AdminSessions *shardedMap[string, string]
+	Bans          *shardedMap[string, time.Time]
+	Notifications *shardedMap[string, []Notification]
 }
 type App struct {
+	*appCore
+	pending []change // Owned by one request, never shared between handlers.
+}
+type appCore struct {
 	mu                   sync.RWMutex
+	journalMu            sync.Mutex
+	signalMu             sync.Mutex
+	transactions         [stateShardCount]sync.RWMutex
+	transactionRequests  atomic.Uint64
+	transactionShards    atomic.Uint64
+	transactionGlobal    atomic.Uint64
+	journalWaitNS        atomic.Uint64
+	journalWriteNS       atomic.Uint64
 	s                    *State
 	initial, durable     string
 	journal              *os.File
-	changes              []change
-	failures             map[string][]time.Time
+	failures             *shardedMap[string, []time.Time]
 	signal               chan struct{}
 	signatures           map[string]string
 	signatureMu          sync.Mutex
@@ -177,11 +189,12 @@ type App struct {
 }
 
 func emptyState() *State {
-	s := &State{imageLinks: map[[16]byte]imageLink{}, LivePosts: map[string][]string{}, Accounts: map[string]*Account{}, Names: map[string]string{}, Admins: map[string]*Administrator{}, Windows: map[string]*Window{}, Current: map[string]string{}, Posts: newRecordStore[Post](), UserPosts: map[string][]string{}, Reactions: newRecordStore[Reaction](), PostReactions: map[string][]string{}, Comments: newRecordStore[Comment](), PostComments: map[string][]string{}, Images: newRecordStore[Image](), Requests: map[string]*Relation{}, RequestOut: map[string]map[string]*Relation{}, RequestIn: map[string]map[string]*Relation{}, Friends: map[string]*Relation{}, Adj: map[string]map[string]bool{}, Follows: map[string]*Relation{}, Blocks: map[string]*Relation{}, Sessions: map[string]string{}, AdminSessions: map[string]string{}, Bans: map[string]time.Time{}, Notifications: map[string][]Notification{}}
-	s.PostPeriods = make(map[string][]datedPostRef)
+	s := &State{imageLinks: newShardedMapWith(map[[16]byte]imageLink{}), LivePosts: newShardedMapWith(map[string][]string{}), Accounts: newShardedMapWith(map[string]*Account{}), Names: newShardedMapWith(map[string]string{}), Admins: newShardedMapWith(map[string]*Administrator{}), Windows: newShardedMapWith(map[string]*Window{}), Current: newShardedMapWith(map[string]string{}), Posts: newRecordStore[Post](), UserPosts: newShardedMapWith(map[string][]string{}), Reactions: newRecordStore[Reaction](), PostReactions: newShardedMapWith(map[string][]string{}), Comments: newRecordStore[Comment](), PostComments: newShardedMapWith(map[string][]string{}), Images: newRecordStore[Image](), Requests: newShardedMapWith(map[string]*Relation{}), RequestOut: newShardedMapWith(map[string]map[string]*Relation{}), RequestIn: newShardedMapWith(map[string]map[string]*Relation{}), Friends: newShardedMapWith(map[string]*Relation{}), Adj: newShardedMapWith(map[string]map[string]bool{}), Follows: newShardedMapWith(map[string]*Relation{}), Blocks: newShardedMapWith(map[string]*Relation{}), Sessions: newShardedMapWith(map[string]string{}), AdminSessions: newShardedMapWith(map[string]string{}), Bans: newShardedMapWith(map[string]time.Time{}), Notifications: newShardedMapWith(map[string][]Notification{})}
+	s.PostPeriods = newShardedMapWith(make(map[string][]datedPostRef))
+	s.UserTokens = newShardedMapWith(make(map[string]map[string]bool))
 	s.Images.decorate = func(id string, im *Image) {
 		key, _ := uuidKey(id)
-		if link, ok := s.imageLinks[key]; ok {
+		if link, ok := s.imageLinks.Load(key); ok {
 			im.Ref = uuidString(link.Ref)
 			im.Kind = link.Kind
 		}
@@ -205,12 +218,12 @@ func pair(a, b string) string {
 	return a + "/" + b
 }
 func directed(a, b string) string        { return a + "/" + b }
-func (s *State) friend(a, b string) bool { return s.Adj[a][b] }
+func (s *State) friend(a, b string) bool { return s.Adj.Get(a)[b] }
 func (s *State) blocked(a, b string) bool {
-	return s.Blocks[directed(a, b)] != nil || s.Blocks[directed(b, a)] != nil
+	return s.Blocks.Get(directed(a, b)) != nil || s.Blocks.Get(directed(b, a)) != nil
 }
 func (s *State) active(a string) bool {
-	return s.Accounts[a] != nil && s.Accounts[a].Status == "active"
+	return s.Accounts.Get(a) != nil && s.Accounts.Get(a).Status == "active"
 }
 func (s *State) apply(kind string, data []byte) error {
 	decode := func(v any) {
@@ -224,18 +237,18 @@ func (s *State) apply(kind string, data []byte) error {
 		decode(&v)
 		v.searchUsername = foldSearch(v.Username)
 		v.searchDisplay = foldSearch(v.DisplayName)
-		s.Accounts[v.ID] = &v
-		s.Names[v.Username] = v.ID
+		s.Accounts.Set(v.ID, &v)
+		s.Names.Set(v.Username, v.ID)
 	case "admin":
 		var v Administrator
 		decode(&v)
-		s.Admins[v.Username] = &v
+		s.Admins.Set(v.Username, &v)
 	case "window":
 		var v Window
 		decode(&v)
-		s.Windows[v.ID] = &v
+		s.Windows.Set(v.ID, &v)
 		if v.EndedAt != nil {
-			for uid, ids := range s.LivePosts {
+			for uid, ids := range s.LivePosts.Snapshot() {
 				keep := ids[:0]
 				for _, pid := range ids {
 					if s.Posts.get(pid).WindowID != v.ID {
@@ -243,26 +256,26 @@ func (s *State) apply(kind string, data []byte) error {
 					}
 				}
 				if len(keep) == 0 {
-					delete(s.LivePosts, uid)
+					s.LivePosts.Delete(uid)
 				} else {
-					s.LivePosts[uid] = keep
+					s.LivePosts.Set(uid, keep)
 				}
 			}
 		}
 		if v.EndedAt == nil {
-			s.Current[v.Region] = v.ID
-		} else if s.Current[v.Region] == v.ID {
-			delete(s.Current, v.Region)
+			s.Current.Set(v.Region, v.ID)
+		} else if s.Current.Get(v.Region) == v.ID {
+			s.Current.Delete(v.Region)
 		}
 	case "post":
 		var v Post
 		decode(&v)
 		s.dayPostCache.Delete(v.AuthorID)
 		if s.Posts.get(v.ID) == nil {
-			s.UserPosts[v.AuthorID] = append(s.UserPosts[v.AuthorID], v.ID)
+			s.UserPosts.Set(v.AuthorID, append(s.UserPosts.Get(v.AuthorID), v.ID))
 			s.indexPostPeriod(&v)
-			if win := s.Windows[v.WindowID]; win != nil && win.EndedAt == nil {
-				s.LivePosts[v.AuthorID] = append(s.LivePosts[v.AuthorID], v.ID)
+			if win := s.Windows.Get(v.WindowID); win != nil && win.EndedAt == nil {
+				s.LivePosts.Set(v.AuthorID, append(s.LivePosts.Get(v.AuthorID), v.ID))
 			}
 		}
 		s.Posts.set(v.ID, &v)
@@ -271,7 +284,7 @@ func (s *State) apply(kind string, data []byte) error {
 		var v Reaction
 		decode(&v)
 		if s.Reactions.get(v.ID) == nil {
-			s.PostReactions[v.PostID] = append(s.PostReactions[v.PostID], v.ID)
+			s.PostReactions.Set(v.PostID, append(s.PostReactions.Get(v.PostID), v.ID))
 		}
 		s.Reactions.set(v.ID, &v)
 		s.linkImage(v.ImageID, v.ID, 'r')
@@ -279,7 +292,7 @@ func (s *State) apply(kind string, data []byte) error {
 		var v Comment
 		decode(&v)
 		if s.Comments.get(v.ID) == nil {
-			s.PostComments[v.PostID] = append(s.PostComments[v.PostID], v.ID)
+			s.PostComments.Set(v.PostID, append(s.PostComments.Get(v.PostID), v.ID))
 		}
 		s.Comments.set(v.ID, &v)
 	case "image":
@@ -289,53 +302,53 @@ func (s *State) apply(kind string, data []byte) error {
 	case "request":
 		var v Relation
 		decode(&v)
-		if old := s.Requests[v.ID]; old != nil {
-			delete(s.RequestOut[old.RequesterID], old.ID)
-			delete(s.RequestIn[old.RecipientID], old.ID)
+		if old := s.Requests.Get(v.ID); old != nil {
+			delete(s.RequestOut.Get(old.RequesterID), old.ID)
+			delete(s.RequestIn.Get(old.RecipientID), old.ID)
 		}
-		s.Requests[v.ID] = &v
+		s.Requests.Set(v.ID, &v)
 		if v.Status == "pending" {
-			if s.RequestOut[v.RequesterID] == nil {
-				s.RequestOut[v.RequesterID] = map[string]*Relation{}
+			if s.RequestOut.Get(v.RequesterID) == nil {
+				s.RequestOut.Set(v.RequesterID, map[string]*Relation{})
 			}
-			if s.RequestIn[v.RecipientID] == nil {
-				s.RequestIn[v.RecipientID] = map[string]*Relation{}
+			if s.RequestIn.Get(v.RecipientID) == nil {
+				s.RequestIn.Set(v.RecipientID, map[string]*Relation{})
 			}
-			s.RequestOut[v.RequesterID][v.ID] = &v
-			s.RequestIn[v.RecipientID][v.ID] = &v
+			s.RequestOut.Get(v.RequesterID)[v.ID] = &v
+			s.RequestIn.Get(v.RecipientID)[v.ID] = &v
 		}
 	case "friend":
 		var v Relation
 		decode(&v)
-		s.Friends[pair(v.User1ID, v.User2ID)] = &v
+		s.Friends.Set(pair(v.User1ID, v.User2ID), &v)
 		for _, x := range [][2]string{{v.User1ID, v.User2ID}, {v.User2ID, v.User1ID}} {
-			if s.Adj[x[0]] == nil {
-				s.Adj[x[0]] = map[string]bool{}
+			if s.Adj.Get(x[0]) == nil {
+				s.Adj.Set(x[0], map[string]bool{})
 			}
-			s.Adj[x[0]][x[1]] = true
+			s.Adj.Get(x[0])[x[1]] = true
 		}
 	case "unfriend":
 		var v [2]string
 		decode(&v)
-		delete(s.Friends, pair(v[0], v[1]))
-		delete(s.Adj[v[0]], v[1])
-		delete(s.Adj[v[1]], v[0])
+		s.Friends.Delete(pair(v[0], v[1]))
+		delete(s.Adj.Get(v[0]), v[1])
+		delete(s.Adj.Get(v[1]), v[0])
 	case "follow":
 		var v Relation
 		decode(&v)
-		s.Follows[directed(v.FollowerID, v.FolloweeID)] = &v
+		s.Follows.Set(directed(v.FollowerID, v.FolloweeID), &v)
 	case "unfollow":
 		var v [2]string
 		decode(&v)
-		delete(s.Follows, directed(v[0], v[1]))
+		s.Follows.Delete(directed(v[0], v[1]))
 	case "block":
 		var v Relation
 		decode(&v)
-		s.Blocks[directed(v.BlockerID, v.BlockedID)] = &v
+		s.Blocks.Set(directed(v.BlockerID, v.BlockedID), &v)
 	case "unblock":
 		var v [2]string
 		decode(&v)
-		delete(s.Blocks, directed(v[0], v[1]))
+		s.Blocks.Delete(directed(v[0], v[1]))
 	case "session", "adminsession":
 		var v tokenChange
 		decode(&v)
@@ -343,19 +356,32 @@ func (s *State) apply(kind string, data []byte) error {
 		if kind == "adminsession" {
 			m = s.AdminSessions
 		}
+		if kind == "session" {
+			if old := m.Get(v.Token); old != "" {
+				delete(s.UserTokens.Get(old), v.Token)
+			}
+			if v.User != "" {
+				tokens := s.UserTokens.Get(v.User)
+				if tokens == nil {
+					tokens = make(map[string]bool)
+					s.UserTokens.Set(v.User, tokens)
+				}
+				tokens[v.Token] = true
+			}
+		}
 		if v.User == "" {
-			delete(m, v.Token)
+			m.Delete(v.Token)
 		} else {
-			m[v.Token] = v.User
+			m.Set(v.Token, v.User)
 		}
 	case "ban":
 		var v banChange
 		decode(&v)
-		s.Bans[v.IP] = v.Until
+		s.Bans.Set(v.IP, v.Until)
 	case "notification":
 		var v Notification
 		decode(&v)
-		s.Notifications[v.UserID] = append(s.Notifications[v.UserID], v)
+		s.Notifications.Set(v.UserID, append(s.Notifications.Get(v.UserID), v))
 	default:
 		return fmt.Errorf("unknown journal kind %q", kind)
 	}
@@ -369,24 +395,35 @@ func (a *App) put(kind string, v any) {
 	if e = a.s.apply(kind, b); e != nil {
 		panic(e)
 	}
-	a.changes = append(a.changes, change{kind, b})
+	a.pending = append(a.pending, change{kind, b})
 }
 func (a *App) commit() {
-	if len(a.changes) == 0 {
+	if len(a.pending) == 0 {
 		return
 	}
-	b, e := json.Marshal(a.changes)
+	b, e := json.Marshal(a.pending)
 	if e != nil {
 		panic(e)
 	}
 	b = append(b, '\n')
+	waiting := time.Now()
+	a.journalMu.Lock()
+	defer a.journalMu.Unlock()
+	a.journalWaitNS.Add(uint64(time.Since(waiting)))
+	writing := time.Now()
 	if _, e = a.journal.Write(b); e != nil {
 		log.Fatalf("journal write: %v", e)
 	}
+	a.journalWriteNS.Add(uint64(time.Since(writing)))
 	a.writes++
-	a.changes = nil
+	a.pending = nil
 }
-func (a *App) wake() { close(a.signal); a.signal = make(chan struct{}) }
+func (a *App) wake() {
+	a.signalMu.Lock()
+	close(a.signal)
+	a.signal = make(chan struct{})
+	a.signalMu.Unlock()
+}
 func loadLines(path string, fn func([]byte) error) error {
 	f, e := os.Open(path)
 	if e != nil {
@@ -447,10 +484,10 @@ func (a *App) loadInitial() error {
 					if err := s.Posts.add(v.ID, b, &v); err != nil {
 						return err
 					}
-					s.UserPosts[v.AuthorID] = append(s.UserPosts[v.AuthorID], v.ID)
+					s.UserPosts.Set(v.AuthorID, append(s.UserPosts.Get(v.AuthorID), v.ID))
 					s.indexPostPeriod(&v)
-					if win := s.Windows[v.WindowID]; win != nil && win.EndedAt == nil {
-						s.LivePosts[v.AuthorID] = append(s.LivePosts[v.AuthorID], v.ID)
+					if win := s.Windows.Get(v.WindowID); win != nil && win.EndedAt == nil {
+						s.LivePosts.Set(v.AuthorID, append(s.LivePosts.Get(v.AuthorID), v.ID))
 					}
 					s.linkImage(v.ImageID, v.ID, 'p')
 				case "reaction":
@@ -466,7 +503,7 @@ func (a *App) loadInitial() error {
 					if err := s.Reactions.add(v.ID, b, &v); err != nil {
 						return err
 					}
-					s.PostReactions[v.PostID] = append(s.PostReactions[v.PostID], v.ID)
+					s.PostReactions.Set(v.PostID, append(s.PostReactions.Get(v.PostID), v.ID))
 					s.linkImage(v.ImageID, v.ID, 'r')
 				case "comment":
 					var v Comment
@@ -479,7 +516,7 @@ func (a *App) loadInitial() error {
 					if err := s.Comments.add(v.ID, b, &v); err != nil {
 						return err
 					}
-					s.PostComments[v.PostID] = append(s.PostComments[v.PostID], v.ID)
+					s.PostComments.Set(v.PostID, append(s.PostComments.Get(v.PostID), v.ID))
 				case "image":
 					var v Image
 					if e := json.Unmarshal(b, &v); e != nil {
@@ -511,7 +548,7 @@ func (a *App) loadInitial() error {
 	return nil
 }
 func newApp(initial, durable string) (*App, error) {
-	a := &App{initial: initial, durable: durable, failures: map[string][]time.Time{}, signal: make(chan struct{}), signatures: map[string]string{}}
+	a := &App{appCore: &appCore{initial: initial, durable: durable, failures: newShardedMapWith(map[string][]time.Time{}), signal: make(chan struct{}), signatures: map[string]string{}}}
 	if e := os.MkdirAll(filepath.Join(durable, "images"), 0755); e != nil {
 		return nil, e
 	}
@@ -543,7 +580,7 @@ func newApp(initial, durable string) (*App, error) {
 		f.Close()
 		return nil, e
 	}
-	log.Printf("state ready: accounts=%d posts=%d images=%d", len(a.s.Accounts), a.s.Posts.len(), a.s.Images.len())
+	log.Printf("state ready: accounts=%d posts=%d images=%d", a.s.Accounts.Len(), a.s.Posts.len(), a.s.Images.len())
 	return a, nil
 }
 func (a *App) reset() error {
@@ -568,8 +605,8 @@ func (a *App) reset() error {
 	if e := os.MkdirAll(filepath.Join(a.durable, "images"), 0755); e != nil {
 		return e
 	}
-	a.failures = map[string][]time.Time{}
-	a.changes = nil
+	a.failures = newShardedMapWith(map[string][]time.Time{})
+	a.pending = nil
 	a.signatureMu.Lock()
 	a.signatures = map[string]string{}
 	a.signatureOrder = nil
@@ -587,7 +624,7 @@ func (a *App) imageReader(im *Image) (*os.File, int64, error) {
 	f, e := os.Open(p)
 	return f, im.Offset, e
 }
-func (s *State) window(u *Account) *Window { return s.Windows[s.Current[u.Region]] }
+func (s *State) window(u *Account) *Window { return s.Windows.Get(s.Current.Get(u.Region)) }
 
 type dayPostState struct {
 	date    string
@@ -627,8 +664,8 @@ func (s *State) canPost(u *Account) bool {
 }
 func (s *State) common(a, b string) int {
 	n := 0
-	for x := range s.Adj[a] {
-		if s.Adj[b][x] {
+	for x := range s.Adj.Get(a) {
+		if s.Adj.Get(b)[x] {
 			n++
 		}
 	}
@@ -641,7 +678,7 @@ func (s *State) view(u *Account, p *Post) bool {
 	if p.AuthorID == u.ID {
 		return true
 	}
-	w := s.Windows[p.WindowID]
+	w := s.Windows.Get(p.WindowID)
 	if w == nil || w.EndedAt != nil || s.blocked(u.ID, p.AuthorID) {
 		return false
 	}
@@ -652,7 +689,7 @@ func (s *State) view(u *Account, p *Post) bool {
 	return p.Visibility == "public" || s.friend(u.ID, p.AuthorID) || (p.Visibility == "friends_of_friends" && s.common(u.ID, p.AuthorID) > 0)
 }
 func (s *State) interact(u *Account, p *Post) bool {
-	if !s.view(u, p) || s.Windows[p.WindowID].EndedAt != nil {
+	if !s.view(u, p) || s.Windows.Get(p.WindowID).EndedAt != nil {
 		return false
 	}
 	own, _ := s.dayPosts(u)

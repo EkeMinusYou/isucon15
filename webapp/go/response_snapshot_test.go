@@ -18,10 +18,10 @@ func TestPostSnapshotSurvivesMutationAndReset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.s.Accounts[uid].DisplayName = "changed"
+	a.s.Accounts.Get(uid).DisplayName = "changed"
 	post.Caption = "changed"
 	*post.Location.Latitude = 80
-	a.s.Windows[post.WindowID].Deadline = time.Now().Add(time.Hour)
+	a.s.Windows.Get(post.WindowID).Deadline = time.Now().Add(time.Hour)
 	if err := a.reset(); err != nil {
 		t.Fatal(err)
 	}
@@ -36,14 +36,14 @@ func TestPostSnapshotSurvivesMutationAndReset(t *testing.T) {
 
 func TestRankingSnapshotOwnsGraph(t *testing.T) {
 	s := emptyState()
-	s.Adj = map[string]map[string]bool{"viewer": {"a": true, "b": true}, "author": {"a": true, "x": true}, "a": {"viewer": true, "b": true}, "x": {"a": true}}
+	s.Adj = newShardedMapWith(map[string]map[string]bool{"viewer": {"a": true, "b": true}, "author": {"a": true, "x": true}, "a": {"viewer": true, "b": true}, "x": {"a": true}})
 	r := s.snapshotRanking("viewer")
 	r.capture(s, "author")
 	r.capture(s, "a")
 	r.capture(s, "x")
-	s.Adj["viewer"]["x"] = true
-	s.Adj["author"]["b"] = true
-	delete(s.Adj["a"], "b")
+	s.Adj.Get("viewer")["x"] = true
+	s.Adj.Get("author")["b"] = true
+	delete(s.Adj.Get("a"), "b")
 	if score := r.score("author", []string{"a", "a", "x"}); score != 15 {
 		t.Fatalf("score=%d, want 15", score)
 	}

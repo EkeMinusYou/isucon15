@@ -96,8 +96,8 @@ func TestHeaderValidationMode(t *testing.T) {
 }
 
 func BenchmarkSignedAlternatingExpiration(b *testing.B) {
-	a := &App{s: emptyState(), signatures: map[string]string{}}
-	a.s.Accounts["owner"] = &Account{Secret: secretHash("key")}
+	a := &App{appCore: &appCore{s: emptyState(), signatures: map[string]string{}}}
+	a.s.Accounts.Set("owner", &Account{Secret: secretHash("key")})
 	im := &Image{ID: "image", OwnerID: "owner"}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -110,7 +110,7 @@ func TestResponseSnapshotSurvivesReset(t *testing.T) {
 	uid, _ := register(t, a, "snapshot")
 	im := &Image{ID: id(), OwnerID: uid}
 	a.put("image", im)
-	u := *a.s.Accounts[uid]
+	u := *a.s.Accounts.Get(uid)
 	u.ProfileImageID = &im.ID
 	a.put("account", u)
 	snapshot := a.me(&u)
@@ -232,7 +232,7 @@ func TestPublicContract(t *testing.T) {
 	}
 	profileURL := requireCall(t, a, "GET", "/api/me", ut, nil, 200)["profileImageUrl"].(string)
 	requireCall(t, a, "GET", profileURL, "", nil, 200)
-	if err := os.Remove(filepath.Join(a.durable, "images", *a.s.Accounts[uid].ProfileImageID)); err != nil {
+	if err := os.Remove(filepath.Join(a.durable, "images", *a.s.Accounts.Get(uid).ProfileImageID)); err != nil {
 		t.Fatal(err)
 	}
 	requireCall(t, a, "GET", profileURL, "", nil, 500)
