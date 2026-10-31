@@ -146,7 +146,9 @@ func (u *regionalUploads) finish(resp *http.Response) {
 	if p == nil {
 		return
 	}
-	p.registrationUncertain = false
+	// A gateway/server error can conceal an accepted registration. Only a
+	// definite non-server response permits discarding an unacknowledged file.
+	p.registrationUncertain = resp.StatusCode >= 500
 	if p.fileID == "" || resp.Header.Get(regionalUploadAccepted) != p.fileID {
 		return
 	}

@@ -75,6 +75,7 @@ def wait_image_revoked(path, region):
                 response.read()
         except urllib.error.HTTPError as e:
             if e.code == 403:
+                assert time.monotonic() <= deadline, 'image invalidation exceeded five seconds'
                 return
             raise
         time.sleep(0.02)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"image"
 	"image/jpeg"
@@ -199,6 +200,14 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	waitingID := id()
 	if err := os.WriteFile(filepath.Join(files.pendingDir(), waitingID), original.Bytes(), 0600); err != nil {
 		t.Fatal(err)
+	}
+	uncertain := &preparedUpload{fileID: waitingID, stagedID: waitingID, registrationUncertain: true}
+	failedRequest := httptest.NewRequest("PUT", "/api/me/profile-image", nil)
+	failedRequest = failedRequest.WithContext(context.WithValue(failedRequest.Context(), regionalUploadKey{}, uncertain))
+	files.finish(&http.Response{Request: failedRequest, Header: http.Header{}, StatusCode: http.StatusBadGateway})
+	files.discard(uncertain)
+	if _, err := os.Stat(filepath.Join(files.pendingDir(), waitingID)); err != nil {
+		t.Fatal("uncertain registration lost its durable original")
 	}
 	requireCall(t, owner, "POST", "/api/initialize", "", nil, 200)
 	accepted, _ := os.ReadDir(files.acceptedDir())
