@@ -23,10 +23,15 @@ type recordStore[T any] struct {
 	index    map[[16]byte]recordSpan
 	data     [][]byte
 	decorate func(string, *T)
+	borrowed bool
 }
 
 func newRecordStore[T any]() *recordStore[T] {
 	return &recordStore[T]{live: new(shardedMap[string, *T]), index: map[[16]byte]recordSpan{}}
+}
+
+func (s *recordStore[T]) fork() *recordStore[T] {
+	return &recordStore[T]{live: forkMap(s.live, nil), index: s.index, data: s.data, decorate: s.decorate, borrowed: true}
 }
 func uuidKey(id string) (key [16]byte, ok bool) {
 	if len(id) != 36 || id[8] != '-' || id[13] != '-' || id[18] != '-' || id[23] != '-' {
@@ -118,6 +123,9 @@ func (s *recordStore[T]) add(id string, raw []byte, v *T) error {
 	return nil
 }
 func (s *recordStore[T]) close() {
+	if s.borrowed {
+		return
+	}
 	for _, chunk := range s.data {
 		unix.Munmap(chunk[:cap(chunk)])
 	}
