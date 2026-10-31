@@ -1,0 +1,52 @@
+2026-10-31T04:02:56.704687284Z	BENCHMARK_START
+PORTAL_JOB_ID: 10843
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T04:03:33.776Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:03:36.758Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:03:39.755Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:03:42.781Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T04:03:43.481Z level=INFO msg="user moved" user=elkomia5110 from=europe to=america
+time=2026-10-31T04:03:44.620Z level=INFO msg="user moved" user=fureka5257 from=asia to=america
+time=2026-10-31T04:03:45.758Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T04:03:48.759Z level=INFO msg="america 2 日目: 20 人"
+time=2026-10-31T04:03:51.788Z level=INFO msg="asia 3 日目: 145 人"
+time=2026-10-31T04:03:52.808Z level=INFO msg="user moved" user=maxnenu_5603 from=asia to=europe
+time=2026-10-31T04:03:54.756Z level=INFO msg="europe 3 日目: 52 人"
+time=2026-10-31T04:03:54.860Z level=INFO msg="user moved" user=maxhochi6065 from=asia to=america
+time=2026-10-31T04:03:55.160Z level=INFO msg="user moved" user=kanimax.6144 from=asia to=europe
+time=2026-10-31T04:03:57.439Z level=INFO msg="user moved" user=elkomia5110 from=america to=asia
+time=2026-10-31T04:03:57.690Z level=INFO msg="user moved" user=elkomia5110 from=asia to=europe
+time=2026-10-31T04:03:57.757Z level=INFO msg="america 3 日目: 55 人"
+time=2026-10-31T04:04:00.790Z level=INFO msg="asia 4 日目: 426 人"
+time=2026-10-31T04:04:02.640Z level=INFO msg="user moved" user=hosera_6750 from=asia to=america
+time=2026-10-31T04:04:02.760Z level=INFO msg="user moved" user=kean-6725 from=asia to=europe
+time=2026-10-31T04:04:03.804Z level=INFO msg="europe 4 日目: 139 人"
+time=2026-10-31T04:04:04.976Z level=INFO msg="user moved" user=hosera_6750 from=america to=europe
+time=2026-10-31T04:04:05.212Z level=INFO msg="user moved" user=kiyu6635 from=america to=asia
+time=2026-10-31T04:04:06.766Z level=INFO msg="america 4 日目: 132 人"
+time=2026-10-31T04:04:07.242Z level=INFO msg="user moved" user=kiyu6635 from=asia to=america
+time=2026-10-31T04:04:09.426Z level=INFO msg="user moved" user=techiro_8847 from=europe to=asia
+time=2026-10-31T04:04:10.166Z level=INFO msg="asia 5 日目: 1117 人"
+time=2026-10-31T04:04:12.857Z level=INFO msg="europe 5 日目: 187 人"
+time=2026-10-31T04:04:15.791Z level=INFO msg="america 5 日目: 133 人"
+time=2026-10-31T04:04:25.569Z level=INFO msg="asia 最終日（グランプリ）: 1116 人"
+time=2026-10-31T04:04:25.603Z level=INFO msg="europe 最終日（グランプリ）: 187 人"
+time=2026-10-31T04:04:25.618Z level=INFO msg="america 最終日（グランプリ）: 133 人"
+time=2026-10-31T04:04:33.859Z level=INFO msg="グランプリ: アジア 1087 人, ヨーロッパ 176 人, アメリカ 120 人"
+{
+  "pass": true,
+  "score": 167488,
+  "messages": [
+    "ulma-13155: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "rone.10005: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "kowa_7077: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
+SCORE: 167488
+BENCHMARK_PASS
+2026-10-31T04:05:07.604280004Z	BENCHMARK_END
+
+SCORE: 167488
+BENCHMARK_PASS
