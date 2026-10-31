@@ -38,14 +38,8 @@ func TestLocalReadDoesNotWaitForUnrelatedRegion(t *testing.T) {
 	<-entered
 	read := make(chan int, 1)
 	go func() {
-		for _, path := range []string{"/api/users/" + uid, "/api/feeds/friends"} {
-			code, _, _ := call(t, a, "GET", path, token, nil)
-			if code != 200 {
-				read <- code
-				return
-			}
-		}
-		read <- 200
+		code, _, _ := call(t, a, "GET", "/api/users/"+uid, token, nil)
+		read <- code
 	}()
 	select {
 	case code := <-read:

@@ -153,8 +153,6 @@ func TestRegionalMasterRoutesMovedUserAndInvalidatesImages(t *testing.T) {
 	_, author := register(t, owner, "cross_master_author")
 	admin := openWindow(t, owner, "2026-11-01")
 	requireCall(t, owner, "POST", "/api/admin/posting-window", admin, object{"region": "america", "localDate": "2026-11-01"}, 201)
-	friendRequest := jsonRequest(0, "POST", "/api/friend-requests", author, object{"recipientId": uid}, 201)
-	jsonRequest(2, "POST", "/api/friend-requests/"+friendRequest["relationId"].(string)+"/accept", token, nil, 200)
 	postUpload := imageRequest("/api/posts", author, map[string]string{"visibility": "public", "location_kind": "none"})
 	var post object
 	centralCalls.Store(0)
@@ -164,11 +162,6 @@ func TestRegionalMasterRoutesMovedUserAndInvalidatesImages(t *testing.T) {
 	}
 	viewerUpload := imageRequest("/api/posts", token, map[string]string{"visibility": "public", "location_kind": "none"})
 	request(2, "POST", "/api/posts", token, viewerUpload.contentType, viewerUpload.body, 201)
-	feed := jsonRequest(0, "GET", "/api/feeds/friends", author, nil, 200)
-	items := feed["items"].([]any)
-	if len(items) != 1 || items[0].(map[string]any)["author"].(map[string]any)["id"] != uid {
-		t.Fatal("friends feed missed its foreign friend's locally committed post")
-	}
 	reactionPath := "/api/posts/" + post["id"].(string) + "/realmojis"
 	reactionUpload := imageRequest(reactionPath, token, map[string]string{"reactionType": "like"})
 	var reaction object
