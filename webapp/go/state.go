@@ -142,6 +142,7 @@ type State struct {
 	Friends       *shardedMap[string, *Relation]
 	Adj           *shardedMap[string, map[string]bool]
 	Follows       *shardedMap[string, *Relation]
+	Following     *shardedMap[string, map[string]bool]
 	Blocks        *shardedMap[string, *Relation]
 	Sessions      *shardedMap[string, string]
 	UserTokens    *shardedMap[string, map[string]bool]
@@ -209,6 +210,7 @@ func emptyState() *State {
 		Friends:       new(shardedMap[string, *Relation]),
 		Adj:           new(shardedMap[string, map[string]bool]),
 		Follows:       new(shardedMap[string, *Relation]),
+		Following:     new(shardedMap[string, map[string]bool]),
 		Blocks:        new(shardedMap[string, *Relation]),
 		Sessions:      new(shardedMap[string, string]),
 		UserTokens:    new(shardedMap[string, map[string]bool]),
@@ -365,10 +367,15 @@ func (s *State) apply(kind string, data []byte) error {
 		var v Relation
 		decode(&v)
 		s.Follows.Set(directed(v.FollowerID, v.FolloweeID), &v)
+		if s.Following.Get(v.FollowerID) == nil {
+			s.Following.Set(v.FollowerID, map[string]bool{})
+		}
+		s.Following.Get(v.FollowerID)[v.FolloweeID] = true
 	case "unfollow":
 		var v [2]string
 		decode(&v)
 		s.Follows.Delete(directed(v[0], v[1]))
+		delete(s.Following.Get(v[0]), v[1])
 	case "block":
 		var v Relation
 		decode(&v)

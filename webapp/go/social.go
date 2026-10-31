@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"iter"
 	"net/http"
 	"os"
 	"sort"
@@ -155,6 +156,41 @@ func (a *App) deleteInteraction(w http.ResponseWriter, r *http.Request, u *Accou
 	}
 	w.WriteHeader(204)
 }
+
+// Relationship feeds enumerate only relevant authors. Public feeds still
+// visit all live authors; visibility and ranking are checked by the caller.
+func (s *State) feedAuthors(uid, kind string) iter.Seq2[string, []string] {
+	if kind == "public" {
+		return s.LivePosts.All()
+	}
+	return func(yield func(string, []string) bool) {
+		related := s.Adj.Get(uid)
+		if kind == "following" {
+			related = s.Following.Get(uid)
+		}
+		if kind != "friends-of-friends" {
+			for aid := range related {
+				if ids := s.LivePosts.Get(aid); len(ids) > 0 && !yield(aid, ids) {
+					return
+				}
+			}
+			return
+		}
+		seen := map[string]bool{}
+		for friend := range related {
+			for aid := range s.Adj.Get(friend) {
+				if aid == uid || related[aid] || seen[aid] {
+					continue
+				}
+				seen[aid] = true
+				if ids := s.LivePosts.Get(aid); len(ids) > 0 && !yield(aid, ids) {
+					return
+				}
+			}
+		}
+	}
+}
+
 func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind string) {
 	if kind != "friends" && kind != "following" && kind != "public" && kind != "friends-of-friends" {
 		failure(w, 400, "invalid_post")
@@ -192,13 +228,9 @@ func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind stri
 	if kind == "friends-of-friends" {
 		ranking = s.snapshotRanking(u.ID)
 	}
-	for aid, ids := range s.LivePosts.All() {
+	for aid, ids := range s.feedAuthors(u.ID, kind) {
 		author := s.Accounts.Get(aid)
 		if author.ID == u.ID || author.Status != "active" {
-			continue
-		}
-		match := kind == "public" || kind == "friends" && s.friend(u.ID, aid) || kind == "following" && s.Follows.Get(directed(u.ID, aid)) != nil || kind == "friends-of-friends" && !s.friend(u.ID, aid) && s.common(u.ID, aid) > 0
-		if !match {
 			continue
 		}
 		for _, pid := range ids {
