@@ -1,0 +1,36 @@
+2026-10-31T01:48:34.691153037Z	BENCHMARK_START
+PORTAL_JOB_ID: 1677
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T01:49:10.855Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T01:49:13.895Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T01:49:16.856Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T01:49:19.925Z level=INFO msg="asia 2 日目: 46 人"
+time=2026-10-31T01:49:23.577Z level=INFO msg="europe 2 日目: 12 人"
+time=2026-10-31T01:49:26.078Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T01:49:28.952Z level=INFO msg="asia 3 日目: 111 人"
+time=2026-10-31T01:49:32.679Z level=INFO msg="europe 3 日目: 18 人"
+time=2026-10-31T01:49:35.277Z level=INFO msg="america 3 日目: 14 人"
+time=2026-10-31T01:49:38.805Z level=INFO msg="asia 4 日目: 111 人"
+time=2026-10-31T01:49:42.393Z level=INFO msg="europe 4 日目: 18 人"
+time=2026-10-31T01:49:44.684Z level=INFO msg="america 4 日目: 14 人"
+time=2026-10-31T01:49:47.176Z level=INFO msg="asia 5 日目: 111 人"
+time=2026-10-31T01:49:47.205Z level=INFO msg="user moved" user=solmi.5596 from=asia to=america
+time=2026-10-31T01:49:51.481Z level=INFO msg="europe 5 日目: 18 人"
+time=2026-10-31T01:49:53.754Z level=INFO msg="america 5 日目: 15 人"
+time=2026-10-31T01:50:02.567Z level=INFO msg="america 最終日（グランプリ）: 14 人"
+time=2026-10-31T01:50:02.570Z level=INFO msg="europe 最終日（グランプリ）: 18 人"
+time=2026-10-31T01:50:02.615Z level=INFO msg="asia 最終日（グランプリ）: 109 人"
+time=2026-10-31T01:50:10.834Z level=INFO msg="グランプリ: アジア 70 人, ヨーロッパ 5 人, アメリカ 3 人"
+{
+  "pass": true,
+  "score": 19423,
+  "messages": []
+}
+SCORE: 19423
+BENCHMARK_PASS
+2026-10-31T01:50:25.604297136Z	BENCHMARK_END
+
+SCORE: 19423
+BENCHMARK_PASS
