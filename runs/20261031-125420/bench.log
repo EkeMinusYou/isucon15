@@ -1,0 +1,59 @@
+2026-10-31T03:54:23.778247669Z	BENCHMARK_START
+PORTAL_JOB_ID: 10197
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T03:54:59.584Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:55:02.568Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:55:05.564Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:55:08.589Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T03:55:11.024Z level=INFO msg="user moved" user=tewanoa.5314 from=asia to=america
+time=2026-10-31T03:55:11.569Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T03:55:12.696Z level=INFO msg="user moved" user=tewanoa.5314 from=america to=europe
+time=2026-10-31T03:55:14.568Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T03:55:17.636Z level=INFO msg="asia 3 日目: 153 人"
+time=2026-10-31T03:55:20.268Z level=INFO msg="user moved" user=evano_5947 from=asia to=america
+time=2026-10-31T03:55:20.501Z level=INFO msg="user moved" user=liatene-5708 from=asia to=america
+time=2026-10-31T03:55:20.574Z level=INFO msg="europe 3 日目: 53 人"
+time=2026-10-31T03:55:21.088Z level=INFO msg="user moved" user=elmiari6171 from=asia to=europe
+time=2026-10-31T03:55:21.534Z level=INFO msg="user moved" user=evano_5947 from=america to=asia
+time=2026-10-31T03:55:22.321Z level=INFO msg="user moved" user=tewanoa.5314 from=europe to=america
+time=2026-10-31T03:55:23.161Z level=INFO msg="user moved" user=marku-6134 from=europe to=america
+time=2026-10-31T03:55:23.638Z level=INFO msg="america 3 日目: 49 人"
+time=2026-10-31T03:55:24.526Z level=INFO msg="user moved" user=liasu.6355 from=europe to=asia
+time=2026-10-31T03:55:26.602Z level=INFO msg="asia 4 日目: 453 人"
+time=2026-10-31T03:55:27.950Z level=INFO msg="user moved" user=evano_5947 from=asia to=america
+time=2026-10-31T03:55:29.673Z level=INFO msg="europe 4 日目: 138 人"
+time=2026-10-31T03:55:30.618Z level=INFO msg="user moved" user=nikume.6786 from=asia to=america
+time=2026-10-31T03:55:32.457Z level=INFO msg="user moved" user=liasu.6355 from=asia to=europe
+time=2026-10-31T03:55:32.618Z level=INFO msg="america 4 日目: 109 人"
+time=2026-10-31T03:55:33.679Z level=INFO msg="user moved" user=solnoate-8109 from=asia to=europe
+time=2026-10-31T03:55:34.913Z level=INFO msg="user moved" user=elmiari6171 from=europe to=asia
+time=2026-10-31T03:55:35.712Z level=INFO msg="asia 5 日目: 1192 人"
+time=2026-10-31T03:55:38.107Z level=INFO msg="user moved" user=tanoa-9154 from=europe to=asia
+time=2026-10-31T03:55:38.190Z level=INFO msg="user moved" user=marku-6134 from=america to=europe
+time=2026-10-31T03:55:38.675Z level=INFO msg="europe 5 日目: 178 人"
+time=2026-10-31T03:55:39.816Z level=INFO msg="user moved" user=tewanoa.5314 from=america to=europe
+time=2026-10-31T03:55:41.720Z level=INFO msg="america 5 日目: 119 人"
+time=2026-10-31T03:55:50.727Z level=INFO msg="europe 最終日（グランプリ）: 179 人"
+time=2026-10-31T03:55:50.920Z level=INFO msg="america 最終日（グランプリ）: 118 人"
+time=2026-10-31T03:55:51.130Z level=INFO msg="asia 最終日（グランプリ）: 1192 人"
+time=2026-10-31T03:55:59.662Z level=INFO msg="グランプリ: アジア 1148 人, ヨーロッパ 161 人, アメリカ 107 人"
+{
+  "pass": true,
+  "score": 168818,
+  "messages": [
+    "kunu_7278: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "miaraya.11445: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "runoa.11748: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "soba_smooth_rust_35: 友達申請を承認できません: POST /api/friend-requests/9a7ea0fd-8ea8-404a-9940-5e8d9b8b5cf8/accept: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/friend-requests/9a7ea0fd-8ea8-404a-9940-5e8d9b8b5cf8/accept\": EOF",
+    "elka-8357: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "anyoni-11349: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": readfrom tcp 10.27.35.21:55444-\u003e13.192.72.111:8080: write tcp 10.27.35.21:55444-\u003e13.192.72.111:8080: use of closed network connection",
+    "fume_5563: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF"
+  ]
+}
+SCORE: 168818
+BENCHMARK_PASS
+2026-10-31T03:56:29.685667565Z	BENCHMARK_END
+
+SCORE: 168818
+BENCHMARK_PASS
