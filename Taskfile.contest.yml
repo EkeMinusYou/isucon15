@@ -10,6 +10,43 @@
 version: '3'
 
 tasks:
+  reboot-hosts:
+    desc: 全ホストをOS再起動しboot IDの変更とアプリ自動起動を確認
+    preconditions:
+      - sh: test ! -f '{{.RUN_STATE_FILE}}'
+        msg: active benchmark exists
+    cmds:
+      - |
+        {{.OPERATION_LOCK}} bash <<'BASH'
+        set -eu
+        boots=$(mktemp)
+        trap 'rm -f "$boots"' EXIT
+        for host in {{.ALL_HOSTS}}; do
+          boot=$({{.SSH}} -n {{.SSH_USER}}@"$host" 'cat /proc/sys/kernel/random/boot_id')
+          printf '%s %s\n' "$host" "$boot" >> "$boots"
+        done
+        for host in {{.ALL_HOSTS}}; do
+          {{.SSH}} -n {{.SSH_USER}}@"$host" 'sudo systemd-run --quiet --unit=isureal-reboot-check --on-active=3s /usr/bin/systemctl reboot'
+        done
+        while read -r host previous; do
+          deadline=$((SECONDS + 180))
+          while :; do
+            current=$({{.SSH}} -n {{.SSH_USER}}@"$host" 'cat /proc/sys/kernel/random/boot_id' 2>/dev/null) || current=''
+            if [ -n "$current" ] && [ "$current" != "$previous" ]; then
+              if {{.SSH}} -n {{.SSH_USER}}@"$host" 'systemctl is-active --quiet {{.SERVICE}} && curl --fail --silent --max-time 2 http://127.0.0.1:{{.LISTEN_PORT}}/healthz >/dev/null' 2>/dev/null; then
+                echo "[$host] boot ID changed; application started automatically and is healthy"
+                break
+              fi
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "[$host] OS restart verification timed out" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+        done < "$boots"
+        BASH
+
   deploy-replica-data:
     desc: 地域内読取りの初期メタデータと画像参照を配布
     preconditions:

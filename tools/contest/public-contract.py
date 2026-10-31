@@ -124,6 +124,8 @@ def capture():
         multipart += f'--{boundary}\r\nContent-Disposition: form-data; name="image"; filename="post.jpg"\r\nContent-Type: image/jpeg\r\n\r\n'.encode() + PROFILE_JPEG + f'\r\n--{boundary}--\r\n'.encode()
         post = api('POST', '/api/posts', token, region=region, expected=201, raw_body=multipart, content_type='multipart/form-data; boundary=' + boundary)
         assert api('GET', '/api/posts/me/current', token, region=region)['id'] == post['id']
+        for image_region in COUNTRY:
+            assert api('GET', post['imageUrl'], region=image_region) == PROFILE_JPEG
         saved.append({'region': region, 'token': token, 'id': me['id'], 'bio': me['bio'], 'profileImageUrl': me['profileImageUrl'], 'postId': post['id'], 'postImageUrl': post['imageUrl']})
     for entry, other in zip(saved, saved[1:] + saved[:1]):
         assert api('GET', '/api/posts/' + other['postId'], entry['token'], region=entry['region'])['id'] == other['postId']
