@@ -11,8 +11,8 @@ func TestResourceReadsDoNotWaitForUnrelatedStripe(t *testing.T) {
 	uid, token := register(t, a, "independent_reader")
 	openWindow(t, a, "2026-11-01")
 	post := upload(t, a, "/api/posts", token, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
-	ownerStripe := int(stateHash("user:"+uid) % stateShardCount)
-	postStripe := int(stateHash("post:"+post["id"].(string)) % stateShardCount)
+	ownerStripe := int(stateHash("user:"+uid) % transactionStripeCount)
+	postStripe := int(stateHash("post:"+post["id"].(string)) % transactionStripeCount)
 	blocked := 0
 	for blocked == ownerStripe || blocked == postStripe {
 		blocked++

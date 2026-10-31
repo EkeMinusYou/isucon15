@@ -63,12 +63,12 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	ip := ""
 	for n := 1; ; n++ {
 		ip = fmt.Sprintf("192.0.2.%d", n)
-		index := stateHash("ip:"+ip) % stateShardCount
-		if index != stateHash("name:master_editor")%stateShardCount && index != stateHash("user:"+uid)%stateShardCount {
+		index := stateHash("ip:"+ip) % transactionStripeCount
+		if index != stateHash("name:master_editor")%transactionStripeCount && index != stateHash("user:"+uid)%transactionStripeCount {
 			break
 		}
 	}
-	ipLock := &a.transactions[stateHash("ip:"+ip)%stateShardCount]
+	ipLock := &a.transactions[stateHash("ip:"+ip)%transactionStripeCount]
 	ipLock.Lock()
 	ipHeld := true
 	defer func() {

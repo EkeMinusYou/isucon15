@@ -9,12 +9,16 @@ import (
 	"strings"
 )
 
+// Mutation locks are independent of map buckets. Remote persistence retains
+// these locks, so unrelated users need more groups than in-memory map access.
+const transactionStripeCount = 1024
+
 // Never wait for one resource while retaining locks on unrelated resources.
 // After waking, retain that resource and try the rest without blocking.
-func (a *App) acquireStripeModes(indices []int, writes *[stateShardCount]bool) {
+func (a *App) acquireStripeModes(indices []int, writes *[transactionStripeCount]bool) {
 	held := -1
 	for {
-		var acquired [stateShardCount]int
+		var acquired [transactionStripeCount]int
 		n := 0
 		if held >= 0 {
 			acquired[n] = held
@@ -80,7 +84,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 		if all {
 			a.globalGate.Lock()
 			a.transactionRequests.Add(1)
-			a.transactionShards.Add(stateShardCount)
+			a.transactionShards.Add(transactionStripeCount)
 			a.transactionGlobal.Add(1)
 			return func() {
 				a.globalGate.Unlock()
@@ -88,11 +92,11 @@ func (a *App) lockRequest(r *http.Request) func() {
 			}
 		}
 		indices := []int{}
-		seen := [stateShardCount]bool{}
-		writes := [stateShardCount]bool{}
+		seen := [transactionStripeCount]bool{}
+		writes := [transactionStripeCount]bool{}
 		sharedUsers := interactionReadsUsers(r)
 		for _, key := range keys {
-			i := int(stateHash(key) % stateShardCount)
+			i := int(stateHash(key) % transactionStripeCount)
 			if !sharedUsers || !strings.HasPrefix(key, "user:") {
 				writes[i] = true
 			}
@@ -124,7 +128,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 			a.viewMu.RUnlock()
 			retry := false
 			for _, key := range current {
-				if !seen[stateHash(key)%stateShardCount] {
+				if !seen[stateHash(key)%transactionStripeCount] {
 					retry = true
 				}
 			}
