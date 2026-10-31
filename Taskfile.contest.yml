@@ -25,6 +25,26 @@ tasks:
       - for: { var: ALL_HOSTS }
         cmd: '{{.SSH}} {{.SSH_USER}}@{{.ITEM}} "sudo sh /usr/local/bin/isureal-maintenance check"'
 
+  check-contest-environment:
+    desc: 公式manualのenvcheckを全ホストで実行して追試環境を確認
+    cmds:
+      - '{{.OPERATION_LOCK}} task check-contest-environment-hosts'
+
+  check-contest-environment-hosts:
+    # Also lock direct invocation; nested locks reuse the outer task's lock.
+    cmds:
+      - for: { var: ALL_HOSTS }
+        cmd: |
+          echo '[{{.ITEM}}] official environment check'
+          {{.OPERATION_LOCK}} {{.SSH}} {{.SSH_USER}}@{{.ITEM}} '
+            set -eu
+            systemctl is-enabled --quiet isucon-register.service
+            systemctl is-active --quiet isucon-register.service
+            systemctl is-enabled --quiet ssh.socket
+            systemctl is-active --quiet ssh.socket
+            sudo /usr/local/bin/envcheck
+          '
+
   build-contest-assets:
     desc: アプリbuildに付随する競技固有binaryをビルドする（buildのhook、既定は何もしない）
 
