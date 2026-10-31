@@ -1,0 +1,65 @@
+2026-10-31T05:58:02.774211931Z	BENCHMARK_START
+PORTAL_JOB_ID: 20096
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T05:58:11.066Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T05:58:14.031Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T05:58:17.037Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T05:58:20.063Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T05:58:23.044Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T05:58:26.047Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T05:58:29.142Z level=INFO msg="asia 3 日目: 146 人"
+time=2026-10-31T05:58:32.036Z level=INFO msg="europe 3 日目: 54 人"
+time=2026-10-31T05:58:33.443Z level=INFO msg="user moved" user=rerovin-5512 from=america to=asia
+time=2026-10-31T05:58:34.424Z level=INFO msg="user moved" user=mena_5692 from=asia to=europe
+time=2026-10-31T05:58:35.188Z level=INFO msg="america 3 日目: 51 人"
+time=2026-10-31T05:58:35.904Z level=INFO msg="user moved" user=chichitor_6255 from=asia to=america
+time=2026-10-31T05:58:36.969Z level=INFO msg="user moved" user=rerovin-5512 from=asia to=europe
+time=2026-10-31T05:58:38.328Z level=INFO msg="asia 4 日目: 419 人"
+time=2026-10-31T05:58:41.095Z level=INFO msg="europe 4 日目: 149 人"
+time=2026-10-31T05:58:44.717Z level=INFO msg="america 4 日目: 124 人"
+time=2026-10-31T05:58:45.074Z level=INFO msg="user moved" user=wasoho_6949 from=asia to=europe
+time=2026-10-31T05:58:45.089Z level=INFO msg="user moved" user=torshi_6653 from=america to=europe
+time=2026-10-31T05:58:46.290Z level=INFO msg="user moved" user=museko6704 from=asia to=america
+time=2026-10-31T05:58:47.282Z level=INFO msg="asia 5 日目: 634 人"
+time=2026-10-31T05:58:50.353Z level=INFO msg="user moved" user=torshi_6653 from=europe to=asia
+time=2026-10-31T05:58:50.769Z level=INFO msg="europe 5 日目: 189 人"
+time=2026-10-31T05:58:50.928Z level=INFO msg="user moved" user=roko-6554 from=america to=asia
+time=2026-10-31T05:58:54.218Z level=INFO msg="america 5 日目: 123 人"
+time=2026-10-31T05:59:03.466Z level=INFO msg="america 最終日（グランプリ）: 123 人"
+time=2026-10-31T05:59:03.870Z level=INFO msg="asia 最終日（グランプリ）: 635 人"
+time=2026-10-31T05:59:04.088Z level=INFO msg="europe 最終日（グランプリ）: 189 人"
+time=2026-10-31T05:59:10.980Z level=INFO msg="グランプリ: アジア 430 人, ヨーロッパ 136 人, アメリカ 84 人"
+{
+  "pass": true,
+  "score": 82743,
+  "messages": [
+    "vinte-8355: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "konura.8774: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "nuleo-8437: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "zoesu-7966: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "shitsuis_10001: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "elul9219: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "benhi_7500: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "maxmiake-6498: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "mishivin-7279: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "mekichi_5625: 投稿 d57e0892-bd85-4933-9fb2-cf224fc24fec に RealMoji を送れません: POST /api/posts/d57e0892-bd85-4933-9fb2-cf224fc24fec/realmojis: 応答がタイムアウトしました",
+    "kiri-7824: 投稿 d57e0892-bd85-4933-9fb2-cf224fc24fec にコメントできません: POST /api/posts/d57e0892-bd85-4933-9fb2-cf224fc24fec/comments: 応答がタイムアウトしました",
+    "mosolre_5263: 投稿 d57e0892-bd85-4933-9fb2-cf224fc24fec にコメントできません: POST /api/posts/d57e0892-bd85-4933-9fb2-cf224fc24fec/comments: 応答がタイムアウトしました",
+    "katsu-10353: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "muisfu-5286: 投稿 27b292a2-3cbd-4fd9-80a2-b608f8cf338e にコメントできません: POST /api/posts/27b292a2-3cbd-4fd9-80a2-b608f8cf338e/comments: 応答がタイムアウトしました",
+    "antorleo.6005: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "yoha-9237: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "saseyu10008: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "kutor_10573: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "sekizoe.5078: 友達申請を承認できません: POST /api/friend-requests/3845e9f6-9694-4b93-a6fb-c1bf89fa8e2b/accept: 応答がタイムアウトしました",
+    "fusu_5235: 友達申請を承認できません: POST /api/friend-requests/77359328-a135-4771-9051-ae040ee6329b/accept: 応答がタイムアウトしました"
+  ]
+}
+SCORE: 82743
+BENCHMARK_PASS
+2026-10-31T05:59:33.836201941Z	BENCHMARK_END
+
+SCORE: 82743
+BENCHMARK_PASS
