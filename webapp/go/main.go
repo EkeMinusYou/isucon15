@@ -22,6 +22,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if app != nil {
+		config.Snapshot = app.snapshot
 		defer app.journal.Close()
 	}
 	if err := serve(ctx, config, handler); err != nil {

@@ -3,6 +3,8 @@ package main
 import (
 	measurement "github.com/EkeMinusYou/isucon-template/tools/measurement/app"
 	"net/http"
+	"strings"
+	"sync/atomic"
 )
 
 // Bootstrap calls this after identifying the contest's session. No cookie name
@@ -21,4 +23,51 @@ func connectionPolicy(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// Counters cover the complete request phases and are sampled by the standard
+// runtime collector. No state lock is taken by the measurement endpoint.
+type requestMetrics struct {
+	requests   atomic.Uint64
+	waitNS     atomic.Uint64
+	holdNS     atomic.Uint64
+	responseNS atomic.Uint64
+}
+
+var routeMetricNames = [...]string{"post", "image", "feed", "memory", "export", "auth", "other"}
+
+func metricRoute(path string) int {
+	switch {
+	case path == "/api/posts":
+		return 0
+	case strings.HasPrefix(path, "/api/images/"):
+		return 1
+	case strings.HasPrefix(path, "/api/feeds/"):
+		return 2
+	case strings.HasPrefix(path, "/api/memories"):
+		return 3
+	case path == "/api/me/export":
+		return 4
+	case strings.HasPrefix(path, "/api/auth/"):
+		return 5
+	default:
+		return 6
+	}
+}
+func (a *App) snapshot() measurement.Snapshot {
+	m := map[string]any{
+		"app_sig_hits_total":   a.signatureHits.Load(),
+		"app_sig_misses_total": a.signatureMisses.Load(),
+		"app_sig_resets_total": a.signatureResets.Load(),
+		"app_sig_ns_total":     a.signatureNS.Load(),
+	}
+	for i, name := range routeMetricNames {
+		p := "app_" + name + "_"
+		s := &a.routeMetrics[i]
+		m[p+"requests_total"] = s.requests.Load()
+		m[p+"wait_ns_total"] = s.waitNS.Load()
+		m[p+"hold_ns_total"] = s.holdNS.Load()
+		m[p+"response_ns_total"] = s.responseNS.Load()
+	}
+	return measurement.Snapshot{Metrics: m}
 }

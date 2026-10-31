@@ -30,6 +30,29 @@ import (
 
 type object = map[string]any
 
+type deferredResponse struct {
+	*httptest.ResponseRecorder
+	value any
+	json  bool
+	work  func(http.ResponseWriter)
+}
+
+func (d *deferredResponse) finish() {
+	if d.work != nil {
+		d.work(d)
+	}
+	if d.json && d.value != nil {
+		json.NewEncoder(d.Body).Encode(d.value)
+	}
+}
+func responseWork(w http.ResponseWriter, work func(http.ResponseWriter)) {
+	if d, ok := w.(*deferredResponse); ok {
+		d.work = work
+	} else {
+		work(w)
+	}
+}
+
 type uploadKey struct{}
 type preparedUpload struct {
 	data        []byte
@@ -62,6 +85,10 @@ func prepareProfile(body io.Reader) preparedUpload {
 func output(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
+	if d, ok := w.(*deferredResponse); ok {
+		d.value, d.json = v, true
+		return
+	}
 	if v != nil {
 		json.NewEncoder(w).Encode(v)
 	}
@@ -147,14 +174,22 @@ func requestRegion(r *http.Request) string {
 	return fixedRegion
 }
 func (a *App) signed(im *Image, exp int64) string {
-	key := im.ID + ":" + strconv.FormatInt(exp, 10)
+	return a.signImage(im.ID, a.s.Accounts[im.OwnerID].Secret, exp)
+}
+func (a *App) signImage(imageID, secret string, exp int64) string {
+	key := imageID + ":" + strconv.FormatInt(exp, 10)
+	a.signatureMu.Lock()
 	if v := a.signatures[key]; v != "" {
+		a.signatureMu.Unlock()
+		a.signatureHits.Add(1)
 		return v
 	}
-	u := a.s.Accounts[im.OwnerID]
-	k, _ := hex.DecodeString(u.Secret)
+	a.signatureMu.Unlock()
+	a.signatureMisses.Add(1)
+	started := time.Now()
+	k, _ := hex.DecodeString(secret)
 	mac := hmac.New(sha256.New, k)
-	v := []byte(strconv.FormatInt(exp, 10) + ":" + im.ID)
+	v := []byte(strconv.FormatInt(exp, 10) + ":" + imageID)
 	var sum [32]byte
 	for i := 0; i < 1000; i++ {
 		mac.Reset()
@@ -162,13 +197,28 @@ func (a *App) signed(im *Image, exp int64) string {
 		v = mac.Sum(sum[:0])
 	}
 	sig := base64.RawURLEncoding.EncodeToString(v)
+	a.signatureNS.Add(uint64(time.Since(started)))
+	a.signatureMu.Lock()
 	// Issued URLs from different seconds coexist. A read of an older URL must
 	// not evict signatures being reused by current feeds and image requests.
 	if len(a.signatures) >= 65536 {
 		a.signatures = make(map[string]string)
+		a.signatureResets.Add(1)
 	}
 	a.signatures[key] = sig
+	a.signatureMu.Unlock()
 	return sig
+}
+
+type imageReference struct {
+	app        *App
+	id, secret string
+	exp        int64
+}
+
+func (v imageReference) MarshalJSON() ([]byte, error) {
+	s := "/api/images/" + v.id + "?exp=" + strconv.FormatInt(v.exp, 10) + "&sig=" + v.app.signImage(v.id, v.secret, v.exp)
+	return json.Marshal(s)
 }
 func (a *App) imageURL(i string) any {
 	im := a.s.Images.get(i)
@@ -176,7 +226,7 @@ func (a *App) imageURL(i string) any {
 		return nil
 	}
 	exp := time.Now().Unix() + 86400
-	return "/api/images/" + i + "?exp=" + strconv.FormatInt(exp, 10) + "&sig=" + a.signed(im, exp)
+	return imageReference{a, i, a.s.Accounts[im.OwnerID].Secret, exp}
 }
 func (a *App) user(u *Account, bio bool) object {
 	b := ""
@@ -302,8 +352,13 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		r.Body = io.NopCloser(bytes.NewReader(b))
 	}
-	rr := httptest.NewRecorder()
+	rr := &deferredResponse{ResponseRecorder: httptest.NewRecorder()}
+	stats := &a.routeMetrics[metricRoute(r.URL.Path)]
+	started := time.Now()
 	a.mu.Lock()
+	locked := time.Now()
+	stats.waitNS.Add(uint64(locked.Sub(started)))
+	stats.requests.Add(1)
 	a.requests++
 	if time.Now().Before(a.s.Bans[ipOf(r)]) {
 		failure(rr, 403, "ip_banned")
@@ -311,7 +366,11 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.dispatch(rr, r)
 	}
 	a.commit()
+	stats.holdNS.Add(uint64(time.Since(locked)))
 	a.mu.Unlock()
+	started = time.Now()
+	rr.finish()
+	stats.responseNS.Add(uint64(time.Since(started)))
 	for k, vs := range rr.Header() {
 		for _, v := range vs {
 			w.Header().Add(k, v)
@@ -681,24 +740,31 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 		failure(w, 403, "image_forbidden")
 		return
 	}
-	if !hmac.Equal([]byte(ss[0]), []byte(a.signed(im, exp))) {
-		a.failIP(r, "signature", 3, 5*time.Second)
-		failure(w, 403, "image_forbidden")
-		return
-	}
-	if !a.validImage(im) {
-		failure(w, 403, "image_forbidden")
-		return
-	}
-	f, off, e := a.imageReader(im)
-	if e != nil {
-		failure(w, 500, "image_unavailable")
-		return
-	}
-	defer f.Close()
-	w.Header().Set("Content-Type", im.MediaType)
-	w.Header().Set("Content-Length", strconv.FormatInt(im.Size, 10))
-	io.Copy(w, io.NewSectionReader(f, off, im.Size))
+	copyImage, valid := *im, a.validImage(im)
+	secret := a.s.Accounts[im.OwnerID].Secret
+	responseWork(w, func(w http.ResponseWriter) {
+		if !hmac.Equal([]byte(ss[0]), []byte(a.signImage(i, secret, exp))) {
+			a.mu.Lock()
+			a.failIP(r, "signature", 3, 5*time.Second)
+			a.commit()
+			a.mu.Unlock()
+			failure(w, 403, "image_forbidden")
+			return
+		}
+		if !valid {
+			failure(w, 403, "image_forbidden")
+			return
+		}
+		f, off, e := a.imageReader(&copyImage)
+		if e != nil {
+			failure(w, 500, "image_unavailable")
+			return
+		}
+		defer f.Close()
+		w.Header().Set("Content-Type", copyImage.MediaType)
+		w.Header().Set("Content-Length", strconv.FormatInt(copyImage.Size, 10))
+		io.Copy(w, io.NewSectionReader(f, off, copyImage.Size))
+	})
 }
 func multipartImage(r *http.Request, max int) ([]byte, bool) {
 	if p, ok := r.Context().Value(uploadKey{}).(preparedUpload); ok {

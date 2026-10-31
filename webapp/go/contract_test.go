@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -53,6 +54,36 @@ func BenchmarkSignedAlternatingExpiration(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		a.signed(im, 1800000000+int64(i%2))
 	}
+}
+
+func TestResponseSnapshotSurvivesReset(t *testing.T) {
+	a := fixtureApp(t)
+	uid, _ := register(t, a, "snapshot")
+	im := &Image{ID: id(), OwnerID: uid}
+	a.put("image", im)
+	u := *a.s.Accounts[uid]
+	u.ProfileImageID = &im.ID
+	a.put("account", u)
+	snapshot := a.me(&u)
+	expected, err := json.Marshal(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.reset(); err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	for n := 0; n < 16; n++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			actual, err := json.Marshal(snapshot)
+			if err != nil || !bytes.Equal(actual, expected) {
+				t.Errorf("response changed after reset: %s %v", actual, err)
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 func fixtureApp(t *testing.T) *App {

@@ -327,48 +327,57 @@ func (a *App) ownPosts(u *Account, asc bool) []*Post {
 	return ps
 }
 func (a *App) export(w http.ResponseWriter, r *http.Request, u *Account) {
-	var buf bytes.Buffer
-	zw := zip.NewWriter(&buf)
 	items := []object{}
+	images := []Image{}
 	for n, p := range a.ownPosts(u, true) {
 		v := a.post(p)
-		name := fmt.Sprintf("images/%06d.jpg", n+1)
-		v["imagePath"] = name
+		v["imagePath"] = fmt.Sprintf("images/%06d.jpg", n+1)
 		items = append(items, v)
-		f, e := zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Store})
-		if e != nil {
-			failure(w, 500, "export_failed")
-			return
-		}
 		im := a.s.Images.get(p.ImageID)
-		src, off, e := a.imageReader(im)
+		if im == nil {
+			failure(w, 500, "export_failed")
+			return
+		}
+		images = append(images, *im)
+	}
+	responseWork(w, func(w http.ResponseWriter) {
+		var buf bytes.Buffer
+		zw := zip.NewWriter(&buf)
+		for n, im := range images {
+			f, e := zw.CreateHeader(&zip.FileHeader{Name: fmt.Sprintf("images/%06d.jpg", n+1), Method: zip.Store})
+			if e != nil {
+				failure(w, 500, "export_failed")
+				return
+			}
+			src, off, e := a.imageReader(&im)
+			if e != nil {
+				failure(w, 500, "export_failed")
+				return
+			}
+			_, e = io.Copy(f, io.NewSectionReader(src, off, im.Size))
+			src.Close()
+			if e != nil {
+				failure(w, 500, "export_failed")
+				return
+			}
+		}
+		f, e := zw.Create("posts.json")
+		if e == nil {
+			e = json.NewEncoder(f).Encode(items)
+		}
 		if e != nil {
 			failure(w, 500, "export_failed")
 			return
 		}
-		_, e = io.Copy(f, io.NewSectionReader(src, off, im.Size))
-		src.Close()
-		if e != nil {
+		if e = zw.Close(); e != nil {
 			failure(w, 500, "export_failed")
 			return
 		}
-	}
-	f, e := zw.Create("posts.json")
-	if e == nil {
-		e = json.NewEncoder(f).Encode(items)
-	}
-	if e != nil {
-		failure(w, 500, "export_failed")
-		return
-	}
-	if e = zw.Close(); e != nil {
-		failure(w, 500, "export_failed")
-		return
-	}
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", `attachment; filename="isureal-posts.zip"`)
-	w.Header().Set("Cache-Control", "no-store")
-	w.Write(buf.Bytes())
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Content-Disposition", `attachment; filename="isureal-posts.zip"`)
+		w.Header().Set("Cache-Control", "no-store")
+		w.Write(buf.Bytes())
+	})
 }
 func relationJSON(v *Relation) object {
 	return object{"relationId": v.ID, "status": v.Status, "updatedAt": v.UpdatedAt}

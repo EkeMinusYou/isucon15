@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -149,6 +150,12 @@ type App struct {
 	failures         map[string][]time.Time
 	signal           chan struct{}
 	signatures       map[string]string
+	signatureMu      sync.Mutex
+	signatureHits    atomic.Uint64
+	signatureMisses  atomic.Uint64
+	signatureResets  atomic.Uint64
+	signatureNS      atomic.Uint64
+	routeMetrics     [7]requestMetrics
 	requests         uint64
 	writes           uint64
 }
@@ -533,7 +540,9 @@ func (a *App) reset() error {
 	}
 	a.failures = map[string][]time.Time{}
 	a.changes = nil
+	a.signatureMu.Lock()
 	a.signatures = map[string]string{}
+	a.signatureMu.Unlock()
 	a.wake()
 	return nil
 }
