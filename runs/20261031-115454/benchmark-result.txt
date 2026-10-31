@@ -1,0 +1,40 @@
+time=2026-10-31T02:55:32.821Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:55:35.805Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:55:38.804Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:55:39.023Z level=INFO msg="user moved" user=naul_5096 from=europe to=asia
+time=2026-10-31T02:55:41.824Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T02:55:43.228Z level=INFO msg="user moved" user=naul_5096 from=asia to=europe
+time=2026-10-31T02:55:44.803Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T02:55:47.824Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T02:55:50.830Z level=INFO msg="asia 3 日目: 148 人"
+time=2026-10-31T02:55:51.149Z level=INFO msg="user moved" user=leozoe5448 from=europe to=asia
+time=2026-10-31T02:55:51.706Z level=INFO msg="user moved" user=leozoe5448 from=asia to=europe
+time=2026-10-31T02:55:53.859Z level=INFO msg="europe 3 日目: 42 人"
+time=2026-10-31T02:55:55.427Z level=INFO msg="user moved" user=monoan.5504 from=america to=europe
+time=2026-10-31T02:55:56.035Z level=INFO msg="user moved" user=roki5917 from=asia to=europe
+time=2026-10-31T02:55:56.046Z level=INFO msg="user moved" user=nune6186 from=asia to=europe
+time=2026-10-31T02:55:56.805Z level=INFO msg="america 3 日目: 38 人"
+time=2026-10-31T02:55:57.386Z level=INFO msg="user moved" user=monoan.5504 from=europe to=america
+time=2026-10-31T02:55:58.828Z level=INFO msg="user moved" user=naul_5096 from=europe to=asia
+time=2026-10-31T02:55:59.871Z level=INFO msg="asia 4 日目: 430 人"
+time=2026-10-31T02:56:00.362Z level=INFO msg="user moved" user=maxyu_6274 from=europe to=america
+time=2026-10-31T02:56:03.338Z level=INFO msg="europe 4 日目: 97 人"
+time=2026-10-31T02:56:03.534Z level=INFO msg="user moved" user=naul_5096 from=asia to=europe
+time=2026-10-31T02:56:05.865Z level=INFO msg="user moved" user=nafu_7122 from=asia to=america
+time=2026-10-31T02:56:06.086Z level=INFO msg="america 4 日目: 78 人"
+time=2026-10-31T02:56:06.476Z level=INFO msg="user moved" user=kira_7361 from=asia to=america
+time=2026-10-31T02:56:06.703Z level=INFO msg="user moved" user=evaevama_7522 from=asia to=europe
+time=2026-10-31T02:56:08.955Z level=INFO msg="user moved" user=leozoe5448 from=europe to=asia
+time=2026-10-31T02:56:09.044Z level=INFO msg="asia 5 日目: 896 人"
+time=2026-10-31T02:56:09.151Z level=INFO msg="user moved" user=nuoror_7759 from=asia to=america
+time=2026-10-31T02:56:12.419Z level=INFO msg="europe 5 日目: 98 人"
+time=2026-10-31T02:56:15.265Z level=INFO msg="america 5 日目: 80 人"
+time=2026-10-31T02:56:24.667Z level=INFO msg="america 最終日（グランプリ）: 79 人"
+time=2026-10-31T02:56:24.776Z level=INFO msg="europe 最終日（グランプリ）: 97 人"
+time=2026-10-31T02:56:24.965Z level=INFO msg="asia 最終日（グランプリ）: 894 人"
+time=2026-10-31T02:56:32.847Z level=INFO msg="グランプリ: アジア 234 人, ヨーロッパ 5 人, アメリカ 4 人"
+{
+  "pass": true,
+  "score": 93961,
+  "messages": []
+}
