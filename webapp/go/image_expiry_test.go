@@ -14,7 +14,7 @@ func TestImageExpiryReuseAndLifetime(t *testing.T) {
 			t.Fatal("same-hour URLs cannot reuse their signature")
 		}
 		remaining := time.Unix(exp, 0).Sub(now)
-		if remaining < 24*time.Hour || remaining > 25*time.Hour {
+		if remaining <= 23*time.Hour || remaining > 24*time.Hour {
 			t.Fatalf("unexpected lifetime: %v", remaining)
 		}
 	}

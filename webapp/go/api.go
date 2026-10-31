@@ -233,9 +233,9 @@ func (v imageReference) MarshalJSON() ([]byte, error) {
 }
 
 // Hourly expiry boundaries reuse signatures across responses. Every issued
-// URL remains valid for at least 24 hours and at most 25 hours.
+// URL remains valid for more than 23 hours and at most 24 hours.
 func imageExpiry(now time.Time) int64 {
-	return (now.Unix()/3600+1)*3600 + 86400
+	return now.Unix()/3600*3600 + 86400
 }
 
 func (a *App) imageURL(i string) any {
