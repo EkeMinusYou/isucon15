@@ -787,7 +787,11 @@ func multipartImage(r *http.Request, max int) ([]byte, bool) {
 	if e != nil || cfg.Width > max || cfg.Height > max {
 		return nil, false
 	}
-	if e = jpegvalidate.Validate(bytes.NewReader(b)); e != nil {
+	if max > 512 {
+		if !validateLargeJPEG(r.Context(), b) {
+			return nil, false
+		}
+	} else if e = jpegvalidate.Validate(bytes.NewReader(b)); e != nil {
 		return nil, false
 	}
 	return b, true

@@ -56,6 +56,12 @@ func metricRoute(path string) int {
 }
 func (a *App) snapshot() measurement.Snapshot {
 	m := map[string]any{
+		"app_jpeg_queue_depth":      jpegQueued.Load(),
+		"app_jpeg_active":           jpegActive.Load(),
+		"app_jpeg_requests_total":   jpegRequests.Load(),
+		"app_jpeg_cancelled_total":  jpegCancelled.Load(),
+		"app_jpeg_wait_ns_total":    jpegWaitNS.Load(),
+		"app_jpeg_work_ns_total":    jpegWorkNS.Load(),
 		"app_crypto_arch":           nativeCryptoArch.Load(),
 		"app_native_sig_jobs_total": nativeSignatureJobs.Load(),
 		"app_scalar_sig_jobs_total": scalarSignatureJobs.Load(),
