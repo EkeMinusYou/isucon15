@@ -138,25 +138,21 @@ func (a *App) lockRequest(r *http.Request) func() {
 		a.mu.RLock()
 		keys, all := a.mutationKeys(r)
 		if all {
-			a.mutationMu.Lock()
 			a.globalGate.Lock()
+			a.gateUnlock = a.globalGate.Unlock
 			a.transactionRequests.Add(1)
 			a.transactionGlobal.Add(1)
 			return func() {
-				a.globalGate.Unlock()
-				a.mutationMu.Unlock()
+				a.unlockStateGate()
 				a.mu.RUnlock()
 			}
 		}
 		uses := a.transactions.reference(keys, interactionReadsUsers(r))
 		a.acquireResources(uses)
-		// Queue mutations before entering the snapshot gate. A journal waiter
-		// must not count as an executing mutation and delay every collection.
-		a.mutationMu.Lock()
 		a.globalGate.RLock()
+		a.gateUnlock = a.globalGate.RUnlock
 		unlock := func() {
-			a.globalGate.RUnlock()
-			a.mutationMu.Unlock()
+			a.unlockStateGate()
 			a.releaseResources(uses)
 			a.mu.RUnlock()
 		}
@@ -274,4 +270,12 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 		}
 	}
 	return nil, true
+}
+
+// Each request releases its gate once, possibly before waiting for persistence.
+func (a *App) unlockStateGate() {
+	if unlock := a.gateUnlock; unlock != nil {
+		a.gateUnlock = nil
+		unlock()
+	}
 }
