@@ -202,6 +202,9 @@ func (m *shardedMap[K, V]) All() iter.Seq2[K, V] {
 func (m *shardedMap[K, V]) Snapshot() map[K]V {
 	values := make(map[K]V)
 	for k, v := range m.All() {
+		if m.overlay != nil && m.overlay.clone != nil {
+			v, _ = m.Load(k)
+		}
 		values[k] = v
 	}
 	return values

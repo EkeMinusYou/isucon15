@@ -2,6 +2,7 @@ package main
 
 import (
 	"maps"
+	"slices"
 	"testing"
 )
 
@@ -44,5 +45,16 @@ func TestOverlayIterationMergesChangesAndStopsEarly(t *testing.T) {
 	nested.Set("after", 6)
 	if nested.Get("after") != 6 {
 		t.Fatal("early stop retained a map lock")
+	}
+}
+
+func TestOverlaySnapshotOwnsMutableValues(t *testing.T) {
+	base := new(shardedMap[string, []int])
+	base.Set("values", []int{1, 2})
+	child := forkMap(base, slices.Clone[[]int])
+	values := child.Snapshot()
+	values["values"][0] = 7
+	if base.Get("values")[0] != 1 || child.Get("values")[0] != 7 {
+		t.Fatal("mutable snapshot shared its parent's storage")
 	}
 }
