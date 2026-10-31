@@ -11,6 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"isuconapp/internal/jpegvalidate"
+
 	measurement "github.com/EkeMinusYou/isucon-template/tools/measurement/app"
 )
 
@@ -30,6 +32,7 @@ type signatureJob struct {
 // identical to local execution.
 func computeHandler(a *App) http.Handler {
 	slots := make(chan struct{}, 2)
+	jpegSlots := make(chan struct{}, 2)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/healthz" {
 			w.Write([]byte("ok\n"))
@@ -41,6 +44,29 @@ func computeHandler(a *App) http.Handler {
 		}
 		if r.Method != "POST" {
 			failure(w, 405, "method_not_allowed")
+			return
+		}
+		if r.URL.Path == "/api/internal/compute/jpeg" {
+			// Finish receiving the body before reserving a CPU slot. Signature
+			// work has its own limit, so slow uploads cannot block it.
+			data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 32<<20))
+			if err != nil {
+				failure(w, 400, "invalid_image")
+				return
+			}
+			select {
+			case jpegSlots <- struct{}{}:
+			case <-r.Context().Done():
+				return
+			}
+			defer func() { <-jpegSlots }()
+			jpegActive.Add(1)
+			started := time.Now()
+			valid := jpegvalidate.Validate(bytes.NewReader(data)) == nil
+			jpegWorkNS.Add(uint64(time.Since(started)))
+			jpegRequests.Add(1)
+			jpegActive.Add(-1)
+			output(w, 200, valid)
 			return
 		}
 		select {

@@ -3,11 +3,44 @@ package main
 import (
 	"bytes"
 	"context"
+	"image"
+	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
 )
+
+func TestJPEGWorkerPreservesValidation(t *testing.T) {
+	old := transportSecret
+	transportSecret = "jpeg-test-secret"
+	t.Cleanup(func() { transportSecret = old })
+	server := httptest.NewServer(computeHandler(&App{}))
+	defer server.Close()
+	t.Setenv("COMPUTE_URL", server.URL)
+	var b bytes.Buffer
+	if err := jpeg.Encode(&b, image.NewRGBA(image.Rect(0, 0, 128, 128)), nil); err != nil {
+		t.Fatal(err)
+	}
+	valid := b.Bytes()
+	for _, tc := range []struct {
+		data []byte
+		want bool
+	}{{valid, true}, {valid[:len(valid)-20], false}, {[]byte("invalid"), false}} {
+		got, err := remoteJPEG(context.Background(), tc.data)
+		if err != nil || got != tc.want {
+			t.Fatalf("remote JPEG got %v, %v; want %v", got, err, tc.want)
+		}
+	}
+	response, err := http.Post(server.URL+"/api/internal/compute/jpeg", "application/octet-stream", bytes.NewReader(valid))
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != 403 {
+		t.Fatal("JPEG worker accepted an unauthenticated request")
+	}
+}
 
 func TestAuthenticatedComputePreservesResults(t *testing.T) {
 	old := transportSecret
