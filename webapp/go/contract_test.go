@@ -295,3 +295,39 @@ func TestSearchNormalizationTracksProfileUpdates(t *testing.T) {
 		t.Fatal("Unicode normalization did not match updated name")
 	}
 }
+
+func TestPendingRequestIndexesFollowTransitionsAndReplay(t *testing.T) {
+	a := fixtureApp(t)
+	_, at := register(t, a, "request_a")
+	bid, bt := register(t, a, "request_b")
+	cid, ct := register(t, a, "request_c")
+	request := requireCall(t, a, "POST", "/api/friend-requests", at, object{"recipientId": bid}, 201)
+	count := func(app *App, token, kind string, want int) {
+		t.Helper()
+		v := requireCall(t, app, "GET", "/api/relationships/"+kind, token, nil, 200)
+		if len(v["items"].([]any)) != want {
+			t.Fatalf("%s: expected %d items", kind, want)
+		}
+	}
+	count(a, at, "outgoing-requests", 1)
+	count(a, bt, "incoming-requests", 1)
+	restored, err := newApp(a.initial, a.durable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	count(restored, bt, "incoming-requests", 1)
+	restored.journal.Close()
+	restored.s.closeHistory()
+	requireCall(t, a, "POST", "/api/friend-requests/"+request["relationId"].(string)+"/cancel", at, nil, 200)
+	count(a, at, "outgoing-requests", 0)
+	count(a, bt, "incoming-requests", 0)
+	requireCall(t, a, "POST", "/api/friend-requests", at, object{"recipientId": cid}, 201)
+	requireCall(t, a, "PUT", "/api/blocks/"+cid, at, nil, 204)
+	count(a, at, "outgoing-requests", 0)
+	count(a, ct, "incoming-requests", 0)
+	requireCall(t, a, "POST", "/api/friend-requests", bt, object{"recipientId": cid}, 201)
+	requireCall(t, a, "POST", "/api/friend-requests", ct, object{"recipientId": bid}, 201)
+	count(a, bt, "outgoing-requests", 0)
+	count(a, ct, "incoming-requests", 0)
+	count(a, bt, "friends", 1)
+}

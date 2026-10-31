@@ -410,16 +410,16 @@ func (a *App) relationshipAPI(w http.ResponseWriter, r *http.Request, u *Account
 			return
 		}
 		var reverse *Relation
-		for _, q := range s.Requests {
-			if q.Status != "pending" {
-				continue
-			}
-			if q.RequesterID == u.ID && q.RecipientID == v.RecipientID {
+		for _, q := range s.RequestOut[u.ID] {
+			if q.RecipientID == v.RecipientID {
 				failure(w, 409, "relationship_conflict")
 				return
 			}
-			if q.RequesterID == v.RecipientID && q.RecipientID == u.ID {
+		}
+		for _, q := range s.RequestIn[u.ID] {
+			if q.RequesterID == v.RecipientID {
 				reverse = q
+				break
 			}
 		}
 		if reverse != nil {
@@ -531,12 +531,14 @@ func (a *App) relationshipAPI(w http.ResponseWriter, r *http.Request, u *Account
 			}
 			a.put("unfollow", [2]string{u.ID, uid})
 			a.put("unfollow", [2]string{uid, u.ID})
-			for _, v := range s.Requests {
-				if v.Status == "pending" && (v.RequesterID == u.ID && v.RecipientID == uid || v.RequesterID == uid && v.RecipientID == u.ID) {
-					q := *v
-					q.Status = "cancelled"
-					q.UpdatedAt = now
-					a.put("request", q)
+			for _, requests := range []map[string]*Relation{s.RequestOut[u.ID], s.RequestIn[u.ID]} {
+				for _, v := range requests {
+					if v.RequesterID == uid || v.RecipientID == uid {
+						q := *v
+						q.Status = "cancelled"
+						q.UpdatedAt = now
+						a.put("request", q)
+					}
 				}
 			}
 		} else if r.Method == "DELETE" {
@@ -590,14 +592,14 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 			}
 		}
 	case "incoming-requests", "outgoing-requests":
-		for _, v := range s.Requests {
-			if v.Status != "pending" {
-				continue
-			}
-			if kind == "incoming-requests" && v.RecipientID == u.ID {
+		requests := s.RequestIn[u.ID]
+		if kind == "outgoing-requests" {
+			requests = s.RequestOut[u.ID]
+		}
+		for _, v := range requests {
+			if kind == "incoming-requests" {
 				add(v, v.RequesterID)
-			}
-			if kind == "outgoing-requests" && v.RequesterID == u.ID {
+			} else {
 				add(v, v.RecipientID)
 			}
 		}

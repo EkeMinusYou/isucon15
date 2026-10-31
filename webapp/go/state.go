@@ -134,6 +134,8 @@ type State struct {
 	PostComments  map[string][]string
 	Images        *recordStore[Image]
 	Requests      map[string]*Relation
+	RequestOut    map[string]map[string]*Relation
+	RequestIn     map[string]map[string]*Relation
 	Friends       map[string]*Relation
 	Adj           map[string]map[string]bool
 	Follows       map[string]*Relation
@@ -170,7 +172,7 @@ type App struct {
 }
 
 func emptyState() *State {
-	s := &State{imageLinks: map[[16]byte]imageLink{}, LivePosts: map[string][]string{}, Accounts: map[string]*Account{}, Names: map[string]string{}, Admins: map[string]*Administrator{}, Windows: map[string]*Window{}, Current: map[string]string{}, Posts: newRecordStore[Post](), UserPosts: map[string][]string{}, Reactions: newRecordStore[Reaction](), PostReactions: map[string][]string{}, Comments: newRecordStore[Comment](), PostComments: map[string][]string{}, Images: newRecordStore[Image](), Requests: map[string]*Relation{}, Friends: map[string]*Relation{}, Adj: map[string]map[string]bool{}, Follows: map[string]*Relation{}, Blocks: map[string]*Relation{}, Sessions: map[string]string{}, AdminSessions: map[string]string{}, Bans: map[string]time.Time{}, Notifications: map[string][]Notification{}}
+	s := &State{imageLinks: map[[16]byte]imageLink{}, LivePosts: map[string][]string{}, Accounts: map[string]*Account{}, Names: map[string]string{}, Admins: map[string]*Administrator{}, Windows: map[string]*Window{}, Current: map[string]string{}, Posts: newRecordStore[Post](), UserPosts: map[string][]string{}, Reactions: newRecordStore[Reaction](), PostReactions: map[string][]string{}, Comments: newRecordStore[Comment](), PostComments: map[string][]string{}, Images: newRecordStore[Image](), Requests: map[string]*Relation{}, RequestOut: map[string]map[string]*Relation{}, RequestIn: map[string]map[string]*Relation{}, Friends: map[string]*Relation{}, Adj: map[string]map[string]bool{}, Follows: map[string]*Relation{}, Blocks: map[string]*Relation{}, Sessions: map[string]string{}, AdminSessions: map[string]string{}, Bans: map[string]time.Time{}, Notifications: map[string][]Notification{}}
 	s.Images.decorate = func(id string, im *Image) {
 		key, _ := uuidKey(id)
 		if link, ok := s.imageLinks[key]; ok {
@@ -279,7 +281,21 @@ func (s *State) apply(kind string, data []byte) error {
 	case "request":
 		var v Relation
 		decode(&v)
+		if old := s.Requests[v.ID]; old != nil {
+			delete(s.RequestOut[old.RequesterID], old.ID)
+			delete(s.RequestIn[old.RecipientID], old.ID)
+		}
 		s.Requests[v.ID] = &v
+		if v.Status == "pending" {
+			if s.RequestOut[v.RequesterID] == nil {
+				s.RequestOut[v.RequesterID] = map[string]*Relation{}
+			}
+			if s.RequestIn[v.RecipientID] == nil {
+				s.RequestIn[v.RecipientID] = map[string]*Relation{}
+			}
+			s.RequestOut[v.RequesterID][v.ID] = &v
+			s.RequestIn[v.RecipientID][v.ID] = &v
+		}
 	case "friend":
 		var v Relation
 		decode(&v)
