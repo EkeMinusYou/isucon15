@@ -25,6 +25,10 @@ func detectRole() (string, bool, error) {
 	if x := os.Getenv("REGION"); x != "" {
 		return x, os.Getenv("OWNER_URL") == "", nil
 	}
+	primary, e := url.Parse(os.Getenv("OWNER_URL"))
+	if e != nil {
+		return "", false, e
+	}
 	addrs, e := net.InterfaceAddrs()
 	if e != nil {
 		return "", false, e
@@ -36,12 +40,15 @@ func detectRole() (string, bool, error) {
 		}
 		switch ip.String() {
 		case "192.168.1.10":
-			return "asia", true, nil
+			return "asia", primary.Hostname() == "" || primary.Hostname() == ip.String(), nil
 		case "192.168.2.10":
 			return "europe", false, nil
 		case "192.168.3.10":
 			return "america", false, nil
 		case "192.168.4.10":
+			if primary.Hostname() == ip.String() {
+				return "asia", true, nil
+			}
 			return "compute", false, nil
 		}
 	}
@@ -74,7 +81,7 @@ func serviceHandler() (http.Handler, *App, error) {
 			return nil, nil, e
 		}
 		if os.Getenv("REGIONAL_READS") == "1" {
-			a.replication, e = newReplicationHub(a, []string{"europe", "america"})
+			a.replication, e = newReplicationHub(a, strings.Fields(envOr("READ_REPLICA_REGIONS", "europe america")))
 			if e != nil {
 				return nil, nil, e
 			}

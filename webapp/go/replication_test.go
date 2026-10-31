@@ -66,7 +66,7 @@ func newReplicationFixture(t *testing.T) *replicationFixture {
 	t.Cleanup(func() { transportSecret, fixedRegion = oldSecret, oldRegion })
 	f := &replicationFixture{primary: fixtureApp(t), apps: map[string]*App{}, handlers: map[string]http.Handler{}, servers: map[string]*httptest.Server{}, stateDirs: map[string]string{}, uploadDirs: map[string]string{}, releaseAck: make(chan struct{})}
 	var err error
-	f.primary.replication, err = newReplicationHub(f.primary, []string{"europe", "america"})
+	f.primary.replication, err = newReplicationHub(f.primary, []string{"asia", "europe", "america"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func newReplicationFixture(t *testing.T) *replicationFixture {
 	t.Setenv("INITIAL_DIR", f.primary.initial)
 	t.Setenv("TRANSPORT_KEY_FILE", f.keyFile)
 	t.Setenv("REGION_ASIA_URL", f.server.URL)
-	for _, region := range []string{"europe", "america"} {
+	for _, region := range []string{"asia", "europe", "america"} {
 		f.stateDirs[region], f.uploadDirs[region] = t.TempDir(), t.TempDir()
 		f.start(t, region)
 	}
@@ -193,9 +193,18 @@ func TestRegionalReadsReplicationAndRecovery(t *testing.T) {
 	relation := f.request(t, "europe", "POST", "/api/friend-requests", token, object{"recipientId": peer}, 201)
 	f.request(t, "europe", "POST", "/api/friend-requests/"+relation["relationId"].(string)+"/accept", peerToken, nil, 200)
 	f.request(t, "europe", "POST", "/api/posts/"+post["id"].(string)+"/comments", peerToken, object{"body": "replicated comment"}, 201)
+	regionTokens := map[string]string{}
+	for _, region := range []string{"asia", "america"} {
+		_, regionTokens[region] = f.user(t, region, "local_"+region)
+	}
 	before := f.business.Load()
 	for _, path := range []string{"/api/me", "/api/posting-window/current", "/api/posts/me/current", "/api/feeds/friends", "/api/posts/" + post["id"].(string) + "/comments", post["imageUrl"].(string), "/api/me/export"} {
 		f.request(t, "europe", "GET", path, token, nil, 200)
+	}
+	for region, localToken := range regionTokens {
+		f.request(t, region, "GET", "/api/me", localToken, nil, 200)
+		f.request(t, region, "GET", "/api/me", token, nil, 403)
+		f.request(t, region, "GET", post["imageUrl"].(string), "", nil, 200)
 	}
 	if f.business.Load() != before {
 		t.Fatal("regional reads queried the primary")
@@ -236,7 +245,7 @@ func TestRegionalReadsReplicationAndRecovery(t *testing.T) {
 	if status != 200 {
 		t.Fatal("initialize did not reset all regions")
 	}
-	for _, region := range []string{"europe", "america"} {
+	for _, region := range []string{"asia", "europe", "america"} {
 		if f.apps[region].replica.progress.Load().Epoch == epoch {
 			t.Fatal("initialize retained the old epoch")
 		}
@@ -285,7 +294,7 @@ func TestReplicationAckWaitDoesNotHoldStateLocks(t *testing.T) {
 			t.Fatal("ACK did not release successful updates")
 		}
 	}
-	for _, region := range []string{"europe", "america"} {
+	for _, region := range []string{"asia", "europe", "america"} {
 		app := f.apps[region]
 		app.mu.RLock()
 		bio := app.s.Accounts.Get(f.primary.s.Sessions.Get(token)).Bio
