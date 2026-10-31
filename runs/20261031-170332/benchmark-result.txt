@@ -1,0 +1,65 @@
+time=2026-10-31T08:04:12.594Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T08:04:15.579Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T08:04:18.576Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T08:04:21.597Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T08:04:24.579Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T08:04:27.580Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T08:04:29.716Z level=INFO msg="user moved" user=sobenya.5453 from=europe to=asia
+time=2026-10-31T08:04:30.347Z level=INFO msg="user moved" user=solivyul5464 from=europe to=america
+time=2026-10-31T08:04:30.614Z level=INFO msg="asia 3 日目: 155 人"
+time=2026-10-31T08:04:31.491Z level=INFO msg="user moved" user=sobenya.5453 from=asia to=america
+time=2026-10-31T08:04:32.318Z level=INFO msg="user moved" user=riki-5572 from=asia to=europe
+time=2026-10-31T08:04:33.275Z level=INFO msg="user moved" user=anzoe_5920 from=asia to=europe
+time=2026-10-31T08:04:33.576Z level=INFO msg="europe 3 日目: 48 人"
+time=2026-10-31T08:04:34.249Z level=INFO msg="user moved" user=isreel.6272 from=asia to=europe
+time=2026-10-31T08:04:36.588Z level=INFO msg="america 3 日目: 55 人"
+time=2026-10-31T08:04:39.381Z level=INFO msg="user moved" user=solivyul5464 from=america to=asia
+time=2026-10-31T08:04:39.603Z level=INFO msg="asia 4 日目: 456 人"
+time=2026-10-31T08:04:42.468Z level=INFO msg="user moved" user=nete_7345 from=asia to=europe
+time=2026-10-31T08:04:42.682Z level=INFO msg="europe 4 日目: 131 人"
+time=2026-10-31T08:04:42.717Z level=INFO msg="user moved" user=solivyul5464 from=asia to=europe
+time=2026-10-31T08:04:42.919Z level=INFO msg="user moved" user=hema6386 from=europe to=asia
+time=2026-10-31T08:04:44.493Z level=INFO msg="user moved" user=ruevana8526 from=asia to=america
+time=2026-10-31T08:04:45.746Z level=INFO msg="america 4 日目: 154 人"
+time=2026-10-31T08:04:46.553Z level=INFO msg="user moved" user=isreel.6272 from=europe to=asia
+time=2026-10-31T08:04:46.669Z level=INFO msg="user moved" user=nimiahi.7633 from=asia to=europe
+time=2026-10-31T08:04:46.777Z level=INFO msg="user moved" user=maxsu8518 from=asia to=europe
+time=2026-10-31T08:04:47.148Z level=INFO msg="user moved" user=kura_7858 from=asia to=europe
+time=2026-10-31T08:04:48.568Z level=INFO msg="user moved" user=sobenya.5453 from=america to=asia
+time=2026-10-31T08:04:48.840Z level=INFO msg="asia 5 日目: 1262 人"
+time=2026-10-31T08:04:48.901Z level=INFO msg="user moved" user=ruho.7413 from=asia to=america
+time=2026-10-31T08:04:48.903Z level=INFO msg="user moved" user=nine7576 from=asia to=america
+time=2026-10-31T08:04:52.208Z level=INFO msg="europe 5 日目: 304 人"
+time=2026-10-31T08:04:52.623Z level=INFO msg="user moved" user=anzoe_5920 from=europe to=america
+time=2026-10-31T08:04:55.388Z level=INFO msg="america 5 日目: 263 人"
+time=2026-10-31T08:04:55.613Z level=INFO msg="user moved" user=torvinko-9721 from=america to=europe
+time=2026-10-31T08:05:04.143Z level=INFO msg="europe 最終日（グランプリ）: 303 人"
+time=2026-10-31T08:05:04.172Z level=INFO msg="asia 最終日（グランプリ）: 1259 人"
+time=2026-10-31T08:05:04.181Z level=INFO msg="america 最終日（グランプリ）: 262 人"
+time=2026-10-31T08:05:12.721Z level=INFO msg="グランプリ: アジア 1014 人, ヨーロッパ 197 人, アメリカ 154 人"
+{
+  "pass": true,
+  "score": 193767,
+  "messages": [
+    "torname.16859: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sois.17658: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "ivyke_16887: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "ulrieva.17061: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "kufuna-7173: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "wadan-5750: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sefu_15622: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": readfrom tcp 10.27.32.92:45770-\u003e13.192.72.111:8080: write tcp 10.27.32.92:45770-\u003e13.192.72.111:8080: use of closed network connection",
+    "sona_12532: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": readfrom tcp 10.27.32.92:50564-\u003e13.192.72.111:8080: write tcp 10.27.32.92:50564-\u003e13.192.72.111:8080: use of closed network connection",
+    "nitashi-14254: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": readfrom tcp 10.27.32.92:53658-\u003e13.192.72.111:8080: write tcp 10.27.32.92:53658-\u003e13.192.72.111:8080: write: broken pipe",
+    "hini-12567: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "hoku.5176: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "yonero-12748: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "chibense.13013: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": readfrom tcp 10.27.32.92:51482-\u003e13.192.72.111:8080: write tcp 10.27.32.92:51482-\u003e13.192.72.111:8080: use of closed network connection",
+    "kofu-11974: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": readfrom tcp 10.27.32.92:49314-\u003e13.192.72.111:8080: write tcp 10.27.32.92:49314-\u003e13.192.72.111:8080: use of closed network connection",
+    "min_zhang_1115: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "miasuis-11713: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "yora.13096: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "sanchong_yanjiu_530: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "elne_13274: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": readfrom tcp 10.27.32.92:51898-\u003e13.192.72.111:8080: write tcp 10.27.32.92:51898-\u003e13.192.72.111:8080: use of closed network connection",
+    "stew_obasan_2400: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF"
+  ]
+}
