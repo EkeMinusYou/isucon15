@@ -699,8 +699,12 @@ func (s *State) canPost(u *Account) bool {
 }
 func (s *State) common(a, b string) int {
 	n := 0
-	for x := range s.Adj.Get(a) {
-		if s.Adj.Get(b)[x] {
+	neighbors, other := s.Adj.Get(a), s.Adj.Get(b)
+	if len(neighbors) > len(other) {
+		neighbors, other = other, neighbors
+	}
+	for x := range neighbors {
+		if other[x] {
 			n++
 		}
 	}

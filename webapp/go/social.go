@@ -216,6 +216,12 @@ func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind stri
 			}
 		}
 	}
+	// Viewer state and relationships are stable for this snapshot capture.
+	if own, _ := a.s.dayPosts(u); own == nil {
+		page(w, []object{})
+		return
+	}
+	friends := a.s.Adj.Get(u.ID)
 	type entry struct {
 		post    postSnapshot
 		author  string
@@ -230,13 +236,30 @@ func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind stri
 	}
 	for aid, ids := range s.feedAuthors(u.ID, kind) {
 		author := s.Accounts.Get(aid)
-		if author.ID == u.ID || author.Status != "active" {
+		if author.ID == u.ID || author.Status != "active" || s.blocked(u.ID, aid) {
 			continue
 		}
+		direct := friends[aid]
+		indirect, checkedIndirect := kind == "friends-of-friends", kind == "friends-of-friends"
 		for _, pid := range ids {
 			p := s.Posts.get(pid)
-			if s.Windows.Get(p.WindowID).EndedAt != nil || !s.view(u, p) || kind == "public" && p.Visibility != "public" {
+			if p == nil || p.DeletedAt != nil || kind == "public" && p.Visibility != "public" {
 				continue
+			}
+			win := s.Windows.Get(p.WindowID)
+			if win == nil || win.EndedAt != nil {
+				continue
+			}
+			if p.Visibility != "public" && !direct {
+				if p.Visibility != "friends_of_friends" {
+					continue
+				}
+				if !checkedIndirect {
+					indirect, checkedIndirect = s.common(u.ID, aid) > 0, true
+				}
+				if !indirect {
+					continue
+				}
 			}
 			x := entry{post: a.snapshotPost(p), author: aid}
 			if ranking != nil {

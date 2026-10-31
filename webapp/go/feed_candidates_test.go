@@ -10,8 +10,10 @@ func TestRelationshipFeedsAndFollowReplay(t *testing.T) {
 	}
 	admin := openWindow(t, a, "2026-11-01")
 	requireCall(t, a, "PUT", "/api/admin/users/"+ids[4]+"/certification", admin, nil, 204)
-	for _, token := range tokens {
-		upload(t, a, "/api/posts", token, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
+	postIDs := make([]string, len(tokens))
+	for i, token := range tokens {
+		post := upload(t, a, "/api/posts", token, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
+		postIDs[i] = post["id"].(string)
 	}
 	for _, pair := range [][2]int{{0, 1}, {0, 2}, {1, 3}, {2, 3}} {
 		a.put("friend", Relation{ID: id(), User1ID: ids[pair[0]], User2ID: ids[pair[1]]})
@@ -39,6 +41,15 @@ func TestRelationshipFeedsAndFollowReplay(t *testing.T) {
 	check(a, "friends-of-friends", ids[3])
 	check(a, "following", ids[4])
 	check(a, "public", ids[1], ids[2], ids[3], ids[4])
+
+	requireCall(t, a, "PATCH", "/api/posts/"+postIDs[3], tokens[3], object{"visibility": "friends"}, 200)
+	check(a, "friends-of-friends")
+	requireCall(t, a, "PATCH", "/api/posts/"+postIDs[3], tokens[3], object{"visibility": "friends_of_friends"}, 200)
+	check(a, "friends-of-friends", ids[3])
+	requireCall(t, a, "PATCH", "/api/posts/"+postIDs[4], tokens[4], object{"visibility": "friends"}, 200)
+	check(a, "following")
+	requireCall(t, a, "PATCH", "/api/posts/"+postIDs[4], tokens[4], object{"visibility": "public"}, 200)
+	check(a, "following", ids[4])
 	requireCall(t, a, "DELETE", "/api/follows/"+ids[4], tokens[0], nil, 204)
 	check(a, "following")
 	restored, err := newApp(a.initial, a.durable)
@@ -50,4 +61,8 @@ func TestRelationshipFeedsAndFollowReplay(t *testing.T) {
 	check(restored, "friends", ids[1], ids[2])
 	check(restored, "friends-of-friends", ids[3])
 	check(restored, "following")
+	requireCall(t, restored, "DELETE", "/api/posts/"+postIDs[0], tokens[0], nil, 204)
+	for _, kind := range []string{"friends", "friends-of-friends", "following", "public"} {
+		check(restored, kind)
+	}
 }
