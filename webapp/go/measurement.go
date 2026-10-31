@@ -56,15 +56,18 @@ func metricRoute(path string) int {
 }
 func (a *App) snapshot() measurement.Snapshot {
 	m := map[string]any{
-		"app_sig_hits_total":       a.signatureHits.Load(),
-		"app_sig_misses_total":     a.signatureMisses.Load(),
-		"app_sig_resets_total":     a.signatureResets.Load(),
-		"app_sig_ns_total":         a.signatureNS.Load(),
-		"app_sig_coalesced_total":  a.signatureCoalesced.Load(),
-		"app_sig_evicted_total":    a.signatureEvictions.Load(),
-		"app_sig_rpc_failed_total": a.signatureRPCFailures.Load(),
-		"app_remote_sig_total":     a.remoteSignatures.Load(),
-		"app_remote_jpeg_total":    remoteJPEG.Load(),
+		"app_crypto_arch":           nativeCryptoArch.Load(),
+		"app_native_sig_jobs_total": nativeSignatureJobs.Load(),
+		"app_scalar_sig_jobs_total": scalarSignatureJobs.Load(),
+		"app_sig_hits_total":        a.signatureHits.Load(),
+		"app_sig_misses_total":      a.signatureMisses.Load(),
+		"app_sig_resets_total":      a.signatureResets.Load(),
+		"app_sig_ns_total":          a.signatureNS.Load(),
+		"app_sig_coalesced_total":   a.signatureCoalesced.Load(),
+		"app_sig_evicted_total":     a.signatureEvictions.Load(),
+		"app_sig_rpc_failed_total":  a.signatureRPCFailures.Load(),
+		"app_remote_sig_total":      a.remoteSignatures.Load(),
+		"app_remote_jpeg_total":     remoteJPEG.Load(),
 	}
 	for i, name := range routeMetricNames {
 		p := "app_" + name + "_"

@@ -47,6 +47,8 @@ tasks:
 
   build-contest-assets:
     desc: アプリbuildに付随する競技固有binaryをビルドする（buildのhook、既定は何もしない）
+    cmds:
+      - sh tools/contest/crypto/build.sh '{{.TARGET_OS}}' '{{.TARGET_ARCH}}'
 
   prepare-initial-data:
     desc: 初期画像ファイルの存在と転送認証鍵を準備

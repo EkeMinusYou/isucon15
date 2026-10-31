@@ -17,6 +17,10 @@ import (
 
 var computeClient = &http.Client{Transport: measurement.NewUpstreamTransport(), Timeout: 3 * time.Second}
 var remoteJPEG atomic.Uint64
+var nativeSignatureBatch func([]signatureJob) ([]string, bool)
+var nativeCryptoArch atomic.Int64
+var nativeSignatureJobs atomic.Uint64
+var scalarSignatureJobs atomic.Uint64
 
 type signatureJob struct {
 	ID, Secret string
@@ -62,13 +66,24 @@ func computeHandler(a *App) http.Handler {
 				failure(w, 400, "invalid_jobs")
 				return
 			}
-			results := make([]string, len(jobs))
-			for i, j := range jobs {
-				started := time.Now()
-				results[i] = computeImageSignature(j.ID, j.Secret, j.Exp)
-				a.signatureMisses.Add(1)
-				a.signatureNS.Add(uint64(time.Since(started)))
+
+			started := time.Now()
+			var results []string
+			ok := false
+			if nativeSignatureBatch != nil && len(jobs) >= 8 {
+				results, ok = nativeSignatureBatch(jobs)
 			}
+			if ok {
+				nativeSignatureJobs.Add(uint64(len(jobs)))
+			} else {
+				results = make([]string, len(jobs))
+				for i, j := range jobs {
+					results[i] = computeImageSignature(j.ID, j.Secret, j.Exp)
+				}
+				scalarSignatureJobs.Add(uint64(len(jobs)))
+			}
+			a.signatureMisses.Add(uint64(len(jobs)))
+			a.signatureNS.Add(uint64(time.Since(started)))
 			output(w, 200, results)
 		default:
 			failure(w, 404, "not_found")

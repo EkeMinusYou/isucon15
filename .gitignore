@@ -79,3 +79,4 @@ __pycache__/
 
 /generated/isureal-transport.key
 /generated/collectors.yaml
+/webapp/go/libisureal-crypto.so*
