@@ -1,0 +1,43 @@
+2026-10-31T04:20:38.835741870Z	BENCHMARK_START
+PORTAL_JOB_ID: 12134
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T04:21:15.112Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:21:18.099Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:21:21.093Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:21:24.115Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T04:21:27.098Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T04:21:30.097Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T04:21:33.126Z level=INFO msg="asia 3 日目: 138 人"
+time=2026-10-31T04:21:35.793Z level=INFO msg="user moved" user=issara-5906 from=asia to=europe
+time=2026-10-31T04:21:36.110Z level=INFO msg="europe 3 日目: 46 人"
+time=2026-10-31T04:21:39.099Z level=INFO msg="america 3 日目: 39 人"
+time=2026-10-31T04:21:40.995Z level=INFO msg="user moved" user=chichi_6241 from=europe to=asia
+time=2026-10-31T04:21:42.160Z level=INFO msg="asia 4 日目: 404 人"
+time=2026-10-31T04:21:45.160Z level=INFO msg="europe 4 日目: 118 人"
+time=2026-10-31T04:21:48.125Z level=INFO msg="america 4 日目: 94 人"
+time=2026-10-31T04:21:48.920Z level=INFO msg="user moved" user=chichi_6241 from=asia to=europe
+time=2026-10-31T04:21:51.402Z level=INFO msg="asia 5 日目: 1099 人"
+time=2026-10-31T04:21:51.747Z level=INFO msg="user moved" user=nevinso-8444 from=europe to=america
+time=2026-10-31T04:21:54.169Z level=INFO msg="europe 5 日目: 181 人"
+time=2026-10-31T04:21:57.262Z level=INFO msg="america 5 日目: 118 人"
+time=2026-10-31T04:22:06.128Z level=INFO msg="america 最終日（グランプリ）: 118 人"
+time=2026-10-31T04:22:06.155Z level=INFO msg="europe 最終日（グランプリ）: 181 人"
+time=2026-10-31T04:22:06.255Z level=INFO msg="asia 最終日（グランプリ）: 1098 人"
+time=2026-10-31T04:22:15.162Z level=INFO msg="グランプリ: アジア 986 人, ヨーロッパ 166 人, アメリカ 109 人"
+{
+  "pass": true,
+  "score": 163151,
+  "messages": [
+    "chivin.6736: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "maxki14141: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "memewa-7329: ログインし直せません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF"
+  ]
+}
+SCORE: 163151
+BENCHMARK_PASS
+2026-10-31T04:22:44.707704087Z	BENCHMARK_END
+
+SCORE: 163151
+BENCHMARK_PASS
