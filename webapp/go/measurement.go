@@ -70,7 +70,6 @@ func (a *App) snapshot() measurement.Snapshot {
 		"app_transaction_requests_total": a.transactionRequests.Load(),
 		"app_transaction_shards_total":   a.transactionShards.Load(),
 		"app_transaction_global_total":   a.transactionGlobal.Load(),
-		"app_transaction_stripe_count":   transactionStripeCount,
 		"app_stripe_retries_total":       a.stripeRetries.Load(),
 		"app_journal_wait_ns_total":      a.journalWaitNS.Load(),
 		"app_journal_write_ns_total":     a.journalWriteNS.Load(),

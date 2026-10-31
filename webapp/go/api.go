@@ -805,7 +805,7 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	responseWork(w, func(w http.ResponseWriter) {
 		if !hmac.Equal([]byte(ss[0]), []byte(a.signImage(i, secret, exp))) {
 			a.mu.RLock()
-			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%transactionStripeCount]
+			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
 			stripe.Lock()
 			a.globalGate.RLock()
 			a.viewMu.RLock()

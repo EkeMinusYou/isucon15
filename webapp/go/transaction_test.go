@@ -204,7 +204,7 @@ func TestPostingWindowDoesNotDrainQueuedUpdates(t *testing.T) {
 	a := fixtureApp(t)
 	uid, token := register(t, a, "queued_update")
 	admin := openWindow(t, a, "2026-11-01")
-	stripe := &a.transactions[stateHash("user:"+uid)%transactionStripeCount]
+	stripe := &a.transactions[stateHash("user:"+uid)%stateShardCount]
 	stripe.Lock()
 	held := true
 	defer func() {
@@ -256,9 +256,9 @@ func TestWaitingForOneStripeReleasesOtherStripes(t *testing.T) {
 			a.transactions[1].Lock()
 			acquired, release, finished := make(chan struct{}), make(chan struct{}), make(chan struct{})
 			go func() {
-				var writes *[transactionStripeCount]bool
+				var writes *[stateShardCount]bool
 				if exclusive {
-					writes = new([transactionStripeCount]bool)
+					writes = new([stateShardCount]bool)
 					writes[0], writes[1] = true, true
 				}
 				a.acquireStripeModes([]int{0, 1}, writes)
@@ -302,7 +302,7 @@ func TestInteractionAllowsConcurrentAuthorReads(t *testing.T) {
 	post := *a.s.Posts.get(created["id"].(string))
 	// Keep the post stripe distinct so a collision does not intentionally
 	// promote the author's shared lock to exclusive mode.
-	for stateHash("post:"+post.ID)%transactionStripeCount == stateHash("user:"+owner)%transactionStripeCount {
+	for stateHash("post:"+post.ID)%stateShardCount == stateHash("user:"+owner)%stateShardCount {
 		post.ID = id()
 	}
 	a.s.Posts.set(post.ID, &post)

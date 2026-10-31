@@ -168,7 +168,7 @@ type appCore struct {
 	masterEpoch          string
 	journalMu            sync.Mutex
 	notifier             notificationHub
-	transactions         [transactionStripeCount]sync.RWMutex
+	transactions         [stateShardCount]sync.RWMutex
 	transactionRequests  atomic.Uint64
 	transactionShards    atomic.Uint64
 	transactionGlobal    atomic.Uint64
