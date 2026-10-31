@@ -1,0 +1,60 @@
+time=2026-10-31T07:29:36.886Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:29:39.871Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:29:42.867Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:29:45.888Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T07:29:48.099Z level=INFO msg="user moved" user=some5290 from=asia to=america
+time=2026-10-31T07:29:48.636Z level=INFO msg="user moved" user=ivyroyu.5329 from=asia to=europe
+time=2026-10-31T07:29:48.870Z level=INFO msg="europe 2 日目: 20 人"
+time=2026-10-31T07:29:49.580Z level=INFO msg="user moved" user=some5290 from=america to=europe
+time=2026-10-31T07:29:51.869Z level=INFO msg="america 2 日目: 20 人"
+time=2026-10-31T07:29:54.897Z level=INFO msg="asia 3 日目: 152 人"
+time=2026-10-31T07:29:56.274Z level=INFO msg="user moved" user=riho.5735 from=asia to=america
+time=2026-10-31T07:29:57.934Z level=INFO msg="europe 3 日目: 55 人"
+time=2026-10-31T07:29:59.782Z level=INFO msg="user moved" user=ivyroyu.5329 from=europe to=asia
+time=2026-10-31T07:30:00.867Z level=INFO msg="america 3 日目: 62 人"
+time=2026-10-31T07:30:01.908Z level=INFO msg="user moved" user=some5290 from=europe to=asia
+time=2026-10-31T07:30:03.976Z level=INFO msg="asia 4 日目: 453 人"
+time=2026-10-31T07:30:05.461Z level=INFO msg="user moved" user=ivyroyu.5329 from=asia to=europe
+time=2026-10-31T07:30:06.929Z level=INFO msg="europe 4 日目: 157 人"
+time=2026-10-31T07:30:07.261Z level=INFO msg="user moved" user=yashi7294 from=asia to=america
+time=2026-10-31T07:30:08.468Z level=INFO msg="user moved" user=anulru.8144 from=asia to=america
+time=2026-10-31T07:30:09.075Z level=INFO msg="user moved" user=yuyo9003 from=asia to=america
+time=2026-10-31T07:30:09.690Z level=INFO msg="user moved" user=anulru.8144 from=america to=asia
+time=2026-10-31T07:30:09.870Z level=INFO msg="user moved" user=maxku8324 from=asia to=europe
+time=2026-10-31T07:30:09.886Z level=INFO msg="america 4 日目: 180 人"
+time=2026-10-31T07:30:10.518Z level=INFO msg="user moved" user=some5290 from=asia to=america
+time=2026-10-31T07:30:11.004Z level=INFO msg="user moved" user=murosu_8808 from=asia to=europe
+time=2026-10-31T07:30:12.166Z level=INFO msg="user moved" user=marisyo-9207 from=europe to=asia
+time=2026-10-31T07:30:12.914Z level=INFO msg="asia 5 日目: 1325 人"
+time=2026-10-31T07:30:15.877Z level=INFO msg="europe 5 日目: 419 人"
+time=2026-10-31T07:30:18.935Z level=INFO msg="america 5 日目: 386 人"
+time=2026-10-31T07:30:28.212Z level=INFO msg="america 最終日（グランプリ）: 384 人"
+time=2026-10-31T07:30:28.264Z level=INFO msg="asia 最終日（グランプリ）: 1324 人"
+time=2026-10-31T07:30:28.283Z level=INFO msg="europe 最終日（グランプリ）: 418 人"
+time=2026-10-31T07:30:37.073Z level=INFO msg="グランプリ: アジア 939 人, ヨーロッパ 282 人, アメリカ 256 人"
+{
+  "pass": true,
+  "score": 207275,
+  "messages": [
+    "kelia-9633: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "ting_huang_4067: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "miahoor7031: 投稿 3b4aa386-ed01-4c5e-833f-817842375beb に RealMoji を送れません: POST /api/posts/3b4aa386-ed01-4c5e-833f-817842375beb/realmojis: 応答がタイムアウトしました",
+    "yuelku.6329: 投稿 3b4aa386-ed01-4c5e-833f-817842375beb に RealMoji を送れません: POST /api/posts/3b4aa386-ed01-4c5e-833f-817842375beb/realmojis: 応答がタイムアウトしました",
+    "jade_richard_319: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "soba_und_geschmeidiges_rust_2334: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "kohaku_suizokukan_2652: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "keanchi-8889: RealMoji d624f3d2-d49d-4235-b938-758048583884 を取り消せません: DELETE /api/realmojis/d624f3d2-d49d-4235-b938-758048583884: 応答がタイムアウトしました",
+    "yang_liu_550: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "yueye_anchundan_2058: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "yeoneo_byeongjorim_962: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "shireshi10317: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "aoi_yamamoto_4548: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "byoshin_kobo_2260: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "yaku_6513: 投稿 2734b471-0d59-4ade-ad8e-6c83609a86f3 に RealMoji を送れません: POST /api/posts/2734b471-0d59-4ade-ad8e-6c83609a86f3/realmojis: 応答がタイムアウトしました",
+    "ivyrinu_8641: ログインし直せません: POST /api/auth/login: 応答がタイムアウトしました",
+    "zoeku_10797: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "noakoto_10713: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "vinvin.11061: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "lianita_10653: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
