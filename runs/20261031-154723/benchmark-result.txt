@@ -1,0 +1,68 @@
+time=2026-10-31T06:48:03.321Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:48:03.846Z level=INFO msg="user moved" user=keis-5029 from=asia to=america
+time=2026-10-31T06:48:06.304Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:48:09.302Z level=INFO msg="america 1 日目: 7 人"
+time=2026-10-31T06:48:12.324Z level=INFO msg="asia 2 日目: 45 人"
+time=2026-10-31T06:48:15.321Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T06:48:18.303Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T06:48:21.332Z level=INFO msg="asia 3 日目: 127 人"
+time=2026-10-31T06:48:21.515Z level=INFO msg="user moved" user=nafu_5504 from=asia to=america
+time=2026-10-31T06:48:22.180Z level=INFO msg="user moved" user=zoemax.5603 from=asia to=america
+time=2026-10-31T06:48:22.452Z level=INFO msg="user moved" user=nafu_5504 from=america to=europe
+time=2026-10-31T06:48:22.544Z level=INFO msg="user moved" user=maxwa_5627 from=asia to=america
+time=2026-10-31T06:48:23.263Z level=INFO msg="user moved" user=zoemax.5603 from=america to=europe
+time=2026-10-31T06:48:23.655Z level=INFO msg="user moved" user=maxwa_5627 from=america to=europe
+time=2026-10-31T06:48:24.217Z level=INFO msg="user moved" user=fumar-5757 from=asia to=europe
+time=2026-10-31T06:48:24.310Z level=INFO msg="europe 3 日目: 58 人"
+time=2026-10-31T06:48:24.380Z level=INFO msg="user moved" user=leoshiho-5834 from=asia to=america
+time=2026-10-31T06:48:24.867Z level=INFO msg="user moved" user=ulmoma_6061 from=asia to=america
+time=2026-10-31T06:48:27.303Z level=INFO msg="america 3 日目: 57 人"
+time=2026-10-31T06:48:30.336Z level=INFO msg="asia 4 日目: 361 人"
+time=2026-10-31T06:48:32.594Z level=INFO msg="user moved" user=muvin.6431 from=america to=europe
+time=2026-10-31T06:48:33.332Z level=INFO msg="europe 4 日目: 154 人"
+time=2026-10-31T06:48:33.763Z level=INFO msg="user moved" user=tsumivin7297 from=asia to=america
+time=2026-10-31T06:48:33.989Z level=INFO msg="user moved" user=remi_7713 from=asia to=europe
+time=2026-10-31T06:48:34.809Z level=INFO msg="user moved" user=maxwa_5627 from=europe to=asia
+time=2026-10-31T06:48:34.936Z level=INFO msg="user moved" user=zoeso.7497 from=asia to=europe
+time=2026-10-31T06:48:35.068Z level=INFO msg="user moved" user=elansol.7409 from=asia to=america
+time=2026-10-31T06:48:35.261Z level=INFO msg="user moved" user=nafu_5504 from=europe to=asia
+time=2026-10-31T06:48:35.332Z level=INFO msg="user moved" user=danne-6784 from=asia to=europe
+time=2026-10-31T06:48:35.749Z level=INFO msg="user moved" user=tsumivin7297 from=america to=europe
+time=2026-10-31T06:48:36.349Z level=INFO msg="america 4 日目: 160 人"
+time=2026-10-31T06:48:37.341Z level=INFO msg="user moved" user=zoemax.5603 from=europe to=asia
+time=2026-10-31T06:48:39.015Z level=INFO msg="user moved" user=kirivin-8282 from=asia to=america
+time=2026-10-31T06:48:39.422Z level=INFO msg="asia 5 日目: 1054 人"
+time=2026-10-31T06:48:40.793Z level=INFO msg="user moved" user=muvin.6431 from=europe to=america
+time=2026-10-31T06:48:41.936Z level=INFO msg="user moved" user=namianu9226 from=america to=europe
+time=2026-10-31T06:48:42.415Z level=INFO msg="europe 5 日目: 419 人"
+time=2026-10-31T06:48:45.344Z level=INFO msg="america 5 日目: 370 人"
+time=2026-10-31T06:48:54.381Z level=INFO msg="asia 最終日（グランプリ）: 1053 人"
+time=2026-10-31T06:48:54.425Z level=INFO msg="europe 最終日（グランプリ）: 418 人"
+time=2026-10-31T06:48:54.432Z level=INFO msg="america 最終日（グランプリ）: 369 人"
+time=2026-10-31T06:49:03.426Z level=INFO msg="グランプリ: アジア 891 人, ヨーロッパ 331 人, アメリカ 305 人"
+{
+  "pass": true,
+  "score": 193282,
+  "messages": [
+    "jihun_park_2306: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "doyun_cho_183: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hajun_jeong_3823: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "fan_yang_1391: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "teuripeul_yeongu_1831: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "haebaragi_chobap_775: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "doyun_cho_1455: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "memil_maekkeureoun_rust_3805: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hina_nakamura_3083: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "vinyuleo_9744: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "rivinmar-9645: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "sophie_evans_2479: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hike-9968: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "oyatsu_yosan_4558: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "fan_yang_2726: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hois_10240: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "solmu10283: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "maxnuru_10322: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "evatoko.10589: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "zhumian_wushe_893: ログインできません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
