@@ -287,3 +287,34 @@ func TestWaitingForOneStripeReleasesOtherStripes(t *testing.T) {
 		})
 	}
 }
+
+func TestInteractionAllowsConcurrentAuthorReads(t *testing.T) {
+	a := fixtureApp(t)
+	owner, ownerToken := register(t, a, "readable_author")
+	_, actorToken := register(t, a, "commenting_actor")
+	openWindow(t, a, "2026-11-01")
+	created := upload(t, a, "/api/posts", ownerToken, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
+	post := *a.s.Posts.get(created["id"].(string))
+	// Keep the post stripe distinct so a collision does not intentionally
+	// promote the author's shared lock to exclusive mode.
+	for stateHash("post:"+post.ID)%stateShardCount == stateHash("user:"+owner)%stateShardCount {
+		post.ID = id()
+	}
+	a.s.Posts.set(post.ID, &post)
+	req := httptest.NewRequest("POST", "/api/posts/"+post.ID+"/comments", bytes.NewBufferString(`{"body":"hello"}`))
+	req.Header.Set("Authorization", "Bearer "+actorToken)
+	unlock := a.lockRequest(req)
+	done := make(chan int, 1)
+	go func() { status, _, _ := call(t, a, "GET", "/api/me", ownerToken, nil); done <- status }()
+	select {
+	case status := <-done:
+		unlock()
+		if status != 200 {
+			t.Fatalf("author read returned %d", status)
+		}
+	case <-time.After(time.Second):
+		unlock()
+		<-done
+		t.Fatal("interaction exclusively locked an unchanged author")
+	}
+}

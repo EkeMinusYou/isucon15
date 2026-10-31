@@ -19,6 +19,17 @@ var allStateStripes = func() (indices [stateShardCount]int) {
 // Never wait for one resource while retaining locks on unrelated resources.
 // After waking, retain that resource and try the rest without blocking.
 func (a *App) acquireStripes(indices []int, exclusive bool) {
+	var writes *[stateShardCount]bool
+	if exclusive {
+		writes = new([stateShardCount]bool)
+		for _, i := range indices {
+			writes[i] = true
+		}
+	}
+	a.acquireStripeModes(indices, writes)
+}
+
+func (a *App) acquireStripeModes(indices []int, writes *[stateShardCount]bool) {
 	held := -1
 	for {
 		var acquired [stateShardCount]int
@@ -33,7 +44,7 @@ func (a *App) acquireStripes(indices []int, exclusive bool) {
 				continue
 			}
 			ok := false
-			if exclusive {
+			if writes != nil && writes[i] {
 				ok = a.transactions[i].TryLock()
 			} else {
 				ok = a.transactions[i].TryRLock()
@@ -50,14 +61,14 @@ func (a *App) acquireStripes(indices []int, exclusive bool) {
 		}
 		for n > 0 {
 			n--
-			if exclusive {
+			if writes != nil && writes[acquired[n]] {
 				a.transactions[acquired[n]].Unlock()
 			} else {
 				a.transactions[acquired[n]].RUnlock()
 			}
 		}
 		a.stripeRetries.Add(1)
-		if exclusive {
+		if writes != nil && writes[blocked] {
 			a.transactions[blocked].Lock()
 		} else {
 			a.transactions[blocked].RLock()
@@ -92,20 +103,29 @@ func (a *App) lockRequest(r *http.Request) func() {
 		}
 		indices := []int{}
 		seen := [stateShardCount]bool{}
+		writes := [stateShardCount]bool{}
+		sharedUsers := interactionReadsUsers(r)
 		for _, key := range keys {
 			i := int(stateHash(key) % stateShardCount)
+			if !sharedUsers || !strings.HasPrefix(key, "user:") {
+				writes[i] = true
+			}
 			if !seen[i] {
 				seen[i] = true
 				indices = append(indices, i)
 			}
 		}
 		sort.Ints(indices)
-		a.acquireStripes(indices, true)
+		a.acquireStripeModes(indices, &writes)
 		a.globalGate.RLock()
 		unlock := func() {
 			a.globalGate.RUnlock()
 			for i := len(indices) - 1; i >= 0; i-- {
-				a.transactions[indices[i]].Unlock()
+				if writes[indices[i]] {
+					a.transactions[indices[i]].Unlock()
+				} else {
+					a.transactions[indices[i]].RUnlock()
+				}
 			}
 			a.mu.RUnlock()
 		}
@@ -128,6 +148,16 @@ func (a *App) lockRequest(r *http.Request) func() {
 		a.transactionShards.Add(uint64(len(indices)))
 		return unlock
 	}
+}
+
+// Interaction mutations change the post and its image records, while user
+// records and relationships are only consulted for authorization.
+func interactionReadsUsers(r *http.Request) bool {
+	p := r.URL.Path
+	if r.Method == "POST" && strings.HasPrefix(p, "/api/posts/") {
+		return strings.HasSuffix(p, "/comments") || strings.HasSuffix(p, "/realmojis")
+	}
+	return r.Method == "DELETE" && (strings.HasPrefix(p, "/api/comments/") || strings.HasPrefix(p, "/api/realmojis/"))
 }
 
 func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
