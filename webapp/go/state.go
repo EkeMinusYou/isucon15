@@ -175,6 +175,7 @@ type appCore struct {
 	stripeRetries        atomic.Uint64
 	journalWaitNS        atomic.Uint64
 	journalWriteNS       atomic.Uint64
+	suppressedFailures   atomic.Uint64
 	s                    *State
 	initial, durable     string
 	journal              *os.File

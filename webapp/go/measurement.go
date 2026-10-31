@@ -73,6 +73,7 @@ func (a *App) snapshot() measurement.Snapshot {
 		"app_stripe_retries_total":       a.stripeRetries.Load(),
 		"app_journal_wait_ns_total":      a.journalWaitNS.Load(),
 		"app_journal_write_ns_total":     a.journalWriteNS.Load(),
+		"app_failure_suppressed_total":   a.suppressedFailures.Load(),
 		"app_upload_stage_ns_total":      a.uploadStageNS.Load(),
 		"app_upload_stage_bytes_total":   a.uploadStageBytes.Load(),
 		"app_history_resident_bytes":     a.historyResidentBytes.Load(),

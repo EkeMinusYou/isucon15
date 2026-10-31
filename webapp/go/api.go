@@ -371,7 +371,8 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.s = a.appCore.s.fork()
 		a.prepared = true
 	}
-	if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
+	internalFailure := r.Method == "POST" && r.URL.Path == masterPrefix+"failure" && isInternal(r)
+	if !internalFailure && time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 		failure(rr, 403, "ip_banned")
 	} else {
 		a.dispatch(rr, r)
@@ -422,6 +423,13 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		var v struct{ IP, Region, Kind string }
 		if !decode(r, &v) || !validRegion(v.Region) || (v.Kind != "signature" && v.Kind != "login" && v.Kind != "jpeg") {
 			failure(w, 400, "invalid_failure")
+			return
+		}
+		// Reports can have been queued before the regional BAN became visible.
+		// An already banned client neither extends the ban nor needs another RPC.
+		if time.Now().Before(s.Bans.Get(v.IP)) {
+			a.suppressedFailures.Add(1)
+			w.WriteHeader(204)
 			return
 		}
 		r.Header.Set("X-Client-IP", v.IP)
