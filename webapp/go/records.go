@@ -28,6 +28,9 @@ type recordStore[T any] struct {
 func newRecordStore[T any]() *recordStore[T] {
 	return &recordStore[T]{live: new(shardedMap[string, *T]), index: map[[16]byte]recordSpan{}}
 }
+func (s *recordStore[T]) fork() *recordStore[T] {
+	return &recordStore[T]{live: forkMap(s.live, nil), index: s.index, data: s.data, decorate: s.decorate}
+}
 func uuidKey(id string) (key [16]byte, ok bool) {
 	if len(id) != 36 || id[8] != '-' || id[13] != '-' || id[18] != '-' || id[23] != '-' {
 		return key, false
@@ -128,6 +131,18 @@ func (s *recordStore[T]) len() int { return len(s.index) + s.live.Len() }
 type imageLink struct {
 	Ref  [16]byte
 	Kind byte
+}
+
+// Keep the large immutable initial index out of copy-on-write shards. Only
+// links registered since initialization participate in version publication.
+func (s *State) imageLink(key [16]byte) (imageLink, bool) {
+	if link, ok := s.imageLinks.Load(key); ok {
+		return link, true
+	}
+	if s.initialImageLinks != nil {
+		return s.initialImageLinks.Load(key)
+	}
+	return imageLink{}, false
 }
 
 func (s *State) linkImage(id, ref string, kind byte) {

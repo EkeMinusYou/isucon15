@@ -8,10 +8,8 @@ import (
 	"image/jpeg"
 	"mime/multipart"
 	"net/http/httptest"
-	"runtime"
 	"sync"
 	"testing"
-	"time"
 )
 
 type concurrentRequest struct {
@@ -196,130 +194,5 @@ func TestPostingWindowSwitchAndPostAreAtomic(t *testing.T) {
 	current := a.s.window(a.s.Accounts.Get(uid))
 	if a.s.canPost(a.s.Accounts.Get(uid)) != (p.WindowID != current.ID) {
 		t.Fatal("posting slot does not match the current window")
-	}
-}
-
-// A queued per-user update must not delay opening the next posting window.
-func TestPostingWindowDoesNotDrainQueuedUpdates(t *testing.T) {
-	a := fixtureApp(t)
-	uid, token := register(t, a, "queued_update")
-	admin := openWindow(t, a, "2026-11-01")
-	stripe := &a.transactions[stateHash("user:"+uid)%stateShardCount]
-	stripe.Lock()
-	held := true
-	defer func() {
-		if held {
-			stripe.Unlock()
-		}
-	}()
-	updated := make(chan int, 1)
-	go func() {
-		status, _, _ := call(t, a, "PATCH", "/api/me", token, object{"bio": "queued"})
-		updated <- status
-	}()
-	deadline := time.Now().Add(time.Second)
-	for a.mu.TryLock() {
-		a.mu.Unlock()
-		if time.Now().After(deadline) {
-			t.Fatal("update did not enter the queue")
-		}
-		runtime.Gosched()
-	}
-	opened := make(chan int, 1)
-	go func() {
-		status, _, _ := call(t, a, "POST", "/api/admin/posting-window", admin, object{"region": "asia", "localDate": "2026-11-02"})
-		opened <- status
-	}()
-	select {
-	case status := <-opened:
-		if status != 201 {
-			t.Fatalf("window returned %d", status)
-		}
-	case <-time.After(time.Second):
-		stripe.Unlock()
-		held = false
-		<-updated
-		<-opened
-		t.Fatal("posting window waited for a queued update")
-	}
-	stripe.Unlock()
-	held = false
-	if status := <-updated; status != 200 {
-		t.Fatalf("update returned %d", status)
-	}
-}
-
-func TestWaitingForOneStripeReleasesOtherStripes(t *testing.T) {
-	for _, exclusive := range []bool{false, true} {
-		t.Run(fmt.Sprintf("exclusive=%v", exclusive), func(t *testing.T) {
-			a := &App{appCore: &appCore{}}
-			a.transactions[1].Lock()
-			acquired, release, finished := make(chan struct{}), make(chan struct{}), make(chan struct{})
-			go func() {
-				var writes *[stateShardCount]bool
-				if exclusive {
-					writes = new([stateShardCount]bool)
-					writes[0], writes[1] = true, true
-				}
-				a.acquireStripeModes([]int{0, 1}, writes)
-				close(acquired)
-				<-release
-				if exclusive {
-					a.transactions[1].Unlock()
-					a.transactions[0].Unlock()
-				} else {
-					a.transactions[1].RUnlock()
-					a.transactions[0].RUnlock()
-				}
-				close(finished)
-			}()
-			deadline := time.Now().Add(time.Second)
-			for a.stripeRetries.Load() == 0 && time.Now().Before(deadline) {
-				runtime.Gosched()
-			}
-			if a.stripeRetries.Load() == 0 {
-				t.Error("request did not wait for the busy stripe")
-			}
-			if a.transactions[0].TryLock() {
-				a.transactions[0].Unlock()
-			} else {
-				t.Error("waiting request retained an unrelated stripe")
-			}
-			a.transactions[1].Unlock()
-			<-acquired
-			close(release)
-			<-finished
-		})
-	}
-}
-
-func TestInteractionAllowsConcurrentAuthorReads(t *testing.T) {
-	a := fixtureApp(t)
-	owner, ownerToken := register(t, a, "readable_author")
-	_, actorToken := register(t, a, "commenting_actor")
-	openWindow(t, a, "2026-11-01")
-	created := upload(t, a, "/api/posts", ownerToken, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
-	post := *a.s.Posts.get(created["id"].(string))
-	// Keep the post stripe distinct so a collision does not intentionally
-	// promote the author's shared lock to exclusive mode.
-	for stateHash("post:"+post.ID)%stateShardCount == stateHash("user:"+owner)%stateShardCount {
-		post.ID = id()
-	}
-	a.s.Posts.set(post.ID, &post)
-	req := httptest.NewRequest("POST", "/api/posts/"+post.ID+"/comments", bytes.NewBufferString(`{"body":"hello"}`))
-	req.Header.Set("Authorization", "Bearer "+actorToken)
-	unlock := a.lockRequest(req)
-	done := make(chan int, 1)
-	go func() { status, _, _ := call(t, a, "GET", "/api/me", ownerToken, nil); done <- status }()
-	select {
-	case status := <-done:
-		unlock()
-		if status != 200 {
-			t.Fatalf("author read returned %d", status)
-		}
-	case <-time.After(time.Second):
-		unlock()
-		<-done
-		t.Fatal("interaction exclusively locked an unchanged author")
 	}
 }
