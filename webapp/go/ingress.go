@@ -77,7 +77,11 @@ func serviceHandler() (http.Handler, *App, error) {
 			return nil, nil, e
 		}
 		if masterDir := os.Getenv("MASTER_STATE_DIR"); masterDir != "" {
-			files := &regionalUploads{root: a.durable, region: region}
+			files, err := newRegionalUploads(a.durable)
+			if err != nil {
+				return nil, nil, err
+			}
+			files.region = region
 			master, err := newRegionalMaster(a.initial, masterDir, filepath.Join(a.initial, "images"), region, files)
 			if err != nil {
 				return nil, nil, err
@@ -163,6 +167,7 @@ func serviceHandler() (http.Handler, *App, error) {
 			r, p = uploads.prepare(edge, w, r)
 			defer uploads.discard(p)
 		}
+		r.Header.Set(coordinatorHeader, "1")
 		proxy.ServeHTTP(w, r)
 	})
 	if masterDir := os.Getenv("MASTER_STATE_DIR"); masterDir != "" {

@@ -67,7 +67,9 @@ func TestRegionalMasterRoutesMovedUserAndInvalidatesImages(t *testing.T) {
 	owner.put("admin", Administrator{ID: "admin", Username: "admin", Password: secretHash("password")})
 	owner.commit()
 	var centralImages atomic.Int64
+	var centralCalls atomic.Int64
 	handler, err := local.route(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		centralCalls.Add(1)
 		if strings.HasPrefix(r.URL.Path, "/api/images/") {
 			centralImages.Add(1)
 		}
@@ -110,7 +112,11 @@ func TestRegionalMasterRoutesMovedUserAndInvalidatesImages(t *testing.T) {
 	}
 	registered := jsonRequest(1, "POST", "/api/auth/register", "", object{"username": "moved_master", "displayName": "Moved", "region": "europe"}, 201)
 	uid := registered["user"].(map[string]any)["id"].(string)
+	centralCalls.Store(0)
 	login := jsonRequest(1, "POST", "/api/auth/login", "", object{"username": "moved_master", "secretKey": registered["secretKey"]}, 200)
+	if centralCalls.Load() != 0 {
+		t.Fatal("home login contacted the coordinator")
+	}
 	token := login["token"].(string)
 	jsonRequest(1, "PATCH", "/api/me", token, object{"region": "america"}, 200)
 	login = jsonRequest(2, "POST", "/api/auth/login", "", object{"username": "moved_master", "secretKey": registered["secretKey"]}, 200)
@@ -149,13 +155,20 @@ func TestRegionalMasterRoutesMovedUserAndInvalidatesImages(t *testing.T) {
 	requireCall(t, owner, "POST", "/api/admin/posting-window", admin, object{"region": "america", "localDate": "2026-11-01"}, 201)
 	postUpload := imageRequest("/api/posts", author, map[string]string{"visibility": "public", "location_kind": "none"})
 	var post object
+	centralCalls.Store(0)
 	json.Unmarshal(request(0, "POST", "/api/posts", author, postUpload.contentType, postUpload.body, 201), &post)
+	if centralCalls.Load() != 0 || owner.appCore.s.Posts.get(post["id"].(string)) != nil {
+		t.Fatal("local post waited for or updated the coordinator")
+	}
 	viewerUpload := imageRequest("/api/posts", token, map[string]string{"visibility": "public", "location_kind": "none"})
 	request(2, "POST", "/api/posts", token, viewerUpload.contentType, viewerUpload.body, 201)
 	reactionPath := "/api/posts/" + post["id"].(string) + "/realmojis"
 	reactionUpload := imageRequest(reactionPath, token, map[string]string{"reactionType": "like"})
 	var reaction object
 	json.Unmarshal(request(2, "POST", reactionPath, token, reactionUpload.contentType, reactionUpload.body, 201), &reaction)
+	if owner.appCore.s.Posts.get(post["id"].(string)) == nil {
+		t.Fatal("a coordinator read missed a completed regional post")
+	}
 	reactionURL := reaction["imageUrl"].(string)
 	request(2, "GET", reactionURL, "", "", nil, 200)
 	request(0, "DELETE", "/api/posts/"+post["id"].(string), author, "", nil, 204)

@@ -53,12 +53,18 @@ func TestRegionalMasterDurabilityAndEpoch(t *testing.T) {
 	if err := m.commit([]masterTransaction{{ID: id(), Changes: []change{masterChange(t, "account", u)}}}); err != nil {
 		t.Fatal(err)
 	}
+	if err := m.commit([]masterTransaction{{ID: id(), Source: "asia", Sequence: 1, Changes: []change{masterChange(t, "account", u)}}}); err != nil {
+		t.Fatal(err)
+	}
 	m.close()
 	m, err = newRegionalMaster(fixture.initial, durable, filepath.Join(fixture.initial, "images"), "asia", files)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer m.close()
+	if batch, err := m.pull("", 0); err != nil || batch.Head != 1 || len(batch.Transactions) != 1 {
+		t.Fatal("regional journal lost its unmirrored sequence", err)
+	}
 	if m.s.Accounts.Get(uid).HomeRegion != "asia" || m.s.Accounts.Get(uid).Region != "europe" || m.s.Sessions.Get(token) != uid || m.s.Images.get(imageID) == nil {
 		t.Fatal("master records or fixed home were lost after restart")
 	}

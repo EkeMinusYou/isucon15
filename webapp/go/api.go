@@ -102,6 +102,10 @@ func ipOf(r *http.Request) string {
 	return h
 }
 func (a *App) failIP(r *http.Request, kind string, limit int, period time.Duration) {
+	if a.deferFailures {
+		a.failureEvents = append(a.failureEvents, kind)
+		return
+	}
 	key := r.Header.Get("X-ISU-Source") + "/" + kind + "/" + ipOf(r)
 	now := time.Now()
 	xs := a.failures.Get(key)[:0]
@@ -293,6 +297,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a = &App{appCore: a.appCore}
+	if a.mastersEnabled && needsMirror(r) {
+		if err := a.ensureFresh(r.Context()); err != nil {
+			failure(w, 503, "state_unavailable")
+			return
+		}
+	}
 	if r.URL.Path == "/api/notifications" && r.Method == "GET" {
 		a.notifications(w, r)
 		return
@@ -423,14 +433,30 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 	}
 	if path == masterPrefix+"failure" && method == "POST" && isInternal(r) {
 		var v struct{ IP, Region, Kind string }
-		if !decode(r, &v) || !validRegion(v.Region) || v.Kind != "signature" {
+		if !decode(r, &v) || !validRegion(v.Region) || (v.Kind != "signature" && v.Kind != "login" && v.Kind != "jpeg") {
 			failure(w, 400, "invalid_failure")
 			return
 		}
 		r.Header.Set("X-Client-IP", v.IP)
 		r.Header.Set("X-ISU-Source", v.Region)
-		a.failIP(r, "signature", 3, 5*time.Second)
+		limit, period := 3, 5*time.Second
+		if v.Kind == "login" {
+			limit, period = 10, 10*time.Second
+		}
+		if v.Kind == "jpeg" {
+			limit = 2
+		}
+		a.failIP(r, v.Kind, limit, period)
 		w.WriteHeader(204)
+		return
+	}
+	if path == masterPrefix+"home" && method == "GET" && isInternal(r) {
+		uid := s.Names.Get(r.URL.Query().Get("username"))
+		home := ""
+		if uid != "" {
+			home = a.masterHome(uid)
+		}
+		output(w, 200, object{"home": home})
 		return
 	}
 	if path == "/api/auth/register" && method == "POST" {

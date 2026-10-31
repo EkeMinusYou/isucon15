@@ -54,6 +54,18 @@ func (m *regionalMaster) internal(w http.ResponseWriter, r *http.Request) bool {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
 	switch strings.TrimPrefix(r.URL.Path, masterPrefix) {
+	case "pull":
+		after, err := strconv.ParseUint(r.URL.Query().Get("after"), 10, 64)
+		if r.Method != "GET" || err != nil {
+			failure(w, 400, "invalid_cursor")
+			break
+		}
+		batch, err := m.pull(r.URL.Query().Get("epoch"), after)
+		if err != nil {
+			failure(w, 409, "master_epoch_mismatch")
+			break
+		}
+		output(w, 200, batch)
 	case "commit":
 		var txns []masterTransaction
 		if r.Method != "POST" || !decode(r, &txns) || len(txns) > 256 {
@@ -153,7 +165,11 @@ func (m *regionalMaster) parentValid(ctx context.Context, id string) (bool, erro
 }
 
 func (m *regionalMaster) reportSignatureFailure(r *http.Request) error {
-	resp, err := masterRequest(r.Context(), "asia", "failure", object{"ip": ipOf(r), "region": requestRegion(r), "kind": "signature"})
+	return m.reportFailure(r, "signature")
+}
+
+func (m *regionalMaster) reportFailure(r *http.Request, kind string) error {
+	resp, err := masterRequest(r.Context(), "asia", "failure", object{"ip": ipOf(r), "region": requestRegion(r), "kind": kind})
 	if err != nil {
 		return err
 	}

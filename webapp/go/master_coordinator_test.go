@@ -26,6 +26,7 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	var delayed atomic.Bool
 	entered, release := make(chan struct{}), make(chan struct{})
 	var once sync.Once
+	var europe *regionalMaster
 	var releaseOnce sync.Once
 	defer releaseOnce.Do(func() { close(release) })
 	for _, region := range []string{"europe", "america"} {
@@ -38,6 +39,9 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer master.close()
+		if region == "europe" {
+			europe = master
+		}
 		home := region
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if home == "europe" && r.URL.Path == masterPrefix+"commit" && delayed.Load() {
@@ -149,6 +153,14 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	}
 	if restored.s.Accounts.Get(uid).DisplayName != "after" || restored.s.Sessions.Get(token) != uid {
 		t.Fatal("coordinator intent replay lost master state")
+	}
+	newToken := idInRegion("europe")
+	if err := europe.commit([]masterTransaction{{Epoch: europe.epoch, ID: id(), Source: "europe", Sequence: 1, Changes: []change{masterChange(t, "session", tokenChange{token, ""}), masterChange(t, "session", tokenChange{newToken, uid})}}}); err != nil {
+		t.Fatal(err)
+	}
+	requireCall(t, restored, "GET", "/api/users/"+uid, viewer, nil, 200)
+	if restored.s.Sessions.Get(token) != "" || restored.s.Sessions.Get(newToken) != uid {
+		t.Fatal("read barrier did not recover a locally committed session")
 	}
 	initialView, initialMaster := restored.initialState, local.initialState
 	if initialView.Accounts.Get(uid) != nil || initialMaster.Accounts.Get(uid) != nil {

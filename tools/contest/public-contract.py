@@ -1,6 +1,7 @@
 """Observe cross-region API behavior and durable state through the public router."""
 import argparse
 import base64
+import datetime
 import hashlib
 import io
 import json
@@ -19,7 +20,7 @@ PROFILE_JPEG = base64.b64decode(
 ) + b'preserved original trailer'
 
 
-def api(method, path, token='', body=None, region='asia', expected=200, raw_body=None):
+def api(method, path, token='', body=None, region='asia', expected=200, raw_body=None, content_type='image/jpeg'):
     headers = {'X-Country-Code': COUNTRY[region]}
     if token:
         headers['Authorization'] = 'Bearer ' + token
@@ -27,7 +28,7 @@ def api(method, path, token='', body=None, region='asia', expected=200, raw_body
         headers['Content-Type'] = 'application/json'
         body = json.dumps(body).encode()
     if raw_body is not None:
-        headers['Content-Type'] = 'image/jpeg'
+        headers['Content-Type'] = content_type
         body = raw_body
     request = urllib.request.Request(BASE + path, data=body, headers=headers, method=method)
     for attempt in range(3 if method == 'GET' else 1):
@@ -84,6 +85,7 @@ def wait_image_revoked(path, region):
 
 def capture():
     initial_history()
+    admin = api('POST', '/api/admin/auth/login', body={'username': os.environ['ISUREAL_ADMIN_USERNAME'], 'password': os.environ['ISUREAL_ADMIN_PASSWORD']})['token']
     saved = []
     for region in COUNTRY:
         name = 'bootstrap_' + region + '_' + os.urandom(5).hex()
@@ -110,7 +112,21 @@ def capture():
                 api('GET', '/api/me', token, region=other, expected=403)
         for image_region in COUNTRY:
             assert api('GET', me['profileImageUrl'], region=image_region) == PROFILE_JPEG
-        saved.append({'region': region, 'token': token, 'id': me['id'], 'bio': me['bio'], 'profileImageUrl': me['profileImageUrl']})
+        current = api('GET', '/api/posting-window/current', token, region=region)['window']
+        next_date = datetime.date(2030, 1, 1)
+        if current:
+            next_date = max(next_date, datetime.date.fromisoformat(current['localDate']) + datetime.timedelta(days=1))
+        api('POST', '/api/admin/posting-window', admin, {'region': region, 'localDate': next_date.isoformat()}, expected=201)
+        boundary = 'isureal-public-restart-post'
+        multipart = b''
+        for key, value in [('caption', 'durable-' + region), ('visibility', 'public'), ('location_kind', 'none')]:
+            multipart += f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode()
+        multipart += f'--{boundary}\r\nContent-Disposition: form-data; name="image"; filename="post.jpg"\r\nContent-Type: image/jpeg\r\n\r\n'.encode() + PROFILE_JPEG + f'\r\n--{boundary}--\r\n'.encode()
+        post = api('POST', '/api/posts', token, region=region, expected=201, raw_body=multipart, content_type='multipart/form-data; boundary=' + boundary)
+        assert api('GET', '/api/posts/me/current', token, region=region)['id'] == post['id']
+        saved.append({'region': region, 'token': token, 'id': me['id'], 'bio': me['bio'], 'profileImageUrl': me['profileImageUrl'], 'postId': post['id'], 'postImageUrl': post['imageUrl']})
+    for entry, other in zip(saved, saved[1:] + saved[:1]):
+        assert api('GET', '/api/posts/' + other['postId'], entry['token'], region=entry['region'])['id'] == other['postId']
     # A relationship written through Europe must be visible through America.
     request = api('POST', '/api/friend-requests', saved[1]['token'], {'recipientId': saved[2]['id']}, 'europe', 201)
     api('POST', '/api/friend-requests/' + request['relationId'] + '/accept', saved[2]['token'], region='america')
@@ -130,10 +146,12 @@ def verify():
         assert me['id'] == entry['id'] and me['bio'] == entry['bio']
         for image_region in COUNTRY:
             assert api('GET', entry['profileImageUrl'], region=image_region) == PROFILE_JPEG
+            assert api('GET', entry['postImageUrl'], region=image_region) == PROFILE_JPEG
+        assert api('GET', '/api/posts/me/current', entry['token'], region=entry['region'])['id'] == entry['postId']
     for entry, other in [(saved[1], saved[2]), (saved[2], saved[1])]:
         friends = api('GET', '/api/relationships/friends', entry['token'], region=entry['region'])
         assert any(v['user']['id'] == other['id'] for v in friends['items'])
-    print('public read-after-restart: account, token, original profile images, and cross-region friendship retained')
+    print('public read-after-restart: account, token, original profile/post images, posts, and cross-region friendship retained')
 
 
 if __name__ == '__main__':

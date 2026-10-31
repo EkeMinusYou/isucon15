@@ -26,6 +26,7 @@ func homeOfNewID(value string) string {
 
 type masterHomes struct {
 	users  map[string]string
+	names  map[string]string
 	images map[[16]byte]uint8
 	posts  map[[16]byte]uint8
 }

@@ -152,10 +152,12 @@ type State struct {
 }
 type App struct {
 	*appCore
-	s        *State
-	pending  []change // Owned by one request, never shared between handlers.
-	prepared bool
-	signals  []stateSignal
+	s             *State
+	pending       []change // Owned by one request, never shared between handlers.
+	prepared      bool
+	signals       []stateSignal
+	deferFailures bool
+	failureEvents []string
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics
@@ -166,6 +168,11 @@ type appCore struct {
 	mastersEnabled       bool
 	initialState         *State
 	masterEpoch          string
+	mirrored             [3]uint64
+	mirror               mirrorQueue
+	mirrorWaitNS         atomic.Uint64
+	mirrorPulls          atomic.Uint64
+	mirrorRecords        atomic.Uint64
 	journalMu            sync.Mutex
 	notifier             notificationHub
 	transactions         [stateShardCount]sync.RWMutex

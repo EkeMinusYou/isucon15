@@ -78,7 +78,7 @@ func (a *App) masterGroups(txn masterTransaction) map[string]masterTransaction {
 			} else {
 				home = homeOfNewID(v.Token)
 			}
-		case "ban":
+		case "ban", "window":
 			for _, region := range masterRegions {
 				part := groups[region]
 				part.ID, part.Epoch = txn.ID, txn.Epoch
@@ -221,6 +221,9 @@ func (a *App) enableRegionalMasters(master *regionalMaster) error {
 		if txn.Epoch != a.masterEpoch {
 			return fmt.Errorf("coordinator journal epoch mismatch")
 		}
+		if txn.Source != "" && !validRegion(txn.Source) {
+			return fmt.Errorf("invalid source in coordinator journal")
+		}
 		entries = append(entries, txn)
 	}
 	if err := scan.Err(); err != nil {
@@ -228,6 +231,9 @@ func (a *App) enableRegionalMasters(master *regionalMaster) error {
 	}
 	byRegion := map[string][]masterTransaction{}
 	for _, txn := range entries {
+		if txn.Source != "" {
+			continue
+		}
 		for region, part := range a.masterGroups(txn) {
 			byRegion[region] = append(byRegion[region], part)
 		}
@@ -249,6 +255,9 @@ func (a *App) enableRegionalMasters(master *regionalMaster) error {
 				return err
 			}
 		}
+		if txn.Source != "" {
+			a.mirrored[int(masterRegionCode(txn.Source))-1] = txn.Sequence
+		}
 	}
 	return nil
 }
@@ -259,6 +268,7 @@ func (a *App) resetRegionalMasters() error {
 		return err
 	}
 	a.masterEpoch = epoch
+	a.mirrored = [3]uint64{}
 	a.journal.Close()
 	var err error
 	a.journal, err = os.OpenFile(coordinatorJournalPath(a.durable, epoch), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
