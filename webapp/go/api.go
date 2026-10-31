@@ -681,12 +681,21 @@ func (a *App) search(w http.ResponseWriter, r *http.Request, u *Account) {
 	}
 	term = foldSearch(term)
 	var us []*Account
-	for _, x := range a.s.Accounts.All() {
+	consider := func(x *Account) {
 		if x.ID == u.ID || x.Status != "active" || (bi != "" && (x.Username < bu || x.Username == bu && x.ID <= bi)) {
-			continue
+			return
 		}
 		if (strings.Contains(x.searchUsername, term) || strings.Contains(x.searchDisplay, term)) && !a.s.blocked(u.ID, x.ID) {
 			us = append(us, x)
+		}
+	}
+	if ids, indexed := a.s.search.candidates(term); indexed {
+		for _, id := range ids {
+			consider(a.s.Accounts.Get(id))
+		}
+	} else {
+		for _, x := range a.s.Accounts.All() {
+			consider(x)
 		}
 	}
 	sort.Slice(us, func(i, j int) bool {

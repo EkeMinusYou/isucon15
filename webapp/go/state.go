@@ -119,6 +119,7 @@ type banChange struct {
 	Until time.Time
 }
 type State struct {
+	search        searchIndex
 	dayPostCache  sync.Map
 	imageLinks    *shardedMap[[16]byte, imageLink]
 	LivePosts     *shardedMap[string, []string]
@@ -267,6 +268,7 @@ func (s *State) apply(kind string, data []byte) error {
 		decode(&v)
 		v.searchUsername = foldSearch(v.Username)
 		v.searchDisplay = foldSearch(v.DisplayName)
+		s.search.replace(s.Accounts.Get(v.ID), &v)
 		s.Accounts.Set(v.ID, &v)
 		s.Names.Set(v.Username, v.ID)
 	case "admin":
