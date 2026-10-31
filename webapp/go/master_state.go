@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -283,23 +284,24 @@ func (m *regionalMaster) commit(txns []masterTransaction) error {
 }
 
 func (m *regionalMaster) reset(epoch string) error {
-	m.mu.RLock()
-	same := epoch != "" && m.epoch == epoch
-	m.mu.RUnlock()
-	if same {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if epoch != "" && m.epoch == epoch {
 		return nil
 	}
+	// Initialize may briefly block reads. Release the previous mapped history
+	// before rebuilding it so both generations never consume memory together.
+	m.s.closeHistory()
+	m.s = emptyState()
+	runtime.GC()
 	s, _, err := loadMasterInitial(m.initial, m.region)
 	if err != nil {
 		return err
 	}
-	m.mu.Lock()
-	defer m.mu.Unlock()
 	if err := m.journal.Truncate(0); err != nil {
 		s.closeHistory()
 		return err
 	}
-	m.s.closeHistory()
 	m.s, m.seen = s, map[string]bool{}
 	// Truncate metadata before removing originals, so a restart never replays
 	// an old reference after its original has been removed by initialization.
