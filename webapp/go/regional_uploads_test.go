@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"image"
@@ -15,14 +16,22 @@ import (
 )
 
 func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
+	for _, region := range []string{"asia", "europe"} {
+		t.Run(region, func(t *testing.T) { testRegionalUploads(t, region) })
+	}
+}
+
+func testRegionalUploads(t *testing.T, region string) {
 	oldSecret, oldRegion := transportSecret, fixedRegion
 	transportSecret, fixedRegion = "regional-upload-test", "asia"
 	t.Cleanup(func() { transportSecret, fixedRegion = oldSecret, oldRegion })
 	owner := fixtureApp(t)
 	uid, token := register(t, owner, "regional_upload_owner")
-	requireCall(t, owner, "PATCH", "/api/me", token, object{"region": "europe"}, 200)
+	requireCall(t, owner, "PATCH", "/api/me", token, object{"region": region}, 200)
 	admin := openWindow(t, owner, "2026-11-01")
-	requireCall(t, owner, "POST", "/api/admin/posting-window", admin, object{"region": "europe", "localDate": "2026-11-01"}, 201)
+	if region != "asia" {
+		requireCall(t, owner, "POST", "/api/admin/posting-window", admin, object{"region": region, "localDate": "2026-11-01"}, 201)
+	}
 	upstream := httptest.NewServer(owner)
 	defer upstream.Close()
 	keyFile := filepath.Join(t.TempDir(), "transport-key")
@@ -30,12 +39,14 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	root := t.TempDir()
-	t.Setenv("REGION", "europe")
+	t.Setenv("REGION", region)
 	t.Setenv("OWNER_URL", upstream.URL)
 	t.Setenv("TRANSPORT_KEY_FILE", keyFile)
 	t.Setenv("REGIONAL_STATE_DIR", root)
 	t.Setenv("IMAGE_CACHE_DIR", t.TempDir())
-	t.Setenv("REGION_AMERICA_URL", "")
+	for _, peer := range []string{"ASIA", "EUROPE", "AMERICA"} {
+		t.Setenv("REGION_"+peer+"_URL", "")
+	}
 	h, edge, err := serviceHandler()
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +54,7 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	fixedRegion = "asia" // The real processes have separate region globals.
 	regional := httptest.NewServer(h)
 	defer regional.Close()
-	t.Setenv("REGION_EUROPE_URL", regional.URL)
+	t.Setenv("REGION_"+strings.ToUpper(region)+"_URL", regional.URL)
 	request := func(method, path, token, contentType string, body []byte, status int) []byte {
 		t.Helper()
 		r, err := http.NewRequest(method, regional.URL+path, bytes.NewReader(body))
@@ -76,7 +87,7 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	request("PUT", "/api/me/profile-image", token, "image/jpeg", original.Bytes(), 204)
 	profileID := *owner.s.Accounts.Get(uid).ProfileImageID
 	profile := owner.s.Images.get(profileID)
-	if profile.StorageRegion != "europe" {
+	if profile.StorageRegion != region {
 		t.Fatal("storage region missing from accepted image")
 	}
 	if _, err := os.Stat(filepath.Join(owner.durable, "images", profileID)); !os.IsNotExist(err) {
@@ -104,7 +115,7 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	stored := owner.s.Posts.get(post["id"].(string))
-	if stored.Caption != "query" || owner.s.Images.get(stored.ImageID).StorageRegion != "europe" {
+	if stored.Caption != "query" || owner.s.Images.get(stored.ImageID).StorageRegion != region {
 		t.Fatal("multipart form precedence or image placement changed")
 	}
 	// A rejected registration must not retain its staged original.
@@ -114,7 +125,7 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 		t.Fatal("rejected upload retained a pending original")
 	}
 	_, peerToken := register(t, owner, "regional_upload_peer")
-	requireCall(t, owner, "PATCH", "/api/me", peerToken, object{"region": "europe"}, 200)
+	requireCall(t, owner, "PATCH", "/api/me", peerToken, object{"region": region}, 200)
 	peerUpload := imageRequest("/api/posts", peerToken, map[string]string{"visibility": "public", "location_kind": "none"})
 	var peerPost object
 	json.Unmarshal(request("POST", "/api/posts", peerToken, peerUpload.contentType, peerUpload.body, 201), &peerPost)
@@ -122,17 +133,53 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	var reaction object
 	json.Unmarshal(request("POST", "/api/posts/"+peerPost["id"].(string)+"/realmojis", token, reactionUpload.contentType, reactionUpload.body, 201), &reaction)
 	reactionImage := owner.s.Images.get(owner.s.Reactions.get(reaction["id"].(string)).ImageID)
-	if reactionImage.StorageRegion != "europe" {
+	if reactionImage.StorageRegion != region {
 		t.Fatal("RealMoji original was not placed in its upload region")
 	}
 	request("GET", reaction["imageUrl"].(string), "", "", nil, 200)
+	archive := request("GET", "/api/me/export", token, "", nil, 200)
+	zr, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
+	if err != nil || len(zr.File) != 2 {
+		t.Fatal("regional originals could not be exported", err)
+	}
+	originalPost, err := os.ReadFile(filepath.Join(root, "images", stored.ImageID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range zr.File {
+		if file.Name == "images/000001.jpg" {
+			reader, err := file.Open()
+			if err != nil {
+				t.Fatal(err)
+			}
+			data, err := io.ReadAll(reader)
+			reader.Close()
+			if err != nil || !bytes.Equal(data, originalPost) {
+				t.Fatal("export changed the regional original")
+			}
+		}
+	}
+	request("POST", signatureComputePath, "", "application/json", []byte("[]"), 403)
+	jobs, _ := json.Marshal([]signatureJob{{profileID, secretHash("test-key"), 1800000000}})
+	computeReq, _ := http.NewRequest("POST", regional.URL+signatureComputePath, bytes.NewReader(jobs))
+	computeReq.Header.Set("X-ISU-Transport", transportSecret)
+	computeResp, err := http.DefaultClient.Do(computeReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var signatures []string
+	err = json.NewDecoder(computeResp.Body).Decode(&signatures)
+	computeResp.Body.Close()
+	if err != nil || computeResp.StatusCode != 200 || len(signatures) != 1 || signatures[0] != computeImageSignature(profileID, secretHash("test-key"), 1800000000) {
+		t.Fatal("regional API and signature computation could not coexist")
+	}
 	restored, err := newApp(owner.initial, owner.durable)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer restored.journal.Close()
 	defer restored.s.closeHistory()
-	if restored.s.Images.get(stored.ImageID).StorageRegion != "europe" {
+	if restored.s.Images.get(stored.ImageID).StorageRegion != region {
 		t.Fatal("storage location was lost during replay")
 	}
 	files, err := newRegionalUploads(root)

@@ -35,11 +35,12 @@ vars:
     map:
       # Reserve memory for the 1.31 GB anonymous history and the OS page cache.
       GOMEMLIMIT: 1600MiB
-      OWNER_URL: http://192.168.1.10
-      COMPUTE_URL: http://192.168.4.10
+      OWNER_URL: http://192.168.4.10
+      COMPUTE_URL: http://192.168.1.10
       NATIVE_CRYPTO_LIB: /home/isucon/webapp/go/libisureal-crypto.so
       IMAGE_CACHE_DIR: /home/isucon/isureal-regional-images
       REGIONAL_STATE_DIR: /home/isucon/isureal-region-state
+      REGION_ASIA_URL: http://192.168.1.10
       REGION_EUROPE_URL: http://192.168.2.10
       REGION_AMERICA_URL: http://192.168.3.10
   TARGET_OS: linux
@@ -326,8 +327,8 @@ vars:
   # Setup-only source checkout, excluded from the design workspace.
   REFERENCE_DIR: /Users/mineo/Library/Caches/codex/isucon15/reference
   # Additional Go services can declare their roles and deployment variables here.
-  OWNER_HOSTS: asia1
-  IMAGE_REPLICA_HOSTS: europe1 america1
+  OWNER_HOSTS: asia2
+  IMAGE_REPLICA_HOSTS: asia1 europe1 america1
   DEPLOYCTL_FLAGS: '-role owner={{.OWNER_HOSTS}} -role image_replica={{splitList " " .IMAGE_REPLICA_HOSTS | join ","}}'
   # Optional additional systemd unit:role pairs.
   CONTEST_SERVICE_ROLES: ''

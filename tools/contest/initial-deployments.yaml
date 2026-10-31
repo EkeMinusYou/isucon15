@@ -3,6 +3,15 @@ include:
   - deployments.yaml
 
 deployments:
+  regional-image-layout:
+    activations:
+      - label: reuse immutable originals from a former owner
+        role: image_replica
+        script: |
+          set -eu
+          if [ -d /home/isucon/isureal-initial/images ] && [ ! -e /home/isucon/isureal-regional-images ]; then
+            cp -al /home/isucon/isureal-initial/images /home/isucon/isureal-regional-images
+          fi
   regional-image-data:
     uploads:
       - label: immutable original images for regional delivery
