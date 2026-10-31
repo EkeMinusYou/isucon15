@@ -1,0 +1,36 @@
+2026-10-31T02:18:01.108197884Z	BENCHMARK_START
+PORTAL_JOB_ID: 3370
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T02:18:36.309Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:18:39.291Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:18:42.287Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:18:45.335Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T02:18:48.312Z level=INFO msg="europe 2 日目: 15 人"
+time=2026-10-31T02:18:51.414Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T02:18:54.322Z level=INFO msg="asia 3 日目: 154 人"
+time=2026-10-31T02:18:57.510Z level=INFO msg="europe 3 日目: 40 人"
+time=2026-10-31T02:19:00.475Z level=INFO msg="america 3 日目: 37 人"
+time=2026-10-31T02:19:02.916Z level=INFO msg="user moved" user=orchi-5549 from=asia to=america
+time=2026-10-31T02:19:03.681Z level=INFO msg="asia 4 日目: 379 人"
+time=2026-10-31T02:19:06.587Z level=INFO msg="europe 4 日目: 40 人"
+time=2026-10-31T02:19:10.409Z level=INFO msg="america 4 日目: 38 人"
+time=2026-10-31T02:19:12.632Z level=INFO msg="user moved" user=toya_6713 from=asia to=america
+time=2026-10-31T02:19:13.094Z level=INFO msg="asia 5 日目: 378 人"
+time=2026-10-31T02:19:15.832Z level=INFO msg="europe 5 日目: 40 人"
+time=2026-10-31T02:19:18.339Z level=INFO msg="america 5 日目: 39 人"
+time=2026-10-31T02:19:27.833Z level=INFO msg="america 最終日（グランプリ）: 39 人"
+time=2026-10-31T02:19:27.834Z level=INFO msg="europe 最終日（グランプリ）: 40 人"
+time=2026-10-31T02:19:27.855Z level=INFO msg="asia 最終日（グランプリ）: 377 人"
+time=2026-10-31T02:19:36.303Z level=INFO msg="グランプリ: アジア 88 人, ヨーロッパ 1 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 49159,
+  "messages": []
+}
+SCORE: 49159
+BENCHMARK_PASS
+2026-10-31T02:19:57.620282067Z	BENCHMARK_END
+
+SCORE: 49159
+BENCHMARK_PASS
