@@ -157,8 +157,17 @@ type App struct {
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics
-	executor             stateExecutor
+	mu                   sync.RWMutex
+	globalGate           sync.RWMutex
+	snapshots            snapshotBatch
+	journalMu            sync.Mutex
 	notifier             notificationHub
+	transactions         [stateShardCount]sync.RWMutex
+	transactionRequests  atomic.Uint64
+	transactionShards    atomic.Uint64
+	transactionGlobal    atomic.Uint64
+	stripeRetries        atomic.Uint64
+	journalWaitNS        atomic.Uint64
 	journalWriteNS       atomic.Uint64
 	s                    *State
 	initial, durable     string
@@ -434,6 +443,10 @@ func (a *App) commit() {
 		panic(e)
 	}
 	b = append(b, '\n')
+	waiting := time.Now()
+	a.journalMu.Lock()
+	defer a.journalMu.Unlock()
+	a.journalWaitNS.Add(uint64(time.Since(waiting)))
 	writing := time.Now()
 	if _, e = a.journal.Write(b); e != nil {
 		log.Fatalf("journal write: %v", e)

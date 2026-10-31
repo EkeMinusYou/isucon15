@@ -7,7 +7,6 @@ import (
 	"io"
 	"iter"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"sort"
 	"strconv"
@@ -726,30 +725,21 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 }
 func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
-	check := httptest.NewRecorder()
-	var uid, region string
-	var subscription notificationSubscription
-	a.withState(func() {
-		if started.Before(a.s.Bans.Get(ipOf(r))) {
-			failure(check, 403, "ip_banned")
-			return
-		}
-		u := a.auth(check, r, true)
-		if u == nil {
-			return
-		}
-		uid, region = u.ID, u.Region
-		subscription = a.notifier.subscribe(uid, region)
-	})
-	for key, values := range check.Header() {
-		w.Header()[key] = values
-	}
-	if check.Code != 200 {
-		w.WriteHeader(check.Code)
-		w.Write(check.Body.Bytes())
+	unlock := a.lockReadRequest(r)
+	if started.Before(a.s.Bans.Get(ipOf(r))) {
+		unlock()
+		failure(w, 403, "ip_banned")
 		return
 	}
+	u := a.auth(w, r, true)
+	if u == nil {
+		unlock()
+		return
+	}
+	uid, region := u.ID, u.Region
+	subscription := a.notifier.subscribe(uid, region)
 	defer subscription.close()
+	unlock()
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(200)
@@ -757,40 +747,33 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 	for {
-		active := false
-		var event []byte
-		var userSignal, regionSignal <-chan struct{}
-		a.withState(func() {
-			s := a.s
-			u := s.Accounts.Get(uid)
-			if u == nil || u.Status != "active" || u.Region != region {
-				return
-			}
-			active = true
-			var selected *Notification
-			for _, v := range s.Notifications.Get(uid) {
-				win := s.Windows.Get(v.WindowID)
-				if v.CreatedAt.After(started) && win != nil && win.EndedAt == nil && (selected == nil || before(v.CreatedAt, v.ID, selected.CreatedAt, selected.ID)) {
-					c := v
-					selected = &c
-				}
-			}
-			userSignal, regionSignal = subscription.channels()
-			if selected != nil {
-				v := object{"id": selected.ID, "postingWindowId": selected.WindowID, "region": s.Windows.Get(selected.WindowID).Region, "createdAt": selected.CreatedAt}
-				event, _ = json.Marshal(v)
-			}
-		})
-		if !active {
+		unlock = a.lockUserRead(uid)
+		s := a.s
+		u = s.Accounts.Get(uid)
+		if u == nil || u.Status != "active" || u.Region != region {
+			unlock()
 			return
 		}
-		if event != nil {
-			fmt.Fprintf(w, "data: %s\n\n", event)
+		var selected *Notification
+		for _, v := range s.Notifications.Get(uid) {
+			win := s.Windows.Get(v.WindowID)
+			if v.CreatedAt.After(started) && win != nil && win.EndedAt == nil && (selected == nil || before(v.CreatedAt, v.ID, selected.CreatedAt, selected.ID)) {
+				c := v
+				selected = &c
+			}
+		}
+		userSignal, regionSignal := subscription.channels()
+		if selected != nil {
+			v := object{"id": selected.ID, "postingWindowId": selected.WindowID, "region": s.Windows.Get(selected.WindowID).Region, "createdAt": selected.CreatedAt}
+			b, _ := json.Marshal(v)
+			unlock()
+			fmt.Fprintf(w, "data: %s\n\n", b)
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
 			}
 			return
 		}
+		unlock()
 		select {
 		case <-userSignal:
 			a.notifier.wakeups.Add(1)

@@ -71,7 +71,7 @@ func (m *shardedMap[K, V]) Len() int {
 	return n
 }
 
-// State iteration runs on the executor and must not mutate this map.
+// Callers hold logical transaction locks. Iteration must not mutate this map.
 func (m *shardedMap[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		for i := range m.shards {

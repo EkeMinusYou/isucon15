@@ -300,14 +300,16 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	profile, multipart := isImageUpload(r)
 	if profile || multipart {
 		// Reject banned or unauthenticated uploads before retaining their bodies.
+		a.mu.RLock()
+		a.globalGate.RLock()
 		check := httptest.NewRecorder()
-		a.withState(func() {
-			if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
-				failure(check, 403, "ip_banned")
-			} else {
-				a.auth(check, r, !profile)
-			}
-		})
+		if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
+			failure(check, 403, "ip_banned")
+		} else {
+			a.auth(check, r, !profile)
+		}
+		a.globalGate.RUnlock()
+		a.mu.RUnlock()
 		if check.Code != 200 {
 			for k, vs := range check.Header() {
 				w.Header()[k] = vs
@@ -350,20 +352,26 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	stats := &a.routeMetrics[metricRoute(r.URL.Path)]
 	started := time.Now()
 	readOnly := r.Method == "GET"
-	a.withState(func() {
-		locked := time.Now()
-		stats.waitNS.Add(uint64(locked.Sub(started)))
-		stats.requests.Add(1)
-		if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
-			failure(rr, 403, "ip_banned")
-		} else {
-			a.dispatch(rr, r)
+	unlock := a.lockRequest(r)
+	defer func() {
+		if unlock != nil {
+			unlock()
 		}
-		if !readOnly {
-			a.commit()
-		}
-		stats.holdNS.Add(uint64(time.Since(locked)))
-	})
+	}()
+	locked := time.Now()
+	stats.waitNS.Add(uint64(locked.Sub(started)))
+	stats.requests.Add(1)
+	if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
+		failure(rr, 403, "ip_banned")
+	} else {
+		a.dispatch(rr, r)
+	}
+	if !readOnly {
+		a.commit()
+	}
+	stats.holdNS.Add(uint64(time.Since(locked)))
+	unlock()
+	unlock = nil
 	if p, ok := r.Context().Value(uploadKey{}).(*preparedUpload); ok && p.origin != "" && p.committed {
 		rr.Header().Set(regionalUploadAccepted, p.fileID)
 	}
@@ -760,10 +768,15 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	secret := a.s.Accounts.Get(im.OwnerID).Secret
 	responseWork(w, func(w http.ResponseWriter) {
 		if !hmac.Equal([]byte(ss[0]), []byte(a.signImage(i, secret, exp))) {
-			a.withState(func() {
-				a.failIP(r, "signature", 3, 5*time.Second)
-				a.commit()
-			})
+			a.mu.RLock()
+			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
+			stripe.Lock()
+			a.globalGate.RLock()
+			a.failIP(r, "signature", 3, 5*time.Second)
+			a.commit()
+			a.globalGate.RUnlock()
+			stripe.Unlock()
+			a.mu.RUnlock()
 			failure(w, 403, "image_forbidden")
 			return
 		}
@@ -785,12 +798,11 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 		}
 		// Signature work and opening storage can wait. Recheck immediately
 		// before publishing a cacheable response or evaluating its validator.
-		cacheable := false
-		var checkedAt time.Time
-		a.withState(func() {
-			cacheable = a.validImage(a.s.Images.get(i))
-			checkedAt = time.Now()
-		})
+		unlockImage := a.lockReadRequest(r)
+		current := a.s.Images.get(i)
+		cacheable := a.validImage(current)
+		checkedAt := time.Now()
+		unlockImage()
 		if !cacheable || exp <= checkedAt.Unix() {
 			failure(w, 403, "image_forbidden")
 			return
