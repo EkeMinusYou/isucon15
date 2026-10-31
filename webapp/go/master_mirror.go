@@ -36,11 +36,50 @@ func (a *App) mirrorRegions(r *http.Request) uint8 {
 	add(homeOfNewID(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")))
 	path := r.URL.Path
 	switch {
-	case strings.HasPrefix(path, "/api/feeds/"), strings.HasPrefix(path, "/api/comments/"), strings.HasPrefix(path, "/api/realmojis/"):
+	case path == "/api/feeds/public", strings.HasPrefix(path, "/api/comments/"), strings.HasPrefix(path, "/api/realmojis/"):
 		return 7
 	case strings.HasPrefix(path, "/api/posts/") && path != "/api/posts/me/current":
 		pid := strings.Split(strings.TrimPrefix(path, "/api/posts/"), "/")[0]
 		add(indexedHome(a.master.homes.posts, pid))
+	}
+	return mask
+}
+
+// Called with the committed view locked. The viewer's graph identifies every
+// author whose local posts can affect the feed.
+func (a *App) feedRegions(r *http.Request) uint8 {
+	s := a.s
+	uid := s.Sessions.Get(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+	if uid == "" {
+		return 0
+	}
+	mask := uint8(0)
+	add := func(author string) {
+		if code := masterRegionCode(a.masterHome(author)); code != 0 {
+			mask |= 1 << (code - 1)
+		}
+	}
+	switch strings.TrimPrefix(r.URL.Path, "/api/feeds/") {
+	case "friends":
+		for author := range s.Adj.Get(uid) {
+			add(author)
+		}
+	case "following":
+		for _, relation := range s.Follows.All() {
+			if relation.FollowerID == uid {
+				add(relation.FolloweeID)
+			}
+		}
+	case "friends-of-friends":
+		for friend := range s.Adj.Get(uid) {
+			for author := range s.Adj.Get(friend) {
+				if author != uid && !s.friend(uid, author) {
+					add(author)
+				}
+			}
+		}
+	case "public":
+		return 7
 	}
 	return mask
 }

@@ -297,8 +297,10 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a = &App{appCore: a.appCore}
+	var mirroredMask uint8
 	if a.mastersEnabled && needsMirror(r) {
-		if err := a.ensureFresh(r.Context(), a.mirrorRegions(r)); err != nil {
+		mirroredMask = a.mirrorRegions(r)
+		if err := a.ensureFresh(r.Context(), mirroredMask); err != nil {
 			failure(w, 503, "state_unavailable")
 			return
 		}
@@ -376,6 +378,23 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			unlock()
 		}
 	}()
+	if a.mastersEnabled && readOnly && strings.HasPrefix(r.URL.Path, "/api/feeds/") {
+		for {
+			needed := a.feedRegions(r) &^ mirroredMask
+			if needed == 0 {
+				break
+			}
+			unlock()
+			unlock = nil
+			if err := a.ensureFresh(r.Context(), needed); err != nil {
+				failure(w, 503, "state_unavailable")
+				return
+			}
+			mirroredMask |= needed
+			unlock = a.lockRequest(r)
+			// Recheck the graph under the same lock used to build the response.
+		}
+	}
 	locked := time.Now()
 	stats.waitNS.Add(uint64(locked.Sub(started)))
 	stats.requests.Add(1)
