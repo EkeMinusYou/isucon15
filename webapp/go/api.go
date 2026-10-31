@@ -189,16 +189,7 @@ func (a *App) signImage(imageID, secret string, exp int64) string {
 	a.signatureMu.Unlock()
 	a.signatureMisses.Add(1)
 	started := time.Now()
-	k, _ := hex.DecodeString(secret)
-	mac := hmac.New(sha256.New, k)
-	v := []byte(strconv.FormatInt(exp, 10) + ":" + imageID)
-	var sum [32]byte
-	for i := 0; i < 1000; i++ {
-		mac.Reset()
-		mac.Write(v)
-		v = mac.Sum(sum[:0])
-	}
-	sig := base64.RawURLEncoding.EncodeToString(v)
+	sig := computeImageSignature(imageID, secret, exp)
 	a.signatureNS.Add(uint64(time.Since(started)))
 	a.signatureMu.Lock()
 	// Issued URLs from different seconds coexist. A read of an older URL must
@@ -210,6 +201,19 @@ func (a *App) signImage(imageID, secret string, exp int64) string {
 	a.signatures[key] = sig
 	a.signatureMu.Unlock()
 	return sig
+}
+
+func computeImageSignature(imageID, secret string, exp int64) string {
+	k, _ := hex.DecodeString(secret)
+	mac := hmac.New(sha256.New, k)
+	v := []byte(strconv.FormatInt(exp, 10) + ":" + imageID)
+	var sum [32]byte
+	for i := 0; i < 1000; i++ {
+		mac.Reset()
+		mac.Write(v)
+		v = mac.Sum(sum[:0])
+	}
+	return base64.RawURLEncoding.EncodeToString(v)
 }
 
 type imageReference struct {

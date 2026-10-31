@@ -57,6 +57,7 @@ func computeHandler(a *App) http.Handler {
 			}
 			w.WriteHeader(http.StatusNoContent)
 		case "/api/internal/compute/signatures":
+			// Keep the worker stateless; only the owner's resettable cache holds results.
 			var jobs []signatureJob
 			if !decode(r, &jobs) || len(jobs) > 256 {
 				failure(w, 400, "invalid_jobs")
@@ -64,7 +65,10 @@ func computeHandler(a *App) http.Handler {
 			}
 			results := make([]string, len(jobs))
 			for i, j := range jobs {
-				results[i] = a.signImage(j.ID, j.Secret, j.Exp)
+				started := time.Now()
+				results[i] = computeImageSignature(j.ID, j.Secret, j.Exp)
+				a.signatureMisses.Add(1)
+				a.signatureNS.Add(uint64(time.Since(started)))
 			}
 			output(w, 200, results)
 		default:
