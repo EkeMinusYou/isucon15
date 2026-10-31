@@ -2,11 +2,10 @@ package main
 
 import (
 	"net/http"
-	"sort"
 	"strings"
 )
 
-// Reads of one resource need only its user/post stripes. Collection responses
+// Reads of one resource need only its user/post locks. Collection responses
 // capture coherent state together, excluding executing mutations as a cohort.
 func (a *App) readKeys(r *http.Request) ([]string, bool) {
 	s, path := a.s, r.URL.Path
@@ -66,23 +65,15 @@ func (a *App) lockReadRequest(r *http.Request) func() {
 				a.mu.RUnlock()
 			}
 		}
-		var indices []int
-		var seen [stateShardCount]bool
-		for _, key := range keys {
-			index := int(stateHash(key) % stateShardCount)
-			if !seen[index] {
-				seen[index] = true
-				indices = append(indices, index)
-			}
+		uses := a.transactions.reference(keys, false)
+		for i := range uses {
+			uses[i].write = false
 		}
-		sort.Ints(indices)
-		a.acquireStripeModes(indices, nil)
+		a.acquireResources(uses)
 		a.globalGate.RLock()
 		unlock := func() {
 			a.globalGate.RUnlock()
-			for i := len(indices) - 1; i >= 0; i-- {
-				a.transactions[indices[i]].RUnlock()
-			}
+			a.releaseResources(uses)
 			a.mu.RUnlock()
 		}
 		// A newly linked image or changed session can require more resources than
@@ -90,7 +81,7 @@ func (a *App) lockReadRequest(r *http.Request) func() {
 		current, needAll := a.readKeys(r)
 		retry := needAll
 		for _, key := range current {
-			if !seen[stateHash(key)%stateShardCount] {
+			if !hasResource(uses, key) {
 				retry = true
 			}
 		}
@@ -104,8 +95,9 @@ func (a *App) lockReadRequest(r *http.Request) func() {
 
 func (a *App) lockUserRead(uid string) func() {
 	a.mu.RLock()
-	stripe := &a.transactions[stateHash("user:"+uid)%stateShardCount]
-	stripe.RLock()
+	uses := a.transactions.reference([]string{"user:" + uid}, false)
+	uses[0].write = false
+	a.acquireResources(uses)
 	a.globalGate.RLock()
-	return func() { a.globalGate.RUnlock(); stripe.RUnlock(); a.mu.RUnlock() }
+	return func() { a.globalGate.RUnlock(); a.releaseResources(uses); a.mu.RUnlock() }
 }
