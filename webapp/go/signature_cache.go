@@ -2,7 +2,7 @@ package main
 
 import "strconv"
 
-const signatureCacheCapacity = 65536
+const signatureCacheCapacity = 262144
 
 type signatureFlight struct {
 	done  chan struct{}
