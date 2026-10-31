@@ -151,8 +151,7 @@ type State struct {
 }
 type App struct {
 	*appCore
-	pending    []change // Owned by one request, never shared between handlers.
-	gateUnlock func()
+	pending []change // Owned by one request, never shared between handlers.
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics
@@ -160,7 +159,7 @@ type appCore struct {
 	globalGate           sync.RWMutex
 	snapshots            snapshotBatch
 	journalMu            sync.Mutex
-	journalTail          chan struct{}
+	mutationMu           sync.Mutex
 	notifier             notificationHub
 	transactions         transactionLocks
 	transactionRequests  atomic.Uint64
@@ -438,23 +437,13 @@ func (a *App) commit() {
 	b = append(b, '\n')
 	waiting := time.Now()
 	a.journalMu.Lock()
-	previous := a.journalTail
-	done := make(chan struct{})
-	a.journalTail = done
-	a.journalMu.Unlock()
-	// The complete state change is now queued in persistence order. Keep the
-	// logical resources until it is durable, but let collection reads proceed.
-	a.unlockStateGate()
-	if previous != nil {
-		<-previous
-	}
+	defer a.journalMu.Unlock()
 	a.journalWaitNS.Add(uint64(time.Since(waiting)))
 	writing := time.Now()
 	if _, e = a.journal.Write(b); e != nil {
 		log.Fatalf("journal write: %v", e)
 	}
 	a.journalWriteNS.Add(uint64(time.Since(writing)))
-	close(done)
 	a.pending = nil
 }
 func loadLines(path string, fn func([]byte) error) error {
