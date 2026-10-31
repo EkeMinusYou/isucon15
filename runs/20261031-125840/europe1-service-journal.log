@@ -1,0 +1,5 @@
+# host=europe1 services=isureal-go load_window=2026-10-31T03:58:43.670206406Z..2026-10-31T04:00:49.5424503Z
+# unit=isureal-go
+2026-10-31T04:00:20.690045+00:00 ip-192-168-2-10 isureal[62012]: 2026/10/31 04:00:20 http: proxy error: context canceled
+2026-10-31T04:00:20.698427+00:00 ip-192-168-2-10 isureal[62012]: 2026/10/31 04:00:20 http: proxy error: context canceled
+2026-10-31T04:00:20.707372+00:00 ip-192-168-2-10 isureal[62012]: 2026/10/31 04:00:20 http: proxy error: readfrom tcp 192.168.2.10:24880->192.168.1.10:80: read tcp 192.168.2.10:80->192.168.10.10:39364: read: connection reset by peer

@@ -1,0 +1,45 @@
+2026-10-31T03:58:43.670206406Z	BENCHMARK_START
+PORTAL_JOB_ID: 10538
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T03:59:20.618Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:59:23.600Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:59:26.600Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:59:29.621Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T03:59:30.048Z level=INFO msg="user moved" user=waruel-5177 from=asia to=america
+time=2026-10-31T03:59:32.620Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T03:59:33.132Z level=INFO msg="user moved" user=waruel-5177 from=america to=europe
+time=2026-10-31T03:59:35.600Z level=INFO msg="america 2 日目: 19 人"
+time=2026-10-31T03:59:38.681Z level=INFO msg="asia 3 日目: 153 人"
+time=2026-10-31T03:59:40.632Z level=INFO msg="user moved" user=vinvinya5706 from=asia to=america
+time=2026-10-31T03:59:41.599Z level=INFO msg="europe 3 日目: 46 人"
+time=2026-10-31T03:59:41.977Z level=INFO msg="user moved" user=tornoa-6162 from=asia to=america
+time=2026-10-31T03:59:44.639Z level=INFO msg="america 3 日目: 56 人"
+time=2026-10-31T03:59:47.247Z level=INFO msg="user moved" user=waruel-5177 from=europe to=asia
+time=2026-10-31T03:59:47.632Z level=INFO msg="asia 4 日目: 452 人"
+time=2026-10-31T03:59:47.858Z level=INFO msg="user moved" user=ultsu6337 from=europe to=america
+time=2026-10-31T03:59:48.575Z level=INFO msg="user moved" user=saruka.6837 from=asia to=america
+time=2026-10-31T03:59:51.156Z level=INFO msg="europe 4 日目: 119 人"
+time=2026-10-31T03:59:51.383Z level=INFO msg="user moved" user=saruka.6837 from=america to=asia
+time=2026-10-31T03:59:53.180Z level=INFO msg="user moved" user=kusolel-8257 from=asia to=europe
+time=2026-10-31T03:59:55.081Z level=INFO msg="america 4 日目: 129 人"
+time=2026-10-31T03:59:57.424Z level=INFO msg="user moved" user=solsol_8968 from=europe to=america
+time=2026-10-31T03:59:57.940Z level=INFO msg="asia 5 日目: 1188 人"
+time=2026-10-31T04:00:00.777Z level=INFO msg="europe 5 日目: 134 人"
+time=2026-10-31T04:00:06.999Z level=INFO msg="america 5 日目: 130 人"
+time=2026-10-31T04:00:19.739Z level=INFO msg="asia 最終日（グランプリ）: 1187 人"
+time=2026-10-31T04:00:20.199Z level=INFO msg="europe 最終日（グランプリ）: 133 人"
+time=2026-10-31T04:00:20.211Z level=INFO msg="america 最終日（グランプリ）: 130 人"
+time=2026-10-31T04:00:20.628Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 130983,
+  "messages": []
+}
+SCORE: 130983
+BENCHMARK_PASS
+2026-10-31T04:00:49.542450300Z	BENCHMARK_END
+
+SCORE: 130983
+BENCHMARK_PASS
