@@ -56,6 +56,16 @@ func (a *App) readKeys(r *http.Request) ([]string, bool) {
 }
 
 func (a *App) lockReadRequest(r *http.Request) func() {
+	if strings.HasPrefix(r.URL.Path, "/api/feeds/") {
+		// Feed capture needs a coherent view of all users and posts. Drain
+		// executing operations only, without joining every stripe's queue.
+		a.mu.RLock()
+		a.globalGate.Lock()
+		return func() {
+			a.globalGate.Unlock()
+			a.mu.RUnlock()
+		}
+	}
 	for {
 		a.mu.RLock()
 		keys, all := a.readKeys(r)
