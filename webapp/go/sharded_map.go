@@ -2,6 +2,7 @@ package main
 
 import (
 	"iter"
+	"maps"
 	"sync"
 	"sync/atomic"
 )
@@ -152,17 +153,25 @@ func (m *shardedMap[K, V]) Len() int {
 func (m *shardedMap[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		if o := m.overlay; o != nil {
-			values := m.parent.Snapshot()
 			o.mu.Lock()
-			for k, v := range o.values {
-				values[k] = v
-			}
-			for k := range o.deleted {
-				delete(values, k)
-			}
+			values, deleted := maps.Clone(o.values), maps.Clone(o.deleted)
 			o.mu.Unlock()
-			for key := range values {
-				if value, ok := m.Load(key); ok && !yield(key, value) {
+			// Iteration borrows values; Get performs copy-on-read when a caller
+			// needs a mutable value. Never copy the immutable parent to merge it.
+			for key, value := range m.parent.All() {
+				if deleted[key] {
+					continue
+				}
+				if replacement, ok := values[key]; ok {
+					value = replacement
+					delete(values, key)
+				}
+				if !yield(key, value) {
+					return
+				}
+			}
+			for key, value := range values {
+				if !deleted[key] && !yield(key, value) {
 					return
 				}
 			}
