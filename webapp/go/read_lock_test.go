@@ -41,3 +41,47 @@ func TestResourceReadsDoNotWaitForUnrelatedStripe(t *testing.T) {
 		}
 	}
 }
+
+func TestImageReadsBypassTheCollectionGateAndObserveDeletion(t *testing.T) {
+	a := fixtureApp(t)
+	_, token := register(t, a, "independent_image")
+	openWindow(t, a, "2026-11-01")
+	post := upload(t, a, "/api/posts", token, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
+	imageURL := post["imageUrl"].(string)
+	a.globalGate.Lock()
+	held := true
+	defer func() {
+		if held {
+			a.globalGate.Unlock()
+		}
+	}()
+	fetched := make(chan int, 1)
+	go func() { status, _, _ := call(t, a, "GET", imageURL, "", nil); fetched <- status }()
+	select {
+	case status := <-fetched:
+		if status != 200 {
+			t.Fatalf("image status=%d", status)
+		}
+	case <-time.After(time.Second):
+		a.globalGate.Unlock()
+		held = false
+		<-fetched
+		t.Fatal("image waited for unrelated collection state")
+	}
+	a.globalGate.Unlock()
+	held = false
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < 20; i++ {
+			status, _, _ := call(t, a, "GET", imageURL, "", nil)
+			if status != 200 && status != 403 {
+				t.Errorf("concurrent image status=%d", status)
+				return
+			}
+		}
+	}()
+	requireCall(t, a, "DELETE", "/api/posts/"+post["id"].(string), token, nil, 204)
+	<-done
+	requireCall(t, a, "GET", imageURL, "", nil, 403)
+}
