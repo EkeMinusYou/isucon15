@@ -1,0 +1,41 @@
+time=2026-10-31T03:21:49.578Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:21:50.149Z level=INFO msg="user moved" user=elyo5046 from=asia to=europe
+time=2026-10-31T03:21:52.564Z level=INFO msg="europe 1 日目: 8 人"
+time=2026-10-31T03:21:55.560Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:21:58.606Z level=INFO msg="asia 2 日目: 53 人"
+time=2026-10-31T03:22:01.563Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T03:22:03.784Z level=INFO msg="user moved" user=noavinki_5140 from=america to=asia
+time=2026-10-31T03:22:03.956Z level=INFO msg="user moved" user=noavinki_5140 from=asia to=america
+time=2026-10-31T03:22:03.960Z level=INFO msg="user moved" user=elyo5046 from=europe to=america
+time=2026-10-31T03:22:04.560Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T03:22:07.591Z level=INFO msg="asia 3 日目: 161 人"
+time=2026-10-31T03:22:09.385Z level=INFO msg="user moved" user=elnu_5791 from=asia to=america
+time=2026-10-31T03:22:10.044Z level=INFO msg="user moved" user=benhi_5464 from=europe to=asia
+time=2026-10-31T03:22:10.607Z level=INFO msg="europe 3 日目: 50 人"
+time=2026-10-31T03:22:10.740Z level=INFO msg="user moved" user=benhi_5464 from=asia to=america
+time=2026-10-31T03:22:11.430Z level=INFO msg="user moved" user=elnu_5791 from=america to=europe
+time=2026-10-31T03:22:11.634Z level=INFO msg="user moved" user=niis6165 from=asia to=america
+time=2026-10-31T03:22:13.615Z level=INFO msg="america 3 日目: 47 人"
+time=2026-10-31T03:22:16.355Z level=INFO msg="user moved" user=elyo5046 from=america to=europe
+time=2026-10-31T03:22:16.647Z level=INFO msg="asia 4 日目: 478 人"
+time=2026-10-31T03:22:17.867Z level=INFO msg="user moved" user=ormaxan.6498 from=europe to=america
+time=2026-10-31T03:22:19.911Z level=INFO msg="europe 4 日目: 128 人"
+time=2026-10-31T03:22:21.893Z level=INFO msg="user moved" user=ormeru7454 from=asia to=europe
+time=2026-10-31T03:22:21.943Z level=INFO msg="user moved" user=liais-7303 from=asia to=america
+time=2026-10-31T03:22:23.619Z level=INFO msg="america 4 日目: 100 人"
+time=2026-10-31T03:22:24.187Z level=INFO msg="user moved" user=elnu_5791 from=europe to=america
+time=2026-10-31T03:22:24.189Z level=INFO msg="user moved" user=elyo5046 from=europe to=america
+time=2026-10-31T03:22:25.390Z level=INFO msg="user moved" user=rumo9004 from=asia to=america
+time=2026-10-31T03:22:26.426Z level=INFO msg="asia 5 日目: 1181 人"
+time=2026-10-31T03:22:30.744Z level=INFO msg="europe 5 日目: 127 人"
+time=2026-10-31T03:22:31.971Z level=INFO msg="user moved" user=ormaxan.6498 from=america to=europe
+time=2026-10-31T03:22:33.355Z level=INFO msg="america 5 日目: 102 人"
+time=2026-10-31T03:22:43.101Z level=INFO msg="asia 最終日（グランプリ）: 1181 人"
+time=2026-10-31T03:22:43.160Z level=INFO msg="europe 最終日（グランプリ）: 128 人"
+time=2026-10-31T03:22:43.160Z level=INFO msg="america 最終日（グランプリ）: 102 人"
+time=2026-10-31T03:22:49.618Z level=INFO msg="グランプリ: アジア 447 人, ヨーロッパ 43 人, アメリカ 30 人"
+{
+  "pass": true,
+  "score": 130307,
+  "messages": []
+}
