@@ -20,7 +20,12 @@ func TestRegionalMasterRoutesMovedUserAndInvalidatesImages(t *testing.T) {
 	oldSecret, oldRegion := transportSecret, fixedRegion
 	transportSecret, fixedRegion = "regional-master-test", "asia"
 	t.Cleanup(func() { transportSecret, fixedRegion = oldSecret, oldRegion })
-	owner := fixtureApp(t)
+	fixture := fixtureApp(t)
+	owner, err := newAppCore(fixture.initial, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { owner.journal.Close(); owner.s.closeHistory() })
 	var handlers [3]http.Handler
 	var servers [3]*httptest.Server
 	for i, region := range masterRegions {

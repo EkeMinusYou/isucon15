@@ -608,10 +608,18 @@ func (a *App) loadInitial() error {
 	a.historyResidentBytes.Store(uint64(len(s.Posts.data)+len(s.Reactions.data)+len(s.Comments.data)+len(s.Images.data)) * recordChunkBytes)
 	return nil
 }
-func newApp(initial, durable string) (*App, error) {
+func newAppCore(initial, durable string) (*App, error) {
 	a := &App{appCore: &appCore{initial: initial, durable: durable, failures: new(shardedMap[string, []time.Time]), signatures: map[string]string{}}}
 	if e := os.MkdirAll(filepath.Join(durable, "images"), 0755); e != nil {
 		return nil, e
+	}
+	return a, nil
+}
+
+func newApp(initial, durable string) (*App, error) {
+	a, err := newAppCore(initial, durable)
+	if err != nil {
+		return nil, err
 	}
 	if e := a.loadInitial(); e != nil {
 		return nil, e

@@ -190,8 +190,12 @@ func (a *App) enableRegionalMasters(master *regionalMaster) error {
 	if _, ok := uuidKey(a.masterEpoch); !ok {
 		return fmt.Errorf("invalid coordinator epoch")
 	}
-	a.journal.Close()
-	a.s.closeHistory()
+	if a.journal != nil {
+		a.journal.Close()
+	}
+	if a.s != nil {
+		a.s.closeHistory()
+	}
 	a.s = nil
 	a.appCore.s = nil
 	runtime.GC()

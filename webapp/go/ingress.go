@@ -68,7 +68,11 @@ func serviceHandler() (http.Handler, *App, error) {
 		return computeHandler(a), a, nil
 	}
 	if owner {
-		a, e := newApp(envOr("INITIAL_DIR", "/home/isucon/isureal-initial"), envOr("STATE_DIR", "/home/isucon/isureal-state"))
+		constructor := newApp
+		if os.Getenv("MASTER_STATE_DIR") != "" {
+			constructor = newAppCore
+		}
+		a, e := constructor(envOr("INITIAL_DIR", "/home/isucon/isureal-initial"), envOr("STATE_DIR", "/home/isucon/isureal-state"))
 		if e != nil {
 			return nil, nil, e
 		}
