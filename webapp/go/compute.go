@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -104,7 +103,6 @@ func validateJPEG(ctx context.Context, b []byte) bool {
 	}
 	return jpegvalidate.Validate(bytes.NewReader(b)) == nil
 }
-func signatureKey(id string, exp int64) string { return id + ":" + strconv.FormatInt(exp, 10) }
 func prefetchImageSignatures(ctx context.Context, value any) {
 	var refs []imageReference
 	var visit func(any)
@@ -130,47 +128,71 @@ func prefetchImageSignatures(ctx context.Context, value any) {
 	if len(refs) == 0 || os.Getenv("COMPUTE_URL") == "" {
 		return
 	}
+
 	a := refs[0].app
-	jobs := make([]signatureJob, 0, len(refs))
-	seen := map[string]bool{}
-	a.signatureMu.Lock()
-	for _, r := range refs {
-		key := signatureKey(r.id, r.exp)
-		if a.signatures[key] == "" && !seen[key] {
-			jobs = append(jobs, signatureJob{r.id, r.secret, r.exp})
-			seen[key] = true
-		}
+	type pending struct {
+		job    signatureJob
+		key    string
+		flight *signatureFlight
 	}
-	a.signatureMu.Unlock()
+	jobs := []pending{}
+	waiting := []*signatureFlight{}
+	seen := map[string]bool{}
+	for _, r := range refs {
+		key := signatureKey(r.id, r.secret, r.exp)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		value, f, owner := a.reserveSignature(key)
+		if value != "" {
+			continue
+		}
+		if !owner {
+			waiting = append(waiting, f)
+			continue
+		}
+		jobs = append(jobs, pending{signatureJob{r.id, r.secret, r.exp}, key, f})
+	}
 	for start := 0; start < len(jobs); start += 256 {
 		end := start + 256
 		if end > len(jobs) {
 			end = len(jobs)
 		}
-		batch := jobs[start:end]
-		b, err := json.Marshal(batch)
-		if err != nil {
-			return
+		batch := make([]signatureJob, end-start)
+		for i, p := range jobs[start:end] {
+			batch[i] = p.job
 		}
+		b, _ := json.Marshal(batch)
 		resp, err := computeRequest(ctx, "signatures", b)
-		if err != nil {
-			return
-		}
 		var results []string
-		err = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&results)
-		resp.Body.Close()
-		if resp.StatusCode != 200 || err != nil || len(results) != len(batch) {
-			return
+		if err == nil {
+			err = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&results)
+			resp.Body.Close()
+			if resp.StatusCode != 200 {
+				results = nil
+			}
 		}
-		a.signatureMu.Lock()
-		if len(a.signatures)+len(batch) > 65536 {
-			a.signatures = map[string]string{}
-			a.signatureResets.Add(1)
+		valid := err == nil && len(results) == len(batch)
+		if valid {
+			a.remoteSignatures.Add(uint64(len(batch)))
+		} else {
+			a.signatureRPCFailures.Add(1)
 		}
-		for i, v := range batch {
-			a.signatures[signatureKey(v.ID, v.Exp)] = results[i]
+		for i, p := range jobs[start:end] {
+			value := ""
+			if valid {
+				value = results[i]
+			} else {
+				before := time.Now()
+				value = computeImageSignature(p.job.ID, p.job.Secret, p.job.Exp)
+				a.signatureMisses.Add(1)
+				a.signatureNS.Add(uint64(time.Since(before)))
+			}
+			a.finishSignature(p.key, p.flight, value)
 		}
-		a.signatureMu.Unlock()
-		a.remoteSignatures.Add(uint64(len(batch)))
+	}
+	for _, f := range waiting {
+		<-f.done
 	}
 }

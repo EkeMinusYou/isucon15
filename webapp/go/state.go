@@ -142,23 +142,29 @@ type State struct {
 	Notifications map[string][]Notification
 }
 type App struct {
-	mu               sync.Mutex
-	s                *State
-	initial, durable string
-	journal          *os.File
-	changes          []change
-	failures         map[string][]time.Time
-	signal           chan struct{}
-	signatures       map[string]string
-	signatureMu      sync.Mutex
-	signatureHits    atomic.Uint64
-	signatureMisses  atomic.Uint64
-	signatureResets  atomic.Uint64
-	signatureNS      atomic.Uint64
-	remoteSignatures atomic.Uint64
-	routeMetrics     [7]requestMetrics
-	requests         uint64
-	writes           uint64
+	mu                   sync.Mutex
+	s                    *State
+	initial, durable     string
+	journal              *os.File
+	changes              []change
+	failures             map[string][]time.Time
+	signal               chan struct{}
+	signatures           map[string]string
+	signatureMu          sync.Mutex
+	signatureFlights     map[string]*signatureFlight
+	signatureOrder       []string
+	signatureNext        int
+	signatureCoalesced   atomic.Uint64
+	signatureEvictions   atomic.Uint64
+	signatureRPCFailures atomic.Uint64
+	signatureHits        atomic.Uint64
+	signatureMisses      atomic.Uint64
+	signatureResets      atomic.Uint64
+	signatureNS          atomic.Uint64
+	remoteSignatures     atomic.Uint64
+	routeMetrics         [7]requestMetrics
+	requests             uint64
+	writes               uint64
 }
 
 func emptyState() *State {
@@ -543,6 +549,9 @@ func (a *App) reset() error {
 	a.changes = nil
 	a.signatureMu.Lock()
 	a.signatures = map[string]string{}
+	a.signatureOrder = nil
+	a.signatureNext = 0
+	a.signatureResets.Add(1)
 	a.signatureMu.Unlock()
 	a.wake()
 	return nil

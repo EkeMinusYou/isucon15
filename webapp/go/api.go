@@ -179,28 +179,21 @@ func (a *App) signed(im *Image, exp int64) string {
 	return a.signImage(im.ID, a.s.Accounts[im.OwnerID].Secret, exp)
 }
 func (a *App) signImage(imageID, secret string, exp int64) string {
-	key := imageID + ":" + strconv.FormatInt(exp, 10)
-	a.signatureMu.Lock()
-	if v := a.signatures[key]; v != "" {
-		a.signatureMu.Unlock()
-		a.signatureHits.Add(1)
-		return v
+	key := signatureKey(imageID, secret, exp)
+	value, flight, owner := a.reserveSignature(key)
+	if value != "" {
+		return value
 	}
-	a.signatureMu.Unlock()
+	if !owner {
+		<-flight.done
+		return flight.value
+	}
 	a.signatureMisses.Add(1)
 	started := time.Now()
-	sig := computeImageSignature(imageID, secret, exp)
+	value = computeImageSignature(imageID, secret, exp)
 	a.signatureNS.Add(uint64(time.Since(started)))
-	a.signatureMu.Lock()
-	// Issued URLs from different seconds coexist. A read of an older URL must
-	// not evict signatures being reused by current feeds and image requests.
-	if len(a.signatures) >= 65536 {
-		a.signatures = make(map[string]string)
-		a.signatureResets.Add(1)
-	}
-	a.signatures[key] = sig
-	a.signatureMu.Unlock()
-	return sig
+	a.finishSignature(key, flight, value)
+	return value
 }
 
 func computeImageSignature(imageID, secret string, exp int64) string {
