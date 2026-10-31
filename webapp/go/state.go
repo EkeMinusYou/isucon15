@@ -155,6 +155,7 @@ type App struct {
 }
 type appCore struct {
 	mu                   sync.RWMutex
+	globalGate           sync.RWMutex
 	journalMu            sync.Mutex
 	notifier             notificationHub
 	transactions         [stateShardCount]sync.RWMutex

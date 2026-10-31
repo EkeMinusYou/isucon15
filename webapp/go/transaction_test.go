@@ -8,8 +8,10 @@ import (
 	"image/jpeg"
 	"mime/multipart"
 	"net/http/httptest"
+	"runtime"
 	"sync"
 	"testing"
+	"time"
 )
 
 type concurrentRequest struct {
@@ -194,5 +196,55 @@ func TestPostingWindowSwitchAndPostAreAtomic(t *testing.T) {
 	current := a.s.window(a.s.Accounts.Get(uid))
 	if a.s.canPost(a.s.Accounts.Get(uid)) != (p.WindowID != current.ID) {
 		t.Fatal("posting slot does not match the current window")
+	}
+}
+
+// A queued per-user update must not delay opening the next posting window.
+func TestPostingWindowDoesNotDrainQueuedUpdates(t *testing.T) {
+	a := fixtureApp(t)
+	uid, token := register(t, a, "queued_update")
+	admin := openWindow(t, a, "2026-11-01")
+	stripe := &a.transactions[stateHash("user:"+uid)%stateShardCount]
+	stripe.Lock()
+	held := true
+	defer func() {
+		if held {
+			stripe.Unlock()
+		}
+	}()
+	updated := make(chan int, 1)
+	go func() {
+		status, _, _ := call(t, a, "PATCH", "/api/me", token, object{"bio": "queued"})
+		updated <- status
+	}()
+	deadline := time.Now().Add(time.Second)
+	for a.mu.TryLock() {
+		a.mu.Unlock()
+		if time.Now().After(deadline) {
+			t.Fatal("update did not enter the queue")
+		}
+		runtime.Gosched()
+	}
+	opened := make(chan int, 1)
+	go func() {
+		status, _, _ := call(t, a, "POST", "/api/admin/posting-window", admin, object{"region": "asia", "localDate": "2026-11-02"})
+		opened <- status
+	}()
+	select {
+	case status := <-opened:
+		if status != 201 {
+			t.Fatalf("window returned %d", status)
+		}
+	case <-time.After(time.Second):
+		stripe.Unlock()
+		held = false
+		<-updated
+		<-opened
+		t.Fatal("posting window waited for a queued update")
+	}
+	stripe.Unlock()
+	held = false
+	if status := <-updated; status != 200 {
+		t.Fatalf("update returned %d", status)
 	}
 }

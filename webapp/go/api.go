@@ -333,12 +333,14 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if profile || multipart {
 		// Reject banned or unauthenticated uploads before retaining their bodies.
 		a.mu.RLock()
+		a.globalGate.RLock()
 		check := httptest.NewRecorder()
 		if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 			failure(check, 403, "ip_banned")
 		} else {
 			a.auth(check, r, !profile)
 		}
+		a.globalGate.RUnlock()
 		a.mu.RUnlock()
 		if check.Code != 200 {
 			for k, vs := range check.Header() {
@@ -797,8 +799,10 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			a.mu.RLock()
 			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
 			stripe.Lock()
+			a.globalGate.RLock()
 			a.failIP(r, "signature", 3, 5*time.Second)
 			a.commit()
+			a.globalGate.RUnlock()
 			stripe.Unlock()
 			a.mu.RUnlock()
 			failure(w, 403, "image_forbidden")

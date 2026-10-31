@@ -14,8 +14,10 @@ func (a *App) lockSnapshot() {
 	for i := range a.transactions {
 		a.transactions[i].RLock()
 	}
+	a.globalGate.RLock()
 }
 func (a *App) unlockSnapshot() {
+	a.globalGate.RUnlock()
 	for i := len(a.transactions) - 1; i >= 0; i-- {
 		a.transactions[i].RUnlock()
 	}
@@ -23,7 +25,8 @@ func (a *App) unlockSnapshot() {
 }
 
 // All transactions acquire logical resource stripes in the same order.
-// The lifecycle lock excludes initialize and the infrequent global updates.
+// The lifecycle lock excludes initialize. The global gate is acquired after
+// stripes, so global updates wait only for executing operations, not queues.
 func (a *App) lockRequest(r *http.Request) func() {
 	if r.URL.Path == "/api/initialize" {
 		a.mu.Lock()
@@ -37,15 +40,14 @@ func (a *App) lockRequest(r *http.Request) func() {
 		a.mu.RLock()
 		keys, all := a.mutationKeys(r)
 		if all {
-			// Stop admitting requests before draining the existing transactions.
-			// Walking every stripe as a writer lets new readers queue between
-			// stripes and can delay a posting-window transition indefinitely.
-			a.mu.RUnlock()
-			a.mu.Lock()
+			a.globalGate.Lock()
 			a.transactionRequests.Add(1)
 			a.transactionShards.Add(stateShardCount)
 			a.transactionGlobal.Add(1)
-			return a.mu.Unlock
+			return func() {
+				a.globalGate.Unlock()
+				a.mu.RUnlock()
+			}
 		}
 		indices := []int{}
 		seen := [stateShardCount]bool{}
@@ -60,7 +62,9 @@ func (a *App) lockRequest(r *http.Request) func() {
 		for _, i := range indices {
 			a.transactions[i].Lock()
 		}
+		a.globalGate.RLock()
 		unlock := func() {
+			a.globalGate.RUnlock()
 			for i := len(indices) - 1; i >= 0; i-- {
 				a.transactions[indices[i]].Unlock()
 			}
