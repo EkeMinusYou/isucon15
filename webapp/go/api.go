@@ -113,7 +113,7 @@ func (a *App) failIP(r *http.Request, kind string, limit int, period time.Durati
 	xs = append(xs, now)
 	if len(xs) >= limit {
 		until := now.Add(2 * time.Minute)
-		if a.state().Bans.Get(ipOf(r)).Before(until) {
+		if a.s.Bans.Get(ipOf(r)).Before(until) {
 			a.put("ban", banChange{ipOf(r), until})
 		}
 		xs = nil
@@ -126,7 +126,7 @@ func (a *App) auth(w http.ResponseWriter, r *http.Request, region bool) *Account
 		return nil
 	}
 	t := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	u := a.state().Accounts.Get(a.state().Sessions.Get(t))
+	u := a.s.Accounts.Get(a.s.Sessions.Get(t))
 	if u == nil || u.Status != "active" {
 		failure(w, 401, "invalid_session")
 		return nil
@@ -147,7 +147,7 @@ func (a *App) admin(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	t := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	if a.state().AdminSessions.Get(t) == "" {
+	if a.s.AdminSessions.Get(t) == "" {
 		failure(w, 401, "invalid_administrator_session")
 		return false
 	}
@@ -208,12 +208,12 @@ func imageExpiry(now time.Time) int64 {
 }
 
 func (a *App) imageURL(i string) any {
-	im := a.state().Images.get(i)
+	im := a.s.Images.get(i)
 	if im == nil {
 		return nil
 	}
 	exp := imageExpiry(time.Now())
-	return imageReference{a, i, a.state().Accounts.Get(im.OwnerID).Secret, exp}
+	return imageReference{a, i, a.s.Accounts.Get(im.OwnerID).Secret, exp}
 }
 func (a *App) user(u *Account, bio bool) object {
 	b := ""
@@ -241,18 +241,18 @@ func windowJSON(v *Window) object {
 	return object{"id": v.ID, "region": v.Region, "localDate": v.LocalDate, "startsAt": v.StartsAt, "onTimeDeadline": v.Deadline}
 }
 func (a *App) post(p *Post) object {
-	w := a.state().Windows.Get(p.WindowID)
+	w := a.s.Windows.Get(p.WindowID)
 	late := int64(p.PostedAt.Sub(w.Deadline) / time.Second)
 	if late < 0 {
 		late = 0
 	}
-	return object{"id": p.ID, "author": a.user(a.state().Accounts.Get(p.AuthorID), true), "postingWindowId": p.WindowID, "imageUrl": a.imageURL(p.ImageID), "caption": p.Caption, "visibility": p.Visibility, "location": p.Location, "postedAt": p.PostedAt, "onTime": !p.PostedAt.After(w.Deadline), "lateSeconds": late}
+	return object{"id": p.ID, "author": a.user(a.s.Accounts.Get(p.AuthorID), true), "postingWindowId": p.WindowID, "imageUrl": a.imageURL(p.ImageID), "caption": p.Caption, "visibility": p.Visibility, "location": p.Location, "postedAt": p.PostedAt, "onTime": !p.PostedAt.After(w.Deadline), "lateSeconds": late}
 }
 func (a *App) comment(c *Comment) object {
-	return object{"id": c.ID, "author": a.user(a.state().Accounts.Get(c.AuthorID), true), "body": c.Body, "createdAt": c.CreatedAt}
+	return object{"id": c.ID, "author": a.user(a.s.Accounts.Get(c.AuthorID), true), "body": c.Body, "createdAt": c.CreatedAt}
 }
 func (a *App) reaction(c *Reaction) object {
-	return object{"id": c.ID, "reactor": a.user(a.state().Accounts.Get(c.ReactorID), true), "reactionType": c.Type, "imageUrl": a.imageURL(c.ImageID), "createdAt": c.CreatedAt}
+	return object{"id": c.ID, "reactor": a.user(a.s.Accounts.Get(c.ReactorID), true), "reactionType": c.Type, "imageUrl": a.imageURL(c.ImageID), "createdAt": c.CreatedAt}
 }
 func page(w http.ResponseWriter, x []object) {
 	more := len(x) > 50
@@ -300,14 +300,16 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	profile, multipart := isImageUpload(r)
 	if profile || multipart {
 		// Reject banned or unauthenticated uploads before retaining their bodies.
-		unlockPreflight := a.lockReadRequest(r)
+		a.mu.RLock()
+		a.globalGate.RLock()
 		check := httptest.NewRecorder()
-		if time.Now().Before(a.state().Bans.Get(ipOf(r))) {
+		if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 			failure(check, 403, "ip_banned")
 		} else {
 			a.auth(check, r, !profile)
 		}
-		unlockPreflight()
+		a.globalGate.RUnlock()
+		a.mu.RUnlock()
 		if check.Code != 200 {
 			for k, vs := range check.Header() {
 				w.Header()[k] = vs
@@ -359,7 +361,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	locked := time.Now()
 	stats.waitNS.Add(uint64(locked.Sub(started)))
 	stats.requests.Add(1)
-	if time.Now().Before(a.state().Bans.Get(ipOf(r))) {
+	if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 		failure(rr, 403, "ip_banned")
 	} else {
 		a.dispatch(rr, r)
@@ -394,7 +396,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	method := r.Method
-	s := a.state()
+	s := a.s
 	if path == "/api/initialize" && method == "POST" {
 		if e := a.reset(); e != nil {
 			failure(w, 500, "initialization_failed")
@@ -493,7 +495,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		}
 		a.put("account", n)
 		if n.Region != u.Region {
-			a.signalUser(u.ID)
+			a.notifier.userChanged(u.ID)
 		}
 		output(w, 200, a.me(&n))
 	case path == "/api/me/profile-image":
@@ -538,7 +540,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		for t := range s.UserTokens.Get(u.ID) {
 			a.put("session", tokenChange{t, ""})
 		}
-		a.signalUser(u.ID)
+		a.notifier.userChanged(u.ID)
 		w.WriteHeader(204)
 	case path == "/api/users" && method == "GET":
 		a.search(w, r, u)
@@ -594,7 +596,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (a *App) adminAPI(w http.ResponseWriter, r *http.Request) {
-	s := a.state()
+	s := a.s
 	path := r.URL.Path
 	if path == "/api/admin/auth/logout" && r.Method == "POST" {
 		a.put("adminsession", tokenChange{strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "), ""})
@@ -659,7 +661,7 @@ func (a *App) adminAPI(w http.ResponseWriter, r *http.Request) {
 				a.put("notification", Notification{id(), u.ID, n.ID, now})
 			}
 		}
-		a.signalRegion(v.Region)
+		a.notifier.regionChanged(v.Region)
 		output(w, 201, windowJSON(&n))
 		return
 	}
@@ -683,16 +685,16 @@ func (a *App) search(w http.ResponseWriter, r *http.Request, u *Account) {
 		if x.ID == u.ID || x.Status != "active" || (bi != "" && (x.Username < bu || x.Username == bu && x.ID <= bi)) {
 			return
 		}
-		if (strings.Contains(x.searchUsername, term) || strings.Contains(x.searchDisplay, term)) && !a.state().blocked(u.ID, x.ID) {
+		if (strings.Contains(x.searchUsername, term) || strings.Contains(x.searchDisplay, term)) && !a.s.blocked(u.ID, x.ID) {
 			us = append(us, x)
 		}
 	}
-	if ids, indexed := a.state().search.candidates(term); indexed {
+	if ids, indexed := a.s.search.candidates(term); indexed {
 		for _, id := range ids {
-			consider(a.state().Accounts.Get(id))
+			consider(a.s.Accounts.Get(id))
 		}
 	} else {
-		for _, x := range a.state().Accounts.All() {
+		for _, x := range a.s.Accounts.All() {
 			consider(x)
 		}
 	}
@@ -725,7 +727,7 @@ func (a *App) addImage(r *http.Request, uid string) (*Image, error) {
 	return im, nil
 }
 func (a *App) validImage(im *Image) bool {
-	s := a.state()
+	s := a.s
 	if im == nil || !s.active(im.OwnerID) {
 		return false
 	}
@@ -757,19 +759,24 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	}
 	exp, e := strconv.ParseInt(es[0], 10, 64)
 	raw, e2 := base64.RawURLEncoding.DecodeString(ss[0])
-	im := a.state().Images.get(i)
-	if e != nil || strconv.FormatInt(exp, 10) != es[0] || exp <= time.Now().Unix() || e2 != nil || len(raw) != 32 || base64.RawURLEncoding.EncodeToString(raw) != ss[0] || im == nil || !a.state().active(im.OwnerID) {
+	im := a.s.Images.get(i)
+	if e != nil || strconv.FormatInt(exp, 10) != es[0] || exp <= time.Now().Unix() || e2 != nil || len(raw) != 32 || base64.RawURLEncoding.EncodeToString(raw) != ss[0] || im == nil || !a.s.active(im.OwnerID) {
 		failure(w, 403, "image_forbidden")
 		return
 	}
 	copyImage, valid := *im, a.validImage(im)
-	secret := a.state().Accounts.Get(im.OwnerID).Secret
+	secret := a.s.Accounts.Get(im.OwnerID).Secret
 	responseWork(w, func(w http.ResponseWriter) {
 		if !hmac.Equal([]byte(ss[0]), []byte(a.signImage(i, secret, exp))) {
-			unlockFailure := a.lockWriteState()
+			a.mu.RLock()
+			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
+			stripe.Lock()
+			a.globalGate.RLock()
 			a.failIP(r, "signature", 3, 5*time.Second)
 			a.commit()
-			unlockFailure()
+			a.globalGate.RUnlock()
+			stripe.Unlock()
+			a.mu.RUnlock()
 			failure(w, 403, "image_forbidden")
 			return
 		}
@@ -792,7 +799,7 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 		// Signature work and opening storage can wait. Recheck immediately
 		// before publishing a cacheable response or evaluating its validator.
 		unlockImage := a.lockReadRequest(r)
-		current := a.state().Images.get(i)
+		current := a.s.Images.get(i)
 		cacheable := a.validImage(current)
 		checkedAt := time.Now()
 		unlockImage()
@@ -921,7 +928,7 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request, u *Account) {
 		failure(w, 400, "invalid_post")
 		return
 	}
-	if !a.state().canPost(u) {
+	if !a.s.canPost(u) {
 		failure(w, 409, "post_slot_unavailable")
 		return
 	}
@@ -930,18 +937,18 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request, u *Account) {
 		failure(w, 500, "image_storage_failed")
 		return
 	}
-	p := Post{ID: id(), AuthorID: u.ID, WindowID: a.state().window(u).ID, ImageID: im.ID, Caption: caption, Visibility: vis, Location: loc, PostedAt: time.Now().UTC()}
+	p := Post{ID: id(), AuthorID: u.ID, WindowID: a.s.window(u).ID, ImageID: im.ID, Caption: caption, Visibility: vis, Location: loc, PostedAt: time.Now().UTC()}
 	a.put("post", p)
 	output(w, 201, a.post(&p))
 }
 func (a *App) postAPI(w http.ResponseWriter, r *http.Request, u *Account, i string) {
-	p := a.state().Posts.get(i)
+	p := a.s.Posts.get(i)
 	if p == nil || p.DeletedAt != nil {
 		failure(w, 404, "post_not_found")
 		return
 	}
 	if r.Method == "GET" {
-		if !a.state().view(u, p) {
+		if !a.s.view(u, p) {
 			failure(w, 404, "post_not_found")
 			return
 		}
@@ -954,7 +961,7 @@ func (a *App) postAPI(w http.ResponseWriter, r *http.Request, u *Account, i stri
 			failure(w, 400, "invalid_post")
 			return
 		}
-		if p.AuthorID != u.ID || a.state().Windows.Get(p.WindowID).EndedAt != nil {
+		if p.AuthorID != u.ID || a.s.Windows.Get(p.WindowID).EndedAt != nil {
 			failure(w, 403, "post_not_editable")
 			return
 		}
@@ -974,11 +981,11 @@ func (a *App) postAPI(w http.ResponseWriter, r *http.Request, u *Account, i stri
 			failure(w, 403, "post_not_editable")
 			return
 		}
-		date := a.state().Windows.Get(p.WindowID).LocalDate
+		date := a.s.Windows.Get(p.WindowID).LocalDate
 		n := 0
-		for _, pid := range a.state().UserPosts.Get(u.ID) {
-			x := a.state().Posts.get(pid)
-			if x.DeletedAt != nil && a.state().Windows.Get(x.WindowID).LocalDate == date {
+		for _, pid := range a.s.UserPosts.Get(u.ID) {
+			x := a.s.Posts.get(pid)
+			if x.DeletedAt != nil && a.s.Windows.Get(x.WindowID).LocalDate == date {
 				n++
 			}
 		}

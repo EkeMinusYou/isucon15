@@ -16,9 +16,9 @@ import (
 
 func (a *App) listComments(pid string) []*Comment {
 	out := []*Comment{}
-	for _, i := range a.state().PostComments.Get(pid) {
-		c := a.state().Comments.get(i)
-		if c.DeletedAt == nil && a.state().active(c.AuthorID) {
+	for _, i := range a.s.PostComments.Get(pid) {
+		c := a.s.Comments.get(i)
+		if c.DeletedAt == nil && a.s.active(c.AuthorID) {
 			out = append(out, c)
 		}
 	}
@@ -27,9 +27,9 @@ func (a *App) listComments(pid string) []*Comment {
 }
 func (a *App) listReactions(pid string) []*Reaction {
 	out := []*Reaction{}
-	for _, i := range a.state().PostReactions.Get(pid) {
-		c := a.state().Reactions.get(i)
-		if c.DeletedAt == nil && c.ReplacedAt == nil && a.state().active(c.ReactorID) {
+	for _, i := range a.s.PostReactions.Get(pid) {
+		c := a.s.Reactions.get(i)
+		if c.DeletedAt == nil && c.ReplacedAt == nil && a.s.active(c.ReactorID) {
 			out = append(out, c)
 		}
 	}
@@ -37,7 +37,7 @@ func (a *App) listReactions(pid string) []*Reaction {
 	return out
 }
 func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, pid, kind string) {
-	s := a.state()
+	s := a.s
 	p := s.Posts.get(pid)
 	allowed := s.view(u, p)
 	if kind == "comments" {
@@ -128,12 +128,12 @@ func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, p
 func (a *App) deleteInteraction(w http.ResponseWriter, r *http.Request, u *Account, kind, i string) {
 	now := time.Now().UTC()
 	if kind == "comment" {
-		v := a.state().Comments.get(i)
+		v := a.s.Comments.get(i)
 		if v == nil || v.DeletedAt != nil {
 			failure(w, 404, "interaction_not_found")
 			return
 		}
-		if v.AuthorID != u.ID && a.state().Posts.get(v.PostID).AuthorID != u.ID {
+		if v.AuthorID != u.ID && a.s.Posts.get(v.PostID).AuthorID != u.ID {
 			failure(w, 403, "interaction_forbidden")
 			return
 		}
@@ -141,12 +141,12 @@ func (a *App) deleteInteraction(w http.ResponseWriter, r *http.Request, u *Accou
 		c.DeletedAt = &now
 		a.put(kind, c)
 	} else {
-		v := a.state().Reactions.get(i)
+		v := a.s.Reactions.get(i)
 		if v == nil || v.DeletedAt != nil {
 			failure(w, 404, "interaction_not_found")
 			return
 		}
-		if v.ReactorID != u.ID && a.state().Posts.get(v.PostID).AuthorID != u.ID {
+		if v.ReactorID != u.ID && a.s.Posts.get(v.PostID).AuthorID != u.ID {
 			failure(w, 403, "interaction_forbidden")
 			return
 		}
@@ -217,11 +217,11 @@ func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind stri
 		}
 	}
 	// Viewer state and relationships are stable for this snapshot capture.
-	if own, _ := a.state().dayPosts(u); own == nil {
+	if own, _ := a.s.dayPosts(u); own == nil {
 		page(w, []object{})
 		return
 	}
-	friends := a.state().Adj.Get(u.ID)
+	friends := a.s.Adj.Get(u.ID)
 	type entry struct {
 		post    postSnapshot
 		author  string
@@ -229,7 +229,7 @@ func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind stri
 		score   int
 	}
 	xs := []entry{}
-	s := a.state()
+	s := a.s
 	var ranking *rankingSnapshot
 	if kind == "friends-of-friends" {
 		ranking = s.snapshotRanking(u.ID)
@@ -342,21 +342,21 @@ func (a *App) memories(w http.ResponseWriter, r *http.Request, u *Account) {
 		reactions []reactionSnapshot
 	}
 	memories := []memory{}
-	for _, ref := range a.state().postsInPeriod(u.ID, dateNumber(t.Format("2006-01-02")), dateNumber(end.Format("2006-01-02"))) {
-		p := a.state().Posts.get(ref.id)
+	for _, ref := range a.s.postsInPeriod(u.ID, dateNumber(t.Format("2006-01-02")), dateNumber(end.Format("2006-01-02"))) {
+		p := a.s.Posts.get(ref.id)
 		if p.DeletedAt != nil {
 			continue
 		}
 		m := memory{post: a.snapshotPost(p)}
-		for _, id := range a.state().PostComments.Get(p.ID) {
-			c := a.state().Comments.get(id)
-			if c.DeletedAt == nil && a.state().active(c.AuthorID) {
+		for _, id := range a.s.PostComments.Get(p.ID) {
+			c := a.s.Comments.get(id)
+			if c.DeletedAt == nil && a.s.active(c.AuthorID) {
 				m.comments = append(m.comments, a.snapshotComment(c))
 			}
 		}
-		for _, id := range a.state().PostReactions.Get(p.ID) {
-			v := a.state().Reactions.get(id)
-			if v.DeletedAt == nil && v.ReplacedAt == nil && a.state().active(v.ReactorID) {
+		for _, id := range a.s.PostReactions.Get(p.ID) {
+			v := a.s.Reactions.get(id)
+			if v.DeletedAt == nil && v.ReplacedAt == nil && a.s.active(v.ReactorID) {
 				m.reactions = append(m.reactions, a.snapshotReaction(v))
 			}
 		}
@@ -407,12 +407,12 @@ func (a *App) export(w http.ResponseWriter, r *http.Request, u *Account) {
 		image Image
 	}
 	entries := []entry{}
-	for _, id := range a.state().UserPosts.Get(u.ID) {
-		p := a.state().Posts.get(id)
+	for _, id := range a.s.UserPosts.Get(u.ID) {
+		p := a.s.Posts.get(id)
 		if p.DeletedAt != nil {
 			continue
 		}
-		im := a.state().Images.get(p.ImageID)
+		im := a.s.Images.get(p.ImageID)
 		if im == nil {
 			failure(w, 500, "export_failed")
 			return
@@ -489,7 +489,7 @@ func (a *App) establish(v *Relation) {
 	a.put("friend", Relation{ID: id(), User1ID: v.RequesterID, User2ID: v.RecipientID, CreatedAt: now, UpdatedAt: now})
 }
 func (a *App) relationshipAPI(w http.ResponseWriter, r *http.Request, u *Account) {
-	s := a.state()
+	s := a.s
 	p := r.URL.Path
 	now := time.Now().UTC()
 	if strings.HasPrefix(p, "/api/relationships/") {
@@ -672,7 +672,7 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 		uid string
 	}
 	xs := []entry{}
-	s := a.state()
+	s := a.s
 	add := func(v *Relation, uid string) {
 		if s.active(uid) && before(v.UpdatedAt, v.ID, ct, ci) {
 			xs = append(xs, entry{v, uid})
@@ -726,7 +726,7 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
 	unlock := a.lockReadRequest(r)
-	if started.Before(a.state().Bans.Get(ipOf(r))) {
+	if started.Before(a.s.Bans.Get(ipOf(r))) {
 		unlock()
 		failure(w, 403, "ip_banned")
 		return
@@ -747,11 +747,8 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 	for {
-		// Observe the channels before the root: a publication either appears
-		// in this root or closes one of these channels after it is captured.
-		userSignal, regionSignal := subscription.channels()
 		unlock = a.lockUserRead(uid)
-		s := a.state()
+		s := a.s
 		u = s.Accounts.Get(uid)
 		if u == nil || u.Status != "active" || u.Region != region {
 			unlock()
@@ -765,6 +762,7 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 				selected = &c
 			}
 		}
+		userSignal, regionSignal := subscription.channels()
 		if selected != nil {
 			v := object{"id": selected.ID, "postingWindowId": selected.WindowID, "region": s.Windows.Get(selected.WindowID).Region, "createdAt": selected.CreatedAt}
 			b, _ := json.Marshal(v)

@@ -119,53 +119,55 @@ type banChange struct {
 	Until time.Time
 }
 type State struct {
-	search            searchIndex
-	dayPostCache      sync.Map
-	imageLinks        *shardedMap[[16]byte, imageLink]
-	initialImageLinks *shardedMap[[16]byte, imageLink]
-	LivePosts         *shardedMap[string, []string]
-	Accounts          *shardedMap[string, *Account]
-	Names             *shardedMap[string, string]
-	Admins            *shardedMap[string, *Administrator]
-	Windows           *shardedMap[string, *Window]
-	Current           *shardedMap[string, string]
-	Posts             *recordStore[Post]
-	UserPosts         *shardedMap[string, []string]
-	PostPeriods       *shardedMap[string, []datedPostRef]
-	periodsReady      bool
-	Reactions         *recordStore[Reaction]
-	PostReactions     *shardedMap[string, []string]
-	Comments          *recordStore[Comment]
-	PostComments      *shardedMap[string, []string]
-	Images            *recordStore[Image]
-	Requests          *shardedMap[string, *Relation]
-	RequestOut        *shardedMap[string, map[string]*Relation]
-	RequestIn         *shardedMap[string, map[string]*Relation]
-	Friends           *shardedMap[string, *Relation]
-	Adj               *shardedMap[string, map[string]bool]
-	Follows           *shardedMap[string, *Relation]
-	Following         *shardedMap[string, map[string]bool]
-	Blocks            *shardedMap[string, *Relation]
-	Sessions          *shardedMap[string, string]
-	UserTokens        *shardedMap[string, map[string]bool]
-	AdminSessions     *shardedMap[string, string]
-	Bans              *shardedMap[string, time.Time]
-	Notifications     *shardedMap[string, []Notification]
+	search        searchIndex
+	dayPostCache  sync.Map
+	imageLinks    *shardedMap[[16]byte, imageLink]
+	LivePosts     *shardedMap[string, []string]
+	Accounts      *shardedMap[string, *Account]
+	Names         *shardedMap[string, string]
+	Admins        *shardedMap[string, *Administrator]
+	Windows       *shardedMap[string, *Window]
+	Current       *shardedMap[string, string]
+	Posts         *recordStore[Post]
+	UserPosts     *shardedMap[string, []string]
+	PostPeriods   *shardedMap[string, []datedPostRef]
+	periodsReady  bool
+	Reactions     *recordStore[Reaction]
+	PostReactions *shardedMap[string, []string]
+	Comments      *recordStore[Comment]
+	PostComments  *shardedMap[string, []string]
+	Images        *recordStore[Image]
+	Requests      *shardedMap[string, *Relation]
+	RequestOut    *shardedMap[string, map[string]*Relation]
+	RequestIn     *shardedMap[string, map[string]*Relation]
+	Friends       *shardedMap[string, *Relation]
+	Adj           *shardedMap[string, map[string]bool]
+	Follows       *shardedMap[string, *Relation]
+	Following     *shardedMap[string, map[string]bool]
+	Blocks        *shardedMap[string, *Relation]
+	Sessions      *shardedMap[string, string]
+	UserTokens    *shardedMap[string, map[string]bool]
+	AdminSessions *shardedMap[string, string]
+	Bans          *shardedMap[string, time.Time]
+	Notifications *shardedMap[string, []Notification]
 }
 type App struct {
 	*appCore
 	pending []change // Owned by one request, never shared between handlers.
-	view    *State
-	signals []stateSignal
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics
 	mu                   sync.RWMutex
-	writeMu              sync.Mutex
-	published            atomic.Pointer[State]
-	publications         atomic.Uint64
-	publicationNS        atomic.Uint64
+	globalGate           sync.RWMutex
+	snapshots            snapshotBatch
+	journalMu            sync.Mutex
 	notifier             notificationHub
+	transactions         [stateShardCount]sync.RWMutex
+	transactionRequests  atomic.Uint64
+	transactionShards    atomic.Uint64
+	transactionGlobal    atomic.Uint64
+	stripeRetries        atomic.Uint64
+	journalWaitNS        atomic.Uint64
 	journalWriteNS       atomic.Uint64
 	s                    *State
 	initial, durable     string
@@ -223,7 +225,7 @@ func emptyState() *State {
 	}
 	s.Images.decorate = func(id string, im *Image) {
 		key, _ := uuidKey(id)
-		if link, ok := s.imageLink(key); ok {
+		if link, ok := s.imageLinks.Load(key); ok {
 			im.Ref = uuidString(link.Ref)
 			im.Kind = link.Kind
 		}
@@ -427,7 +429,7 @@ func (a *App) put(kind string, v any) {
 	if e != nil {
 		panic(e)
 	}
-	if e = a.state().apply(kind, b); e != nil {
+	if e = a.s.apply(kind, b); e != nil {
 		panic(e)
 	}
 	a.pending = append(a.pending, change{kind, b})
@@ -441,23 +443,16 @@ func (a *App) commit() {
 		panic(e)
 	}
 	b = append(b, '\n')
+	waiting := time.Now()
+	a.journalMu.Lock()
+	defer a.journalMu.Unlock()
+	a.journalWaitNS.Add(uint64(time.Since(waiting)))
 	writing := time.Now()
 	if _, e = a.journal.Write(b); e != nil {
 		log.Fatalf("journal write: %v", e)
 	}
 	a.journalWriteNS.Add(uint64(time.Since(writing)))
 	a.pending = nil
-	publishing := time.Now()
-	if a.view != nil {
-		a.view.seal()
-		a.appCore.s = a.view
-		a.published.Store(a.view)
-	} else {
-		a.published.Store(a.s)
-	}
-	a.publishSignals()
-	a.publications.Add(1)
-	a.publicationNS.Add(uint64(time.Since(publishing)))
 }
 func loadLines(path string, fn func([]byte) error) error {
 	f, e := os.Open(path)
@@ -577,8 +572,6 @@ func (a *App) loadInitial() error {
 	// Historical notifications precede all future SSE connection times. They are
 	// immutable input, and therefore need no live index or replay allocation.
 	s.finishPostPeriods()
-	s.initialImageLinks = s.imageLinks
-	s.imageLinks = new(shardedMap[[16]byte, imageLink])
 	complete = true
 	a.s = s
 	a.historyResidentBytes.Store(uint64(len(s.Posts.data)+len(s.Reactions.data)+len(s.Comments.data)+len(s.Images.data)) * recordChunkBytes)
@@ -618,7 +611,6 @@ func newApp(initial, durable string) (*App, error) {
 		return nil, e
 	}
 	log.Printf("state ready: accounts=%d posts=%d images=%d", a.s.Accounts.Len(), a.s.Posts.len(), a.s.Images.len())
-	a.published.Store(a.s)
 	return a, nil
 }
 func (a *App) reset() error {
@@ -626,7 +618,6 @@ func (a *App) reset() error {
 		a.s.closeHistory()
 	}
 	a.s = nil
-	a.published.Store(nil)
 	runtime.GC()
 	if e := a.loadInitial(); e != nil {
 		return e
@@ -652,7 +643,6 @@ func (a *App) reset() error {
 	a.signatureNext = 0
 	a.signatureResets.Add(1)
 	a.signatureMu.Unlock()
-	a.published.Store(a.s)
 	a.notifier.reset()
 	return resetRegionalImages()
 }

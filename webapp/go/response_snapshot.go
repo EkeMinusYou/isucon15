@@ -10,7 +10,7 @@ type userSnapshot struct {
 func (a *App) snapshotImage(id, secret string) any {
 	// Post, reaction and profile references always belong to their actor.
 	// Capture that actor's key without decoding immutable image metadata.
-	if !a.state().Images.has(id) {
+	if !a.s.Images.has(id) {
 		return nil
 	}
 	return imageReference{a, id, secret, imageExpiry(time.Now())}
@@ -78,8 +78,8 @@ type postSnapshot struct {
 }
 
 func (a *App) snapshotPost(p *Post) postSnapshot {
-	u := a.state().Accounts.Get(p.AuthorID)
-	return postSnapshot{p.ID, p.WindowID, p.Caption, p.Visibility, a.snapshotUser(u, true), a.snapshotImage(p.ImageID, u.Secret), snapshotLocation(p.Location), p.PostedAt, a.state().Windows.Get(p.WindowID).Deadline}
+	u := a.s.Accounts.Get(p.AuthorID)
+	return postSnapshot{p.ID, p.WindowID, p.Caption, p.Visibility, a.snapshotUser(u, true), a.snapshotImage(p.ImageID, u.Secret), snapshotLocation(p.Location), p.PostedAt, a.s.Windows.Get(p.WindowID).Deadline}
 }
 func (p postSnapshot) object() object {
 	late := int64(p.postedAt.Sub(p.deadline) / time.Second)
@@ -96,7 +96,7 @@ type commentSnapshot struct {
 }
 
 func (a *App) snapshotComment(c *Comment) commentSnapshot {
-	return commentSnapshot{c.ID, c.Body, a.snapshotUser(a.state().Accounts.Get(c.AuthorID), true), c.CreatedAt}
+	return commentSnapshot{c.ID, c.Body, a.snapshotUser(a.s.Accounts.Get(c.AuthorID), true), c.CreatedAt}
 }
 func (c commentSnapshot) object() object {
 	return object{"id": c.id, "body": c.body, "author": c.author.object(), "createdAt": c.createdAt}
@@ -110,7 +110,7 @@ type reactionSnapshot struct {
 }
 
 func (a *App) snapshotReaction(r *Reaction) reactionSnapshot {
-	u := a.state().Accounts.Get(r.ReactorID)
+	u := a.s.Accounts.Get(r.ReactorID)
 	return reactionSnapshot{r.ID, r.Type, a.snapshotUser(u, true), a.snapshotImage(r.ImageID, u.Secret), r.CreatedAt}
 }
 func (r reactionSnapshot) object() object {
