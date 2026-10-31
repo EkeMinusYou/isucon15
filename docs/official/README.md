@@ -3,4 +3,4 @@
 当日マニュアル、アプリケーション仕様、API定義、注意事項を保存する場所です。
 正しい挙動、変更可能範囲、初期化、再起動、最終確認については、このディレクトリの資料を最優先します。
 
-- [Clarification #20: リージョン間のAPIリクエスト転送](clarification-20.md)
+- [公式Clarification（質問・回答）](clarifications.md)
