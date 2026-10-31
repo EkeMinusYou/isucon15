@@ -832,11 +832,11 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 		defer f.Close()
 		// Signature work and opening storage can wait. Recheck immediately
 		// before publishing a cacheable response or evaluating its validator.
-		a.lockSnapshot()
+		unlockImage := a.lockReadRequest(r)
 		current := a.s.Images.get(i)
 		cacheable := a.validImage(current)
 		checkedAt := time.Now()
-		a.unlockSnapshot()
+		unlockImage()
 		if !cacheable || exp <= checkedAt.Unix() {
 			failure(w, 403, "image_forbidden")
 			return

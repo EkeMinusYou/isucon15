@@ -670,21 +670,21 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 }
 func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
-	a.lockSnapshot()
+	unlock := a.lockReadRequest(r)
 	if started.Before(a.s.Bans.Get(ipOf(r))) {
-		a.unlockSnapshot()
+		unlock()
 		failure(w, 403, "ip_banned")
 		return
 	}
 	u := a.auth(w, r, true)
 	if u == nil {
-		a.unlockSnapshot()
+		unlock()
 		return
 	}
 	uid, region := u.ID, u.Region
 	subscription := a.notifier.subscribe(uid, region)
 	defer subscription.close()
-	a.unlockSnapshot()
+	unlock()
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(200)
@@ -692,11 +692,11 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 	for {
-		a.lockSnapshot()
+		unlock = a.lockUserRead(uid)
 		s := a.s
 		u = s.Accounts.Get(uid)
 		if u == nil || u.Status != "active" || u.Region != region {
-			a.unlockSnapshot()
+			unlock()
 			return
 		}
 		var selected *Notification
@@ -711,14 +711,14 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		if selected != nil {
 			v := object{"id": selected.ID, "postingWindowId": selected.WindowID, "region": s.Windows.Get(selected.WindowID).Region, "createdAt": selected.CreatedAt}
 			b, _ := json.Marshal(v)
-			a.unlockSnapshot()
+			unlock()
 			fmt.Fprintf(w, "data: %s\n\n", b)
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
 			}
 			return
 		}
-		a.unlockSnapshot()
+		unlock()
 		select {
 		case <-userSignal:
 			a.notifier.wakeups.Add(1)

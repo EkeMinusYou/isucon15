@@ -66,19 +66,6 @@ func (a *App) acquireStripes(indices []int, exclusive bool) {
 	}
 }
 
-func (a *App) lockSnapshot() {
-	a.mu.RLock()
-	a.acquireStripes(allStateStripes[:], false)
-	a.globalGate.RLock()
-}
-func (a *App) unlockSnapshot() {
-	a.globalGate.RUnlock()
-	for i := len(a.transactions) - 1; i >= 0; i-- {
-		a.transactions[i].RUnlock()
-	}
-	a.mu.RUnlock()
-}
-
 // All transactions acquire logical resource stripes before using state.
 // The lifecycle lock excludes initialize. The global gate is acquired after
 // stripes, so global updates wait only for executing operations, not queues.
@@ -88,8 +75,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 		return a.mu.Unlock
 	}
 	if r.Method == "GET" {
-		a.lockSnapshot()
-		return a.unlockSnapshot
+		return a.lockReadRequest(r)
 	}
 	for {
 		a.mu.RLock()
