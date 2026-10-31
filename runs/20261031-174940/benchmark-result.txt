@@ -1,0 +1,74 @@
+time=2026-10-31T08:50:22.583Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T08:50:25.037Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T08:50:28.036Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T08:50:31.115Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T08:50:34.039Z level=INFO msg="europe 2 日目: 21 人"
+time=2026-10-31T08:50:34.356Z level=INFO msg="user moved" user=neivyho-5300 from=asia to=europe
+time=2026-10-31T08:50:37.035Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T08:50:40.189Z level=INFO msg="asia 3 日目: 153 人"
+time=2026-10-31T08:50:43.044Z level=INFO msg="europe 3 日目: 64 人"
+time=2026-10-31T08:50:43.092Z level=INFO msg="user moved" user=tetemax-5914 from=asia to=europe
+time=2026-10-31T08:50:43.306Z level=INFO msg="user moved" user=maxka.5864 from=asia to=america
+time=2026-10-31T08:50:44.658Z level=INFO msg="user moved" user=moanme_6239 from=asia to=europe
+time=2026-10-31T08:50:44.830Z level=INFO msg="user moved" user=moroleo-6081 from=asia to=america
+time=2026-10-31T08:50:44.834Z level=INFO msg="user moved" user=maxka.5864 from=america to=asia
+time=2026-10-31T08:50:45.274Z level=INFO msg="user moved" user=yoorsa-6088 from=asia to=europe
+time=2026-10-31T08:50:45.313Z level=INFO msg="user moved" user=kimesu-6128 from=europe to=asia
+time=2026-10-31T08:50:45.808Z level=INFO msg="user moved" user=neivyho-5300 from=europe to=america
+time=2026-10-31T08:50:46.043Z level=INFO msg="america 3 日目: 52 人"
+time=2026-10-31T08:50:46.223Z level=INFO msg="user moved" user=noratsu-6141 from=asia to=america
+time=2026-10-31T08:50:47.492Z level=INFO msg="user moved" user=kunoor-6472 from=europe to=america
+time=2026-10-31T08:50:49.240Z level=INFO msg="asia 4 日目: 445 人"
+time=2026-10-31T08:50:50.961Z level=INFO msg="user moved" user=maxka.5864 from=asia to=america
+time=2026-10-31T08:50:52.072Z level=INFO msg="europe 4 日目: 179 人"
+time=2026-10-31T08:50:52.106Z level=INFO msg="user moved" user=kimesu-6128 from=asia to=europe
+time=2026-10-31T08:50:52.421Z level=INFO msg="user moved" user=ankano7129 from=asia to=europe
+time=2026-10-31T08:50:54.068Z level=INFO msg="user moved" user=shieva6720 from=america to=europe
+time=2026-10-31T08:50:54.776Z level=INFO msg="user moved" user=sashilia_8009 from=asia to=europe
+time=2026-10-31T08:50:54.782Z level=INFO msg="user moved" user=reriro.7604 from=asia to=europe
+time=2026-10-31T08:50:55.081Z level=INFO msg="user moved" user=hiul.7065 from=asia to=america
+time=2026-10-31T08:50:55.082Z level=INFO msg="america 4 日目: 148 人"
+time=2026-10-31T08:50:55.373Z level=INFO msg="user moved" user=wanise8951 from=asia to=america
+time=2026-10-31T08:50:55.400Z level=INFO msg="user moved" user=mosaka-7725 from=asia to=europe
+time=2026-10-31T08:50:55.737Z level=INFO msg="user moved" user=moanme_6239 from=europe to=asia
+time=2026-10-31T08:50:56.335Z level=INFO msg="user moved" user=muanko_7528 from=asia to=america
+time=2026-10-31T08:50:56.657Z level=INFO msg="user moved" user=ornoleo7922 from=asia to=europe
+time=2026-10-31T08:50:57.333Z level=INFO msg="user moved" user=neivyho-5300 from=america to=europe
+time=2026-10-31T08:50:57.682Z level=INFO msg="user moved" user=issuto9100 from=europe to=america
+time=2026-10-31T08:50:57.723Z level=INFO msg="user moved" user=kunoor-6472 from=america to=asia
+time=2026-10-31T08:50:58.056Z level=INFO msg="user moved" user=ulmo.8955 from=asia to=america
+time=2026-10-31T08:50:58.208Z level=INFO msg="user moved" user=yoorsa-6088 from=europe to=america
+time=2026-10-31T08:50:58.314Z level=INFO msg="asia 5 日目: 1225 人"
+time=2026-10-31T08:50:59.150Z level=INFO msg="user moved" user=tetemax-5914 from=europe to=america
+time=2026-10-31T08:51:01.350Z level=INFO msg="europe 5 日目: 503 人"
+time=2026-10-31T08:51:04.277Z level=INFO msg="america 5 日目: 353 人"
+time=2026-10-31T08:51:13.159Z level=INFO msg="america 最終日（グランプリ）: 353 人"
+time=2026-10-31T08:51:13.161Z level=INFO msg="europe 最終日（グランプリ）: 502 人"
+time=2026-10-31T08:51:13.425Z level=INFO msg="asia 最終日（グランプリ）: 1224 人"
+time=2026-10-31T08:51:22.050Z level=INFO msg="グランプリ: アジア 966 人, ヨーロッパ 415 人, アメリカ 283 人"
+{
+  "pass": true,
+  "score": 464395,
+  "messages": [
+    "youlhi_5086: 通知を購読できません: GET /api/notifications: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "teso_13491: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sovinni.10649: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sunaro-11115: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "rosa_13490: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "keormo_17833: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "noakudan18053: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "koeva18368: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "torel17170: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "meho-12812: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sunike.16465: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "maxru18571: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "solulshi17688: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "resomi-15106: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "elnore18131: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "teme_18785: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "shiisshi-18099: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "fumia.12166: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "memiha-17905: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "rutor.18668: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
