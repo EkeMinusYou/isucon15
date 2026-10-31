@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -94,15 +93,8 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	registered := requireCall(t, a, "POST", "/api/auth/register", "", object{"username": "master_editor", "displayName": "before", "region": "europe"}, 201)
 	user := registered["user"].(map[string]any)
 	uid := user["id"].(string)
-	ip := ""
-	for n := 1; ; n++ {
-		ip = fmt.Sprintf("192.0.2.%d", n)
-		index := stateHash("ip:"+ip) % stateShardCount
-		if index != stateHash("name:master_editor")%stateShardCount && index != stateHash("user:"+uid)%stateShardCount {
-			break
-		}
-	}
-	ipLock := &a.transactions[stateHash("ip:"+ip)%stateShardCount]
+	ip := "192.0.2.1"
+	ipLock := testResource(t, a, "ip:"+ip)
 	ipLock.Lock()
 	ipHeld := true
 	defer func() {

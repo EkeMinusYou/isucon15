@@ -20,6 +20,57 @@ type concurrentRequest struct {
 	body                             []byte
 }
 
+func testResource(t *testing.T, a *App, key string) *transactionEntry {
+	t.Helper()
+	uses := a.transactions.reference([]string{key}, false)
+	t.Cleanup(func() { a.transactions.unreference(uses) })
+	return uses[0].entry
+}
+
+func TestUnrelatedUsersDoNotShareTransactionLock(t *testing.T) {
+	a := fixtureApp(t)
+	first := id()
+	second := id()
+	for second == first || stateHash("user:"+second)%stateShardCount != stateHash("user:"+first)%stateShardCount {
+		second = id()
+	}
+	request := func(user string) *http.Request {
+		a.s.Sessions.Set(user, user)
+		r := httptest.NewRequest("PATCH", "/api/me", nil)
+		r.Header.Set("Authorization", "Bearer "+user)
+		return r
+	}
+	firstRequest, secondRequest := request(first), request(second)
+	unlock := a.lockRequest(firstRequest)
+	held := true
+	defer func() {
+		if held {
+			unlock()
+		}
+	}()
+	done := make(chan struct{})
+	go func() {
+		release := a.lockRequest(secondRequest)
+		release()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		unlock()
+		held = false
+		<-done
+		t.Fatal("unrelated users shared a transaction lock")
+	}
+	unlock()
+	held = false
+	a.transactions.mu.Lock()
+	defer a.transactions.mu.Unlock()
+	if len(a.transactions.entries) != 0 {
+		t.Fatal("finished requests retained resource locks")
+	}
+}
+
 func runTogether(a *App, requests []concurrentRequest) []*httptest.ResponseRecorder {
 	results := make([]*httptest.ResponseRecorder, len(requests))
 	start := make(chan struct{})
@@ -161,18 +212,7 @@ func TestLoginLocksFollowRequestDecoder(t *testing.T) {
 func TestIndependentRelationshipsShareTarget(t *testing.T) {
 	a := fixtureApp(t)
 	target := idInRegion("asia")
-	actors := make([]string, 0, 2)
-	used := map[uint64]bool{stateHash("user:"+target) % stateShardCount: true}
-	for len(actors) < 2 {
-		actor := idInRegion("asia")
-		userSlot := stateHash("user:"+actor) % stateShardCount
-		pairSlot := stateHash("relation:"+pair(actor, target)) % stateShardCount
-		if userSlot == pairSlot || used[userSlot] || used[pairSlot] {
-			continue
-		}
-		actors = append(actors, actor)
-		used[userSlot], used[pairSlot] = true, true
-	}
+	actors := []string{idInRegion("asia"), idInRegion("asia")}
 	request := func(actor string) *http.Request {
 		a.s.Sessions.Set(actor, actor)
 		r := httptest.NewRequest("PUT", "/api/follows/"+target, nil)
@@ -264,7 +304,7 @@ func TestPostingWindowDoesNotDrainQueuedUpdates(t *testing.T) {
 	a := fixtureApp(t)
 	uid, token := register(t, a, "queued_update")
 	admin := openWindow(t, a, "2026-11-01")
-	stripe := &a.transactions[stateHash("user:"+uid)%stateShardCount]
+	stripe := testResource(t, a, "user:"+uid)
 	stripe.Lock()
 	held := true
 	defer func() {
@@ -309,43 +349,39 @@ func TestPostingWindowDoesNotDrainQueuedUpdates(t *testing.T) {
 	}
 }
 
-func TestWaitingForOneStripeReleasesOtherStripes(t *testing.T) {
+func TestWaitingForOneResourceReleasesOtherResources(t *testing.T) {
 	for _, exclusive := range []bool{false, true} {
 		t.Run(fmt.Sprintf("exclusive=%v", exclusive), func(t *testing.T) {
 			a := &App{appCore: &appCore{}}
-			a.transactions[1].Lock()
+			uses := a.transactions.reference([]string{"test:0", "test:1"}, false)
+			defer a.transactions.unreference(uses)
+			for i := range uses {
+				uses[i].write = exclusive
+			}
+			uses[1].entry.Lock()
 			acquired, release, finished := make(chan struct{}), make(chan struct{}), make(chan struct{})
 			go func() {
-				var writes *[stateShardCount]bool
-				if exclusive {
-					writes = new([stateShardCount]bool)
-					writes[0], writes[1] = true, true
-				}
-				a.acquireStripeModes([]int{0, 1}, writes)
+				a.acquireResources(uses)
 				close(acquired)
 				<-release
-				if exclusive {
-					a.transactions[1].Unlock()
-					a.transactions[0].Unlock()
-				} else {
-					a.transactions[1].RUnlock()
-					a.transactions[0].RUnlock()
+				for _, use := range uses {
+					use.unlock()
 				}
 				close(finished)
 			}()
 			deadline := time.Now().Add(time.Second)
-			for a.stripeRetries.Load() == 0 && time.Now().Before(deadline) {
+			for a.lockRetries.Load() == 0 && time.Now().Before(deadline) {
 				runtime.Gosched()
 			}
-			if a.stripeRetries.Load() == 0 {
-				t.Error("request did not wait for the busy stripe")
+			if a.lockRetries.Load() == 0 {
+				t.Error("request did not wait for the busy resource")
 			}
-			if a.transactions[0].TryLock() {
-				a.transactions[0].Unlock()
+			if uses[0].entry.TryLock() {
+				uses[0].entry.Unlock()
 			} else {
-				t.Error("waiting request retained an unrelated stripe")
+				t.Error("waiting request retained an unrelated resource")
 			}
-			a.transactions[1].Unlock()
+			uses[1].entry.Unlock()
 			<-acquired
 			close(release)
 			<-finished
@@ -355,17 +391,11 @@ func TestWaitingForOneStripeReleasesOtherStripes(t *testing.T) {
 
 func TestInteractionAllowsConcurrentAuthorReads(t *testing.T) {
 	a := fixtureApp(t)
-	owner, ownerToken := register(t, a, "readable_author")
+	_, ownerToken := register(t, a, "readable_author")
 	_, actorToken := register(t, a, "commenting_actor")
 	openWindow(t, a, "2026-11-01")
 	created := upload(t, a, "/api/posts", ownerToken, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
 	post := *a.s.Posts.get(created["id"].(string))
-	// Keep the post stripe distinct so a collision does not intentionally
-	// promote the author's shared lock to exclusive mode.
-	for stateHash("post:"+post.ID)%stateShardCount == stateHash("user:"+owner)%stateShardCount {
-		post.ID = id()
-	}
-	a.s.Posts.set(post.ID, &post)
 	req := httptest.NewRequest("POST", "/api/posts/"+post.ID+"/comments", bytes.NewBufferString(`{"body":"hello"}`))
 	req.Header.Set("Authorization", "Bearer "+actorToken)
 	unlock := a.lockRequest(req)

@@ -6,18 +6,12 @@ import (
 	"time"
 )
 
-func TestResourceReadsDoNotWaitForUnrelatedStripe(t *testing.T) {
+func TestResourceReadsDoNotWaitForUnrelatedResource(t *testing.T) {
 	a := fixtureApp(t)
 	uid, token := register(t, a, "independent_reader")
 	openWindow(t, a, "2026-11-01")
 	post := upload(t, a, "/api/posts", token, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
-	ownerStripe := int(stateHash("user:"+uid) % stateShardCount)
-	postStripe := int(stateHash("post:"+post["id"].(string)) % stateShardCount)
-	blocked := 0
-	for blocked == ownerStripe || blocked == postStripe {
-		blocked++
-	}
-	stripe := &a.transactions[blocked]
+	stripe := testResource(t, a, "user:unrelated")
 	stripe.Lock()
 	held := true
 	defer func() {
@@ -37,7 +31,7 @@ func TestResourceReadsDoNotWaitForUnrelatedStripe(t *testing.T) {
 			stripe.Unlock()
 			held = false
 			<-done
-			t.Fatal(fmt.Sprintf("%s waited for unrelated stripe", path))
+			t.Fatal(fmt.Sprintf("%s waited for unrelated resource", path))
 		}
 	}
 }
