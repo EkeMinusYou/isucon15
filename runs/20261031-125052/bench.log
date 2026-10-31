@@ -1,0 +1,56 @@
+2026-10-31T03:50:56.224368834Z	BENCHMARK_START
+PORTAL_JOB_ID: 9928
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T03:51:33.419Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:51:36.403Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:51:39.149Z level=INFO msg="user moved" user=sokane_5110 from=europe to=america
+time=2026-10-31T03:51:39.401Z level=INFO msg="america 1 日目: 7 人"
+time=2026-10-31T03:51:42.422Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T03:51:45.405Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T03:51:45.656Z level=INFO msg="user moved" user=isho5363 from=asia to=america
+time=2026-10-31T03:51:47.831Z level=INFO msg="user moved" user=isho5363 from=america to=asia
+time=2026-10-31T03:51:48.403Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T03:51:51.434Z level=INFO msg="asia 3 日目: 146 人"
+time=2026-10-31T03:51:51.719Z level=INFO msg="user moved" user=sokane_5110 from=america to=asia
+time=2026-10-31T03:51:51.996Z level=INFO msg="user moved" user=sokane_5110 from=asia to=america
+time=2026-10-31T03:51:52.389Z level=INFO msg="user moved" user=isho5363 from=asia to=america
+time=2026-10-31T03:51:52.629Z level=INFO msg="user moved" user=noaketo_5551 from=asia to=europe
+time=2026-10-31T03:51:53.911Z level=INFO msg="user moved" user=benzoena-5930 from=asia to=europe
+time=2026-10-31T03:51:54.405Z level=INFO msg="europe 3 日目: 53 人"
+time=2026-10-31T03:51:57.402Z level=INFO msg="america 3 日目: 43 人"
+time=2026-10-31T03:51:59.135Z level=INFO msg="user moved" user=yohi-6254 from=europe to=asia
+time=2026-10-31T03:52:00.432Z level=INFO msg="asia 4 日目: 424 人"
+time=2026-10-31T03:52:02.308Z level=INFO msg="user moved" user=yohi-6254 from=asia to=america
+time=2026-10-31T03:52:03.418Z level=INFO msg="europe 4 日目: 133 人"
+time=2026-10-31T03:52:03.772Z level=INFO msg="user moved" user=koro_7076 from=asia to=america
+time=2026-10-31T03:52:05.934Z level=INFO msg="user moved" user=mima.6703 from=asia to=europe
+time=2026-10-31T03:52:06.420Z level=INFO msg="america 4 日目: 106 人"
+time=2026-10-31T03:52:06.528Z level=INFO msg="user moved" user=koro_7076 from=america to=asia
+time=2026-10-31T03:52:06.649Z level=INFO msg="user moved" user=nahako_8169 from=asia to=europe
+time=2026-10-31T03:52:09.473Z level=INFO msg="asia 5 日目: 1147 人"
+time=2026-10-31T03:52:10.110Z level=INFO msg="user moved" user=isho5363 from=america to=asia
+time=2026-10-31T03:52:12.471Z level=INFO msg="europe 5 日目: 187 人"
+time=2026-10-31T03:52:13.406Z level=INFO msg="user moved" user=chiro9295 from=america to=asia
+time=2026-10-31T03:52:15.736Z level=INFO msg="america 5 日目: 117 人"
+time=2026-10-31T03:52:24.929Z level=INFO msg="america 最終日（グランプリ）: 117 人"
+time=2026-10-31T03:52:24.944Z level=INFO msg="europe 最終日（グランプリ）: 187 人"
+time=2026-10-31T03:52:25.197Z level=INFO msg="asia 最終日（グランプリ）: 1148 人"
+time=2026-10-31T03:52:33.532Z level=INFO msg="グランプリ: アジア 1016 人, ヨーロッパ 156 人, アメリカ 88 人"
+{
+  "pass": true,
+  "score": 166316,
+  "messages": [
+    "mima.6703: 投稿できません: POST /api/posts: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "mahonu.7569: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "suchi_12990: 友達申請を承認できません: POST /api/friend-requests/7a5e2fe7-77f3-4ea5-a1d6-de5934665b74/accept: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/friend-requests/7a5e2fe7-77f3-4ea5-a1d6-de5934665b74/accept\": EOF",
+    "kaleo-10688: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF"
+  ]
+}
+SCORE: 166316
+BENCHMARK_PASS
+2026-10-31T03:53:02.218276309Z	BENCHMARK_END
+
+SCORE: 166316
+BENCHMARK_PASS
