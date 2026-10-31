@@ -55,6 +55,8 @@ tasks:
 
   gen-contest-routing:
     desc: 共通生成では扱わない競技固有の配布物を追加する（genのhook、既定は何もしない）
+    cmds:
+      - python3 tools/contest/gen-collectors.py
 
   setup-contest-assets:
     desc: 標準の取得対象外にある競技固有の資材を取得する（setupのhook、既定は何もしない）

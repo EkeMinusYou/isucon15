@@ -78,3 +78,4 @@ __pycache__/
 /webapp/go/isureal
 
 /generated/isureal-transport.key
+/generated/collectors.yaml

@@ -337,6 +337,7 @@ vars:
   # >>> contest values >>>
   # Portal request, auth headers, result fields and completion rules for task bench.
   CONTEST_PORTAL_BENCH_CONFIG: tools/contest/portal-bench.json
+  CONTEST_COLLECTORS_CONFIG: generated/collectors.yaml
   # <<< contest values <<<
 
   RESULT_DIR: runs
