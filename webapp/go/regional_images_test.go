@@ -66,6 +66,36 @@ func TestRegionalImageUsesOriginalAndReauthorizesFallback(t *testing.T) {
 	if err != nil || !bytes.Equal(body, original) || response.ContentLength != int64(len(original)) || response.Header.Get(regionalImagePart) != "" {
 		t.Fatal("regional original differs")
 	}
+	keyFile := filepath.Join(t.TempDir(), "transport-key")
+	if err := os.WriteFile(keyFile, []byte(transportSecret), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("REGION", "europe")
+	t.Setenv("OWNER_URL", server.URL)
+	t.Setenv("TRANSPORT_KEY_FILE", keyFile)
+	t.Setenv("IMAGE_CACHE_DIR", root)
+	oldRegion := fixedRegion
+	t.Cleanup(func() { fixedRegion = oldRegion })
+	handler, edge, err := serviceHandler()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Both hosts share this test process; keep the owner in its own region.
+	fixedRegion = oldRegion
+	proxy := httptest.NewServer(handler)
+	defer proxy.Close()
+	public, err := http.Get(proxy.URL + post["imageUrl"].(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err = io.ReadAll(public.Body)
+	public.Body.Close()
+	if err != nil || public.StatusCode != 200 || !bytes.Equal(body, original) || public.Header.Get(regionalImagePart) != "" {
+		t.Fatal("regional proxy did not preserve the public response")
+	}
+	if edge.regionalImages.local.Load() != 1 || edge.regionalImages.bytes.Load() != uint64(len(original)) {
+		t.Fatal("regional transfer counters differ from the response")
+	}
 	os.Remove(local)
 	response = request(true)
 	if err = serveRegionalImage(response, root, http.DefaultTransport, nil); err != nil {
