@@ -1,0 +1,69 @@
+2026-10-31T06:54:30.982882099Z	BENCHMARK_START
+PORTAL_JOB_ID: 25195
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T06:55:10.521Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:55:13.505Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:55:16.504Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:55:19.525Z level=INFO msg="asia 2 日目: 54 人"
+time=2026-10-31T06:55:22.506Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T06:55:22.888Z level=INFO msg="user moved" user=youl.5400 from=asia to=europe
+time=2026-10-31T06:55:25.504Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T06:55:28.529Z level=INFO msg="asia 3 日目: 161 人"
+time=2026-10-31T06:55:29.564Z level=INFO msg="user moved" user=yono-5739 from=asia to=america
+time=2026-10-31T06:55:31.547Z level=INFO msg="europe 3 日目: 55 人"
+time=2026-10-31T06:55:34.176Z level=INFO msg="user moved" user=yono-5739 from=america to=asia
+time=2026-10-31T06:55:34.505Z level=INFO msg="america 3 日目: 47 人"
+time=2026-10-31T06:55:35.320Z level=INFO msg="user moved" user=youl.5400 from=europe to=asia
+time=2026-10-31T06:55:37.531Z level=INFO msg="asia 4 日目: 474 人"
+time=2026-10-31T06:55:38.869Z level=INFO msg="user moved" user=nekulia_7070 from=asia to=europe
+time=2026-10-31T06:55:39.201Z level=INFO msg="user moved" user=hero_5493 from=europe to=asia
+time=2026-10-31T06:55:39.233Z level=INFO msg="user moved" user=nimo-6952 from=asia to=europe
+time=2026-10-31T06:55:40.621Z level=INFO msg="europe 4 日目: 160 人"
+time=2026-10-31T06:55:40.675Z level=INFO msg="user moved" user=nekulia_7070 from=europe to=asia
+time=2026-10-31T06:55:40.698Z level=INFO msg="user moved" user=nimo-6952 from=europe to=america
+time=2026-10-31T06:55:42.550Z level=INFO msg="user moved" user=ramo_7667 from=asia to=america
+time=2026-10-31T06:55:42.931Z level=INFO msg="user moved" user=youl.5400 from=asia to=europe
+time=2026-10-31T06:55:43.929Z level=INFO msg="america 4 日目: 129 人"
+time=2026-10-31T06:55:44.333Z level=INFO msg="user moved" user=saanho.8323 from=asia to=america
+time=2026-10-31T06:55:45.256Z level=INFO msg="user moved" user=torvinivy8586 from=asia to=america
+time=2026-10-31T06:55:46.775Z level=INFO msg="asia 5 日目: 1281 人"
+time=2026-10-31T06:55:50.891Z level=INFO msg="europe 5 日目: 327 人"
+time=2026-10-31T06:55:53.319Z level=INFO msg="america 5 日目: 131 人"
+time=2026-10-31T06:56:03.495Z level=INFO msg="europe 最終日（グランプリ）: 327 人"
+time=2026-10-31T06:56:03.767Z level=INFO msg="asia 最終日（グランプリ）: 1281 人"
+time=2026-10-31T06:56:03.788Z level=INFO msg="america 最終日（グランプリ）: 131 人"
+time=2026-10-31T06:56:10.665Z level=INFO msg="グランプリ: アジア 665 人, ヨーロッパ 175 人, アメリカ 78 人"
+{
+  "pass": true,
+  "score": 165419,
+  "messages": [
+    "iskuleo5142: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "marmawa-10471: 認定公開アカウントをフォローできません: PUT /api/follows/e6f1f73d-a48e-4a32-9d8c-116a96a6e2c6: 応答がタイムアウトしました",
+    "netoma.12245: 認定公開アカウントをフォローできません: PUT /api/follows/2974fad7-b272-4879-aa6f-6fcf4b36cf80: 応答がタイムアウトしました",
+    "ivyleo-5109: 友達申請を承認できません: POST /api/friend-requests/589bf8e2-7cbc-4a17-be41-44734ce5277c/accept: 応答がタイムアウトしました",
+    "liake.5049: 友達申請を承認できません: POST /api/friend-requests/fcbeeea8-55f4-47c1-bbdb-fcb98547a08d/accept: 応答がタイムアウトしました",
+    "washi5849: 認定公開アカウントをフォローできません: PUT /api/follows/979ef372-ea42-479e-a196-50d7fd830f72: 応答がタイムアウトしました",
+    "ornoa-6367: 投稿 88f427b6-ce4d-48df-a8c9-e87568aaf315 に RealMoji を送れません: POST /api/posts/88f427b6-ce4d-48df-a8c9-e87568aaf315/realmojis: 応答がタイムアウトしました",
+    "hoor-15355: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "nivin.14377: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "hohaeva12908: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "mamo.10173: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "leotorru.11184: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "modan_13014: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "chiheta-14172: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "kesolku-13293: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "kori.12796: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "ormo-12574: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "torul14986: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "mike11733: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "refu_15369: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
+SCORE: 165419
+BENCHMARK_PASS
+2026-10-31T06:56:46.969502845Z	BENCHMARK_END
+
+SCORE: 165419
+BENCHMARK_PASS
