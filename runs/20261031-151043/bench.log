@@ -1,0 +1,63 @@
+2026-10-31T06:10:46.528557427Z	BENCHMARK_START
+PORTAL_JOB_ID: 21193
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T06:10:51.808Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:10:53.666Z level=INFO msg="user moved" user=moyo-5045 from=asia to=europe
+time=2026-10-31T06:10:54.780Z level=INFO msg="europe 1 日目: 8 人"
+time=2026-10-31T06:10:57.780Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:11:00.815Z level=INFO msg="asia 2 日目: 49 人"
+time=2026-10-31T06:11:01.245Z level=INFO msg="user moved" user=sukaka_5180 from=asia to=europe
+time=2026-10-31T06:11:03.070Z level=INFO msg="user moved" user=sukaka_5180 from=europe to=asia
+time=2026-10-31T06:11:03.783Z level=INFO msg="europe 2 日目: 20 人"
+time=2026-10-31T06:11:04.769Z level=INFO msg="user moved" user=ulan-5245 from=asia to=america
+time=2026-10-31T06:11:05.983Z level=INFO msg="user moved" user=marodan_5369 from=asia to=europe
+time=2026-10-31T06:11:06.786Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T06:11:09.823Z level=INFO msg="asia 3 日目: 141 人"
+time=2026-10-31T06:11:11.737Z level=INFO msg="user moved" user=sukaka_5180 from=asia to=europe
+time=2026-10-31T06:11:12.887Z level=INFO msg="europe 3 日目: 57 人"
+time=2026-10-31T06:11:15.949Z level=INFO msg="america 3 日目: 43 人"
+time=2026-10-31T06:11:18.979Z level=INFO msg="asia 4 日目: 396 人"
+time=2026-10-31T06:11:20.987Z level=INFO msg="user moved" user=renasu6592 from=asia to=europe
+time=2026-10-31T06:11:22.099Z level=INFO msg="europe 4 日目: 143 人"
+time=2026-10-31T06:11:25.381Z level=INFO msg="america 4 日目: 87 人"
+time=2026-10-31T06:11:26.863Z level=INFO msg="user moved" user=sukaka_5180 from=europe to=asia
+time=2026-10-31T06:11:28.488Z level=INFO msg="asia 5 日目: 721 人"
+time=2026-10-31T06:11:31.648Z level=INFO msg="europe 5 日目: 142 人"
+time=2026-10-31T06:11:34.744Z level=INFO msg="america 5 日目: 87 人"
+time=2026-10-31T06:11:43.796Z level=INFO msg="europe 最終日（グランプリ）: 142 人"
+time=2026-10-31T06:11:45.640Z level=INFO msg="asia 最終日（グランプリ）: 720 人"
+time=2026-10-31T06:11:46.244Z level=INFO msg="america 最終日（グランプリ）: 87 人"
+time=2026-10-31T06:11:51.728Z level=INFO msg="グランプリ: アジア 197 人, ヨーロッパ 64 人, アメリカ 27 人"
+{
+  "pass": true,
+  "score": 72835,
+  "messages": [
+    "hugo_leroy_4540: ログアウトできません: POST /api/auth/logout: ステータスコード 502 が返りました（期待値 204、unknown）",
+    "chior_6764: 投稿 d995cbc0-d07d-4bde-95b0-49a5d603f245 に RealMoji を送れません: POST /api/posts/d995cbc0-d07d-4bde-95b0-49a5d603f245/realmojis: 応答がタイムアウトしました",
+    "miani_7530: 投稿 d995cbc0-d07d-4bde-95b0-49a5d603f245 にコメントできません: POST /api/posts/d995cbc0-d07d-4bde-95b0-49a5d603f245/comments: 応答がタイムアウトしました",
+    "hemax5826: 投稿 d995cbc0-d07d-4bde-95b0-49a5d603f245 に RealMoji を送れません: POST /api/posts/d995cbc0-d07d-4bde-95b0-49a5d603f245/realmojis: 応答がタイムアウトしました",
+    "kimior_8321: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "fumo7594: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "sekiyu-5360: 投稿 d995cbc0-d07d-4bde-95b0-49a5d603f245 にコメントできません: POST /api/posts/d995cbc0-d07d-4bde-95b0-49a5d603f245/comments: 応答がタイムアウトしました",
+    "hekeben_7943: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "yaku_7977: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "fumax.8947: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "rumo8785: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "maxdan_7806: 認定公開アカウントをフォローできません: PUT /api/follows/54961844-fec6-4627-ab23-4a6ad73395ac: 応答がタイムアウトしました",
+    "yamosu-7108: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "zoeevaivy-8434: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "elhiko_8313: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "mihe9685: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "eltara.6808: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "walia-5517: 友達申請を承認できません: POST /api/friend-requests/091a79f8-c0af-411a-824c-ca0d738e10bf/accept: 応答がタイムアウトしました",
+    "rato_7910: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "zoetsu.10169: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました"
+  ]
+}
+SCORE: 72835
+BENCHMARK_PASS
+2026-10-31T06:12:12.301900333Z	BENCHMARK_END
+
+SCORE: 72835
+BENCHMARK_PASS
