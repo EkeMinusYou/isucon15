@@ -77,12 +77,16 @@ func serviceHandler() (http.Handler, *App, error) {
 			return nil, nil, e
 		}
 		if masterDir := os.Getenv("MASTER_STATE_DIR"); masterDir != "" {
+			a.mastersEnabled = true
+			if err := a.loadInitial(); err != nil {
+				return nil, nil, err
+			}
 			files, err := newRegionalUploads(a.durable)
 			if err != nil {
 				return nil, nil, err
 			}
 			files.region = region
-			master, err := newRegionalMaster(a.initial, masterDir, filepath.Join(a.initial, "images"), region, files)
+			master, err := openRegionalMaster(a.initial, masterDir, filepath.Join(a.initial, "images"), region, files, a.initialState)
 			if err != nil {
 				return nil, nil, err
 			}

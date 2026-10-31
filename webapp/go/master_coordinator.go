@@ -194,14 +194,19 @@ func (a *App) enableRegionalMasters(master *regionalMaster) error {
 	if a.journal != nil {
 		a.journal.Close()
 	}
-	if a.s != nil {
-		a.s.closeHistory()
-	}
-	a.s = nil
-	a.appCore.s = nil
-	runtime.GC()
-	if err := a.loadInitial(); err != nil {
-		return err
+	if a.initialState == nil {
+		if a.s != nil {
+			a.s.closeHistory()
+		}
+		a.s = nil
+		a.appCore.s = nil
+		runtime.GC()
+		if err := a.loadInitial(); err != nil {
+			return err
+		}
+	} else {
+		a.s = a.initialState.fork()
+		a.appCore.s = a.s
 	}
 	if err := a.ensureMasterEpoch(a.masterEpoch); err != nil {
 		return err

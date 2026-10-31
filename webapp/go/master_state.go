@@ -34,6 +34,7 @@ type regionalMaster struct {
 	files              *regionalUploads
 	s                  *State
 	initialState       *State
+	sharedInitial      bool
 	homes              *masterHomes
 	journal            *os.File
 	seen               map[string]bool
@@ -47,18 +48,23 @@ type regionalMaster struct {
 	localMetrics       [3]requestMetrics
 }
 
-func loadMasterInitial(initial, region, backingDir string) (*State, *masterHomes, error) {
-	s := emptyState()
+func loadMasterInitial(initial, region, backingDir string, base *State) (*State, *masterHomes, error) {
+	s := base
+	if s == nil {
+		s = emptyState()
+	}
 	homes := &masterHomes{users: map[string]string{}, names: map[string]string{}, images: map[[16]byte]uint8{}, posts: map[[16]byte]uint8{}}
 	complete := false
 	defer func() {
-		if !complete {
+		if !complete && base == nil {
 			s.closeHistory()
 		}
 	}()
-	for _, setBacking := range []func(string) error{s.Posts.useFileBacking, s.Reactions.useFileBacking, s.Images.useFileBacking} {
-		if err := setBacking(backingDir); err != nil {
-			return nil, nil, err
+	if base == nil {
+		for _, setBacking := range []func(string) error{s.Posts.useFileBacking, s.Reactions.useFileBacking, s.Images.useFileBacking} {
+			if err := setBacking(backingDir); err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 	if err := loadLines(filepath.Join(initial, "accounts.jsonl.gz"), func(b []byte) error {
@@ -74,17 +80,22 @@ func loadMasterInitial(initial, region, backingDir string) (*State, *masterHomes
 		}
 		homes.users[v.ID] = v.HomeRegion
 		homes.names[v.Username] = v.HomeRegion
-		if v.HomeRegion == region {
+		if base == nil && v.HomeRegion == region {
 			return s.apply("account", b)
 		}
 		return nil
 	}); err != nil {
 		return nil, nil, err
 	}
-	if err := loadLines(filepath.Join(initial, "posting-windows.jsonl.gz"), func(b []byte) error { return s.apply("window", b) }); err != nil {
-		return nil, nil, err
+	if base == nil {
+		if err := loadLines(filepath.Join(initial, "posting-windows.jsonl.gz"), func(b []byte) error { return s.apply("window", b) }); err != nil {
+			return nil, nil, err
+		}
 	}
 	for _, spec := range []struct{ pattern, kind string }{{"images/index.part-*.jsonl.gz", "image"}, {"posts.jsonl.gz", "post"}, {"realmojis.part-*.jsonl.gz", "reaction"}} {
+		if base != nil && spec.kind == "reaction" {
+			continue
+		}
 		paths, err := filepath.Glob(filepath.Join(initial, spec.pattern))
 		if err != nil || len(paths) == 0 {
 			return nil, nil, fmt.Errorf("master initial input missing: %s", spec.pattern)
@@ -101,7 +112,7 @@ func loadMasterInitial(initial, region, backingDir string) (*State, *masterHomes
 					if key, ok := uuidKey(v.ID); ok {
 						homes.images[key] = masterRegionCode(home)
 					}
-					if home == region {
+					if base == nil && home == region {
 						return s.Images.add(v.ID, b, &v)
 					}
 				case "post":
@@ -113,7 +124,7 @@ func loadMasterInitial(initial, region, backingDir string) (*State, *masterHomes
 					if key, ok := uuidKey(v.ID); ok {
 						homes.posts[key] = masterRegionCode(home)
 					}
-					if home == region {
+					if base == nil && home == region {
 						if err := s.Posts.add(v.ID, b, &v); err != nil {
 							return err
 						}
@@ -142,12 +153,20 @@ func loadMasterInitial(initial, region, backingDir string) (*State, *masterHomes
 			}
 		}
 	}
-	s.finishPostPeriods()
+	if base == nil {
+		s.finishPostPeriods()
+	}
 	complete = true
 	return s, homes, nil
 }
 
 func newRegionalMaster(initial, durable, imageRoot, region string, files *regionalUploads) (*regionalMaster, error) {
+	return openRegionalMaster(initial, durable, imageRoot, region, files, nil)
+}
+
+// A colocated coordinator and master can share immutable input and keep their
+// live overlays independent. Only the coordinator owns that base's lifetime.
+func openRegionalMaster(initial, durable, imageRoot, region string, files *regionalUploads, base *State) (*regionalMaster, error) {
 	files.region = region
 	if files.active == nil {
 		files.active = map[string]bool{}
@@ -160,21 +179,25 @@ func newRegionalMaster(initial, durable, imageRoot, region string, files *region
 	if err := os.MkdirAll(durable, 0700); err != nil {
 		return nil, err
 	}
-	s, homes, err := loadMasterInitial(initial, region, durable)
+	s, homes, err := loadMasterInitial(initial, region, durable, base)
 	if err != nil {
 		return nil, err
 	}
-	m := &regionalMaster{region: region, durable: durable, imageRoot: imageRoot, files: files, s: s.fork(), initialState: s, homes: homes, seen: map[string]bool{}, signer: &App{appCore: &appCore{failures: new(shardedMap[string, []time.Time]), signatures: map[string]string{}}}, nameCache: new(shardedMap[string, string])}
+	m := &regionalMaster{region: region, durable: durable, imageRoot: imageRoot, files: files, s: s.fork(), initialState: s, sharedInitial: base != nil, homes: homes, seen: map[string]bool{}, signer: &App{appCore: &appCore{failures: new(shardedMap[string, []time.Time]), signatures: map[string]string{}}}, nameCache: new(shardedMap[string, string])}
 	m.stager = &App{appCore: &appCore{durable: filepath.Join(files.root, "pending")}}
 	if b, readErr := os.ReadFile(filepath.Join(durable, "epoch")); readErr == nil {
 		m.epoch = strings.TrimSpace(string(b))
 	} else if !os.IsNotExist(readErr) {
-		s.closeHistory()
+		if base == nil {
+			s.closeHistory()
+		}
 		return nil, readErr
 	}
 	m.journal, err = os.OpenFile(filepath.Join(durable, "master.jsonl"), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
 	if err != nil {
-		s.closeHistory()
+		if base == nil {
+			s.closeHistory()
+		}
 		return nil, err
 	}
 	scan := bufio.NewScanner(m.journal)
@@ -218,7 +241,7 @@ func (m *regionalMaster) close() {
 	if m.journal != nil {
 		m.journal.Close()
 	}
-	if m.initialState != nil {
+	if m.initialState != nil && !m.sharedInitial {
 		m.initialState.closeHistory()
 	}
 }

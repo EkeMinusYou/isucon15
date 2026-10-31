@@ -25,7 +25,8 @@ func ownedLocalRequest(r *http.Request) bool {
 
 func (m *regionalMaster) loginHome(ctx context.Context, name string) (string, error) {
 	m.mu.RLock()
-	own := m.s.Names.Get(name) != ""
+	user := m.s.Accounts.Get(m.s.Names.Get(name))
+	own := user != nil && user.HomeRegion == m.region
 	cached := m.nameCache.Get(name)
 	m.mu.RUnlock()
 	if own {

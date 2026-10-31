@@ -20,13 +20,26 @@ func masterChange(t *testing.T, kind string, value any) change {
 }
 
 func TestRegionalMasterDurabilityAndEpoch(t *testing.T) {
+	for _, shared := range []bool{false, true} {
+		t.Run(fmt.Sprintf("shared=%t", shared), func(t *testing.T) { testRegionalMasterDurability(t, shared) })
+	}
+}
+
+func testRegionalMasterDurability(t *testing.T, shared bool) {
 	fixture := fixtureApp(t)
 	files, err := newRegionalUploads(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	durable := t.TempDir()
-	m, err := newRegionalMaster(fixture.initial, durable, filepath.Join(fixture.initial, "images"), "asia", files)
+	var base *State
+	if shared {
+		base = fixture.s
+	}
+	open := func() (*regionalMaster, error) {
+		return openRegionalMaster(fixture.initial, durable, filepath.Join(fixture.initial, "images"), "asia", files, base)
+	}
+	m, err := open()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,8 +69,11 @@ func TestRegionalMasterDurabilityAndEpoch(t *testing.T) {
 	if err := m.commit([]masterTransaction{{ID: id(), Source: "asia", Sequence: 1, Changes: []change{masterChange(t, "session", tokenChange{token, uid})}}}); err != nil {
 		t.Fatal(err)
 	}
+	if shared && (m.initialState != base || base.Accounts.Get(uid) != nil) {
+		t.Fatal("master failed to isolate updates from shared initial state")
+	}
 	m.close()
-	m, err = newRegionalMaster(fixture.initial, durable, filepath.Join(fixture.initial, "images"), "asia", files)
+	m, err = open()
 	if err != nil {
 		t.Fatal(err)
 	}
