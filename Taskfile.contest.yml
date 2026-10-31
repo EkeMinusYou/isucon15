@@ -24,3 +24,13 @@ tasks:
 
   check-contest-network:
     desc: 競技固有の内部経路を読み取り確認する（check-networkのhook、既定は何もしない）
+
+  verify-initial-data:
+    desc: 提供初期データの全件参照・画像hash・manifestを検証する
+    cmds:
+      - 'python3 tools/contest/verify-initial-data.py'
+
+  test-bench-analysis:
+    desc: 参加者向け保存ログの日次人数・グランプリ・結果の解析を検証する
+    cmds:
+      - 'python3 tools/contest/test_bench_analysis.py'

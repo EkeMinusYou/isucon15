@@ -1,63 +1,54 @@
--- bench.log のエラー行を意味ビューにする、当日のベンチマーカー書式に依存するschema。
--- 生テキストの取り込みは汎用側（tools/analysis/schema/bench-errors.sql が
--- bench_error_logs へ入れる）が担当し、ここは行の解釈だけを持つ。
---
--- プレースホルダー。setupで当日の出力を見てから、下の5ビューの本体を書き換える。
--- ビュー名と列はdashboard（tools/dashboard/server/bench_errors.go、scores.go）とREADMEの契約なので
--- 変えない。書き換えるまでは、いずれも0行を返す。
--- 書式に依存するテストは tools/dashboard/server/<contest>_test.go へ置き、
--- tools/template/paths.txt の [contest] へ加える。
+-- Participant-visible ISUReal output. Summary messages have no occurrence time.
 create table if not exists bench_error_logs (
     run_id varchar, content varchar, source_artifact varchar
 );
 
--- 1RUNにつき1行のベンチ結果。manifestにscore/passedが無いRUNをdashboardが補う。
+create or replace view isureal_bench_summaries as
+select run_id, source_artifact,
+    try_cast(regexp_extract(content,
+        '(?s)(\{\s*"pass"\s*:\s*(?:true|false),\s*"score".*?\n\})', 1) as json) as result
+from bench_error_logs;
+
 create or replace view bench_results as
-select
-    cast(null as varchar) as run_id,
-    cast(null as bigint) as score,
-    cast(null as boolean) as passed,
+select run_id,
+    try_cast(json_extract_string(result, '$.score') as bigint) as score,
+    try_cast(json_extract_string(result, '$.pass') as boolean) as passed,
     cast(null as bigint) as addition,
     cast(null as bigint) as deduction,
-    cast(null as varchar) as source_artifact
-where false;
+    source_artifact
+from isureal_bench_summaries where result is not null;
 
--- ベンチマーカーが操作別に出す得点。
+-- No route-level score breakdown is exposed in the captured participant output.
 create or replace view bench_score_routes as
-select
-    cast(null as varchar) as run_id,
-    cast(null as varchar) as method,
-    cast(null as varchar) as route,
-    cast(null as bigint) as points,
-    cast(null as varchar) as source_artifact
-where false;
+select cast(null as varchar) as run_id, cast(null as varchar) as method,
+    cast(null as varchar) as route, cast(null as bigint) as points,
+    cast(null as varchar) as source_artifact where false;
 
--- 報告された1エラーにつき1行。発生した全エラーではない場合があるので、
--- time_semantics にその行の時刻の意味を入れる（例: 完了時のまとめなら 'completion_summary'）。
 create or replace view bench_errors as
-select
-    cast(null as varchar) as run_id,
-    cast(null as bigint) as line_number,
+select s.run_id, cast(null as bigint) as line_number,
     cast(null as time) as reported_time,
-    cast(null as bigint) as error_index,
-    cast(null as varchar) as message,
-    cast(null as varchar) as time_semantics,
-    cast(null as varchar) as source_artifact
-where false;
+    cast(e.key as bigint) + 1 as error_index,
+    json_extract_string(e.value, '$') as message,
+    'completion_summary' as time_semantics, s.source_artifact
+from isureal_bench_summaries s,
+    lateral json_each(json_extract(s.result, '$.messages')) e;
 
--- 発生時刻を持つ構造化ログ行だけをここへ入れる。まとめ出力の時刻はここへ入れない。
+create or replace view isureal_bench_lines as
+select run_id, source_artifact,
+    unnest(string_split(content, chr(10))) as line,
+    generate_subscripts(string_split(content, chr(10)), 1)::bigint as line_number,
+    try_cast(regexp_extract(content,
+        '(?m)^([^\t\n]+)\tBENCHMARK_START\s*$', 1) as timestamptz) as benchmark_started_at
+from bench_error_logs;
+
+-- Only explicitly timestamped warning/error log lines have an event time.
 create or replace view bench_warning_events as
-select
-    cast(null as varchar) as run_id,
-    cast(null as timestamptz) as occurred_at
-where false;
+select run_id,
+    try_cast(regexp_extract(line, '^time=([^ ]+)', 1) as timestamptz) as occurred_at
+from isureal_bench_lines
+where regexp_matches(line, '^time=[^ ]+ level=(WARN|ERROR) ');
 
--- 報告時点の累積エラー件数。個々のエラーの発生時刻ではない。
--- elapsed_s は負荷走行開始からの経過秒。
+-- A summary message list is not a cumulative time series of all failures.
 create or replace view bench_error_counts as
-select
-    cast(null as varchar) as run_id,
-    cast(null as bigint) as line_number,
-    cast(null as double) as elapsed_s,
-    cast(null as bigint) as error_count
-where false;
+select cast(null as varchar) as run_id, cast(null as bigint) as line_number,
+    cast(null as double) as elapsed_s, cast(null as bigint) as error_count where false;

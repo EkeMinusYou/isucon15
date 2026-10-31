@@ -21,14 +21,15 @@ vars:
   # 競技ごとに書き換える区画。template-diffはここをbackport候補として扱わない。
   # 区画の外は、次の競技でもそのまま使う既定値である。
   # setup-checkの前に、公式資料と実環境で全項目を確認する。
-  APP_NAME: app
-  SERVICE: app
+  APP_NAME: isureal
+  SERVICE: isureal-go
+  SSH_USER: isucon
   LISTEN_PORT: '80'
   TLS_ADDR: ''
   TLS_CERT_FILE: ''
   TLS_KEY_FILE: ''
   HTTP2_ENABLED: 'true'
-  STATIC_URL_PREFIX: /static/
+  STATIC_URL_PREFIX: /
   # Optional non-secret service environment; choose runtime values from measurements.
   APP_ENV:
     map: {}
@@ -41,21 +42,18 @@ vars:
   # Files required for initialization; list all files, or use 'none'.
   RESET_INPUTS: ''
   # The Go application implements this endpoint.
-  INITIALIZE_PATH: /initialize
+  INITIALIZE_PATH: /api/initialize
   CONFIG_CHECK_COMMAND: 'go -C {{.APP_DIR}} vet ./...'
   SETUP_SECRET_ALLOWLIST: ''
   # Services whose metrics and journals measurectl collects on every host.
   MANAGED_SERVICES: '{{.SERVICE}}'
   # Public HTTP/TLS and static assets are served by Go.
-  DISABLED_SERVICES: nginx,mysql,mariadb,redis,redis-server,memcached,pdns
+  DISABLED_SERVICES: nginx,mysql,mariadb,redis,redis-server,memcached,pdns,postgresql,postgresql@16-main,isureal-guard
   ACCESS_LOG_PATH: /home/isucon/log/access.log
   # <<< contest values <<<
 
-  SSH_USER: ubuntu
   ISUCON_USER: isucon
   STATIC_DIR: public
-  # Setup-only source checkout, excluded from the design workspace.
-  REFERENCE_DIR: '{{.ROOT_DIR}}-reference'
   REMOTE_HOME: /home/isucon
   STATIC_REMOTE_DIR: '{{.REMOTE_HOME}}/public'
   TLS_REMOTE_DIR: '{{.REMOTE_HOME}}/tls'
@@ -68,16 +66,19 @@ vars:
 
   # >>> contest values >>>
   # Contest topology. Keep host roles and private addresses here only.
-  ALL_HOSTS: isucon-1 isucon-2 isucon-3
+  ALL_HOSTS: asia1 europe1 america1 asia2
   IP:
     map:
-      isucon-1: 172.31.0.126
-      isucon-2: 172.31.7.50
-      isucon-3: 172.31.5.116
-  APP_HOSTS: isucon-1
-  APP_TRAFFIC_HOSTS: isucon-1
-  INGRESS_HOSTS: isucon-1
-  CONF_SRC: isucon-1
+      asia1: 192.168.1.10
+      europe1: 192.168.2.10
+      america1: 192.168.3.10
+      asia2: 192.168.4.10
+  APP_HOSTS: asia1 europe1 america1
+  APP_TRAFFIC_HOSTS: asia1 europe1 america1
+  INGRESS_HOSTS: asia1 europe1 america1
+  CONF_SRC: asia1
+  # Setup-only source checkout, excluded from the design workspace.
+  REFERENCE_DIR: /Users/mineo/Library/Caches/codex/isucon15/reference
   # Additional Go services can declare their roles and deployment variables here.
   DEPLOYCTL_FLAGS: ''
   # Optional additional systemd unit:role pairs.

@@ -70,3 +70,9 @@ __pycache__/
 # Local contract checks may include contest test output.
 /generated/validation/
 **/contract-validation.json
+
+# Large, immutable initial image bytes; indexed and hashed by committed manifests.
+/data/initial/images/*.bin
+/generated/portal-check/
+
+/webapp/go/isureal

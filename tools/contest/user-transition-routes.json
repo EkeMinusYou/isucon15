@@ -1,11 +1,139 @@
 {
-  "_comment": "Placeholder. Set cookie_field to the session column, api_prefix to the API root, and routes to the contest's normalized paths. During bootstrap, set operation_pairs (completion to next start) and operation_intervals (start to end), using method, normalized route, and optional exact statuses (default 2xx).",
-  "cookie_field": "session_id",
-  "api_prefix": "/",
+  "_comment": "Bearer authentication is used; cookie-based user correlation is unavailable. Configure authenticated user correlation in bootstrap without recording tokens.",
+  "cookie_field": "not_used_bearer_auth",
+  "api_prefix": "/api/",
   "routes": [
     {
-      "name": "/initialize",
-      "pattern": "^/initialize$"
+      "name": "/api/initialize",
+      "pattern": "^/api/initialize$"
+    },
+    {
+      "name": "/api/auth/register",
+      "pattern": "^/api/auth/register$"
+    },
+    {
+      "name": "/api/auth/login",
+      "pattern": "^/api/auth/login$"
+    },
+    {
+      "name": "/api/auth/logout",
+      "pattern": "^/api/auth/logout$"
+    },
+    {
+      "name": "/api/users",
+      "pattern": "^/api/users$"
+    },
+    {
+      "name": "/api/users/:userId",
+      "pattern": "^/api/users/[^/]+$"
+    },
+    {
+      "name": "/api/me/export",
+      "pattern": "^/api/me/export$"
+    },
+    {
+      "name": "/api/me",
+      "pattern": "^/api/me$"
+    },
+    {
+      "name": "/api/me/profile-image",
+      "pattern": "^/api/me/profile-image$"
+    },
+    {
+      "name": "/api/me/account-deletion",
+      "pattern": "^/api/me/account-deletion$"
+    },
+    {
+      "name": "/api/posts",
+      "pattern": "^/api/posts$"
+    },
+    {
+      "name": "/api/posting-window/current",
+      "pattern": "^/api/posting-window/current$"
+    },
+    {
+      "name": "/api/posts/me/current",
+      "pattern": "^/api/posts/me/current$"
+    },
+    {
+      "name": "/api/posts/:postId",
+      "pattern": "^/api/posts/[^/]+$"
+    },
+    {
+      "name": "/api/feeds/:feed",
+      "pattern": "^/api/feeds/[^/]+$"
+    },
+    {
+      "name": "/api/memories",
+      "pattern": "^/api/memories$"
+    },
+    {
+      "name": "/api/memories/:date",
+      "pattern": "^/api/memories/[^/]+$"
+    },
+    {
+      "name": "/api/posts/:postId/comments",
+      "pattern": "^/api/posts/[^/]+/comments$"
+    },
+    {
+      "name": "/api/comments/:commentId",
+      "pattern": "^/api/comments/[^/]+$"
+    },
+    {
+      "name": "/api/posts/:postId/realmojis",
+      "pattern": "^/api/posts/[^/]+/realmojis$"
+    },
+    {
+      "name": "/api/realmojis/:realMojiId",
+      "pattern": "^/api/realmojis/[^/]+$"
+    },
+    {
+      "name": "/api/images/:imageId",
+      "pattern": "^/api/images/[^/]+$"
+    },
+    {
+      "name": "/api/notifications",
+      "pattern": "^/api/notifications$"
+    },
+    {
+      "name": "/api/friend-requests",
+      "pattern": "^/api/friend-requests$"
+    },
+    {
+      "name": "/api/friend-requests/:requestId/:action",
+      "pattern": "^/api/friend-requests/[^/]+/[^/]+$"
+    },
+    {
+      "name": "/api/relationships/:kind",
+      "pattern": "^/api/relationships/[^/]+$"
+    },
+    {
+      "name": "/api/friendships/:userId",
+      "pattern": "^/api/friendships/[^/]+$"
+    },
+    {
+      "name": "/api/follows/:userId",
+      "pattern": "^/api/follows/[^/]+$"
+    },
+    {
+      "name": "/api/blocks/:userId",
+      "pattern": "^/api/blocks/[^/]+$"
+    },
+    {
+      "name": "/api/admin/auth/login",
+      "pattern": "^/api/admin/auth/login$"
+    },
+    {
+      "name": "/api/admin/auth/logout",
+      "pattern": "^/api/admin/auth/logout$"
+    },
+    {
+      "name": "/api/admin/users/:userId/certification",
+      "pattern": "^/api/admin/users/[^/]+/certification$"
+    },
+    {
+      "name": "/api/admin/posting-window",
+      "pattern": "^/api/admin/posting-window$"
     }
   ],
   "operation_pairs": [],

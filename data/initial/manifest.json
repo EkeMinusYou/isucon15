@@ -1,0 +1,209 @@
+{
+  "staticFiles": {
+    "isureal-logo.svg": {
+      "bytes": 49512,
+      "sha256": "f00f3c1115979f6a9d4fb83db5f1b8d65598eaff52e9f2aee4674d2589cc7d47"
+    },
+    "index.html": {
+      "bytes": 392,
+      "sha256": "3d06f7d72d2b09adb3744a597b776dd98b8fbc6348420a4e52d10ff6648e0f49"
+    },
+    "assets/index-DRoYlDJr.css": {
+      "bytes": 8572,
+      "sha256": "84d8d5277934301476f15865fb264bbf69a72dfe51d0e764729576fa2037d9e5"
+    },
+    "assets/index-DVx2k2rA.js": {
+      "bytes": 290101,
+      "sha256": "e7f03bef3f20b4348d771b6f886fc62f32c3ba558e471251899dffb1105a7965"
+    }
+  },
+  "formatVersion": 1,
+  "boundary": "2026-10-28T01:36:31.009580Z",
+  "counts": {
+    "accounts": 5000,
+    "administrators": 1,
+    "posting-windows": 1095,
+    "friend-requests": 28970,
+    "friendships": 24985,
+    "follows": 10020,
+    "blocks": 250,
+    "posts": 625111,
+    "realmojis": 1199348,
+    "comments": 546011,
+    "notifications": 1825000,
+    "images": 1826950
+  },
+  "files": {
+    "accounts.jsonl.gz": {
+      "bytes": 612317,
+      "sha256": "8cd55b1247852efdeda07cb401d5d9cc8c1b678321b2341bcbea644cfdea8267"
+    },
+    "administrators.jsonl.gz": {
+      "bytes": 175,
+      "sha256": "ebe2954a5d6d8ce67f3c9fc81c8ef95ff6d1f54fdfd39974481dc0b268cfe406"
+    },
+    "blocks.jsonl.gz": {
+      "bytes": 20243,
+      "sha256": "c99cdedcc317bd57603615ed19b883439d07b2959d75989d5e6e392a0c1d1ae8"
+    },
+    "comments.jsonl.gz": {
+      "bytes": 48481661,
+      "sha256": "f710338b376241b452b412035ff8252f9d99db8b4a3c3a39dcfd178c784b4c4d"
+    },
+    "follows.jsonl.gz": {
+      "bytes": 637160,
+      "sha256": "5f5f956559b69800f7232def7f48eb079f77876107516025721424453e229062"
+    },
+    "friend-requests.jsonl.gz": {
+      "bytes": 2617276,
+      "sha256": "5aede8ba6cd35957c07f67fcfeece9f139f60a72a2c4f066a2b471e697163750"
+    },
+    "friendships.jsonl.gz": {
+      "bytes": 2645195,
+      "sha256": "d6b19fbe4d15a8cff60e73efe69ef83c493b0606e6d80a0ea7c7108b8d67d35c"
+    },
+    "notifications.part-000.jsonl.gz": {
+      "bytes": 16116092,
+      "sha256": "692b3419e5c032c91a8fa86a2499fa566076d660e814a92a84c9608e293ec5ce"
+    },
+    "notifications.part-001.jsonl.gz": {
+      "bytes": 16119645,
+      "sha256": "35f8ab9439e928e94cc9718a81ec7de61453694b9e42102a414fa35baf85c07f"
+    },
+    "notifications.part-002.jsonl.gz": {
+      "bytes": 16120467,
+      "sha256": "3b6802d0982c84656a402d98f6b8848a41347074346ecd0912e40985325f945a"
+    },
+    "notifications.part-003.jsonl.gz": {
+      "bytes": 16115411,
+      "sha256": "1ab4e0623b88f09b43f2a22169e4ef28bce28d8b4f92c9a808673698dca051fc"
+    },
+    "notifications.part-004.jsonl.gz": {
+      "bytes": 16123110,
+      "sha256": "2bc5f481ff08476d34afbc929285461aa03f44386e88908a1d9939713d40762c"
+    },
+    "notifications.part-005.jsonl.gz": {
+      "bytes": 16115816,
+      "sha256": "113991507b9410a9a3dda1273677ab3376432c36712e83f40e4ceeb0041180e9"
+    },
+    "notifications.part-006.jsonl.gz": {
+      "bytes": 16114669,
+      "sha256": "4239e31cd35b6c450075c19f31ad1e1b767cdd80dc87be3292f4030e2025b85d"
+    },
+    "notifications.part-007.jsonl.gz": {
+      "bytes": 4835073,
+      "sha256": "c4b7ec2bd67c8e2a720051473305bb76fe1ebc71ef04827d55553d0516100e2b"
+    },
+    "posting-windows.jsonl.gz": {
+      "bytes": 57219,
+      "sha256": "547001e92f2bd56ec6d0b7024d13a1fc4e6b3e39a9a5fa1efaf45ada5014e9a0"
+    },
+    "posts.jsonl.gz": {
+      "bytes": 78684413,
+      "sha256": "2d851a83e07c58e4c34c8109113451a0e03b872b26ef9460f5dcc82e0eeb1be7"
+    },
+    "realmojis.part-000.jsonl.gz": {
+      "bytes": 26535665,
+      "sha256": "d0c91cbc135dcc24b0e0fd46bcb4a573451b68a7921a7b08df9e85c51d1519f9"
+    },
+    "realmojis.part-001.jsonl.gz": {
+      "bytes": 26533092,
+      "sha256": "7b9bba9d66d249d709d27989b32afff6df73946f8492aa34d82dce97a7fac33d"
+    },
+    "realmojis.part-002.jsonl.gz": {
+      "bytes": 26529329,
+      "sha256": "2873a35b759e5d5886939aedd4b6b11f554bb6c1c4a353bfa2e9581ee23283ed"
+    },
+    "realmojis.part-003.jsonl.gz": {
+      "bytes": 26530223,
+      "sha256": "c78de1aea6b95f09895587a0aa65b945a3067e8890f6c96a242c88d0b5ce6cfa"
+    },
+    "realmojis.part-004.jsonl.gz": {
+      "bytes": 21149644,
+      "sha256": "1653e1f14569813593e4b01ddd54dcd01cd1c26de956e0eba1a615db99f4153e"
+    },
+    "images/manifest.json": {
+      "bytes": 30293,
+      "sha256": "a55911db80e670fa331c1b411945c376ed3c076ef19534752f561efdd96869b3"
+    },
+    "images/index.part-000.jsonl.gz": {
+      "bytes": 25892408,
+      "sha256": "9b273484726029b505fd4dd67dda671208a3d26b3ce99719cba4a9ce6de0d669"
+    },
+    "images/index.part-001.jsonl.gz": {
+      "bytes": 25877463,
+      "sha256": "5c8b06eaebca581cb0ac2806de29d0faf8a72a45cef0adcafd27b0d32e2f955d"
+    },
+    "images/index.part-002.jsonl.gz": {
+      "bytes": 25881011,
+      "sha256": "0414ef2fb05f5c0c50d737dd2388b1d3f0c2024ceeb6eca67bbdfbe9ed49f7b5"
+    },
+    "images/index.part-003.jsonl.gz": {
+      "bytes": 25882905,
+      "sha256": "9226718635c2c770fedeaf924d641b2a6c319ae4fb3dea2615f639ef299e2093"
+    },
+    "images/index.part-004.jsonl.gz": {
+      "bytes": 25884706,
+      "sha256": "87cf5f2dc4f001cd816fe65df44d2377cba5281434cb84f379adc54fdd25f271"
+    },
+    "images/index.part-005.jsonl.gz": {
+      "bytes": 25882096,
+      "sha256": "1db2556131af1b536cb9ab807b1dd4a3725bb1ec60e7e4d56341fd176614b303"
+    },
+    "images/index.part-006.jsonl.gz": {
+      "bytes": 25882484,
+      "sha256": "f79d22c93ccfeb44c1a1414ea0b5ce4c700f557e4e12abba5546b19e145539a5"
+    },
+    "images/index.part-007.jsonl.gz": {
+      "bytes": 7964855,
+      "sha256": "56c06e7b9d0e4d1b65b31fdb81e4a49c19e1d6111b3e0a849b8258eba9a280eb"
+    }
+  },
+  "imageBytes": 13713322751,
+  "validation": {
+    "accountStates": {
+      "active": 4887,
+      "deleted": 113
+    },
+    "accountRegions": {
+      "asia": 4948,
+      "europe": 23,
+      "america": 29
+    },
+    "friendRequestStates": {
+      "accepted": 24985,
+      "pending": 2492,
+      "rejected": 995,
+      "cancelled": 498
+    },
+    "reactionStates": {
+      "current": 1090560,
+      "replaced": 108788
+    },
+    "deletedPosts": 6210,
+    "deletedComments": 16379,
+    "maxActivePostsPerUserDate": 1,
+    "maxDeletedPostsPerUserDate": 1,
+    "initialCurrentWindows": 0,
+    "initialUserSessions": 0,
+    "initialAdminSessions": 0,
+    "initialIPBans": 0,
+    "checked": [
+      "unique record IDs",
+      "account/window/post/relationship references",
+      "friendship request correspondence",
+      "notification time and uniqueness",
+      "image owner references",
+      "all image offsets and SHA-256",
+      "all image part SHA-256",
+      "all metadata file SHA-256"
+    ],
+    "notChecked": [
+      "all JPEG decoding",
+      "all API behavior",
+      "concurrent HTTP operations",
+      "new implementation restart persistence",
+      "new implementation benchmark"
+    ]
+  }
+}
