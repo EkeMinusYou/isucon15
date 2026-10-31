@@ -1,0 +1,51 @@
+time=2026-10-31T03:39:14.953Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:39:17.936Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:39:20.933Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:39:23.955Z level=INFO msg="asia 2 日目: 54 人"
+time=2026-10-31T03:39:26.938Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T03:39:29.934Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T03:39:32.981Z level=INFO msg="asia 3 日目: 162 人"
+time=2026-10-31T03:39:34.439Z level=INFO msg="user moved" user=torruki-5723 from=asia to=america
+time=2026-10-31T03:39:35.653Z level=INFO msg="user moved" user=torruki-5723 from=america to=europe
+time=2026-10-31T03:39:35.982Z level=INFO msg="europe 3 日目: 54 人"
+time=2026-10-31T03:39:38.933Z level=INFO msg="america 3 日目: 46 人"
+time=2026-10-31T03:39:41.970Z level=INFO msg="asia 4 日目: 479 人"
+time=2026-10-31T03:39:45.089Z level=INFO msg="europe 4 日目: 136 人"
+time=2026-10-31T03:39:45.928Z level=INFO msg="user moved" user=rimuhe.7570 from=asia to=europe
+time=2026-10-31T03:39:46.923Z level=INFO msg="user moved" user=koshi7949 from=asia to=america
+time=2026-10-31T03:39:47.984Z level=INFO msg="america 4 日目: 95 人"
+time=2026-10-31T03:39:48.810Z level=INFO msg="user moved" user=torruki-5723 from=europe to=america
+time=2026-10-31T03:39:49.274Z level=INFO msg="user moved" user=elfuwa_8532 from=asia to=europe
+time=2026-10-31T03:39:51.006Z level=INFO msg="asia 5 日目: 1198 人"
+time=2026-10-31T03:39:54.060Z level=INFO msg="europe 5 日目: 168 人"
+time=2026-10-31T03:39:57.558Z level=INFO msg="america 5 日目: 96 人"
+time=2026-10-31T03:40:06.253Z level=INFO msg="europe 最終日（グランプリ）: 165 人"
+time=2026-10-31T03:40:06.305Z level=INFO msg="asia 最終日（グランプリ）: 1197 人"
+time=2026-10-31T03:40:06.310Z level=INFO msg="america 最終日（グランプリ）: 92 人"
+time=2026-10-31T03:40:15.011Z level=INFO msg="グランプリ: アジア 211 人, ヨーロッパ 18 人, アメリカ 16 人"
+{
+  "pass": true,
+  "score": 124916,
+  "messages": [
+    "ivyse5070: 友達申請を承認できません: POST /api/friend-requests/9be37d04-c3b4-4592-9f59-1fabb92f5929/accept: 応答がタイムアウトしました",
+    "zoesohe_6566: コメント 8437d780-edf8-45f6-840e-22081b7e3f80 を消せません: DELETE /api/comments/8437d780-edf8-45f6-840e-22081b7e3f80: 応答がタイムアウトしました",
+    "jihun_park_57: 友達申請を承認できません: POST /api/friend-requests/b1a2c986-8dde-491f-a46b-c37eba062fd4/accept: 応答がタイムアウトしました",
+    "sako-7279: 投稿 822a8c0f-79c0-4453-a44d-2a1f8aaaec9c にコメントできません: POST /api/posts/822a8c0f-79c0-4453-a44d-2a1f8aaaec9c/comments: 応答がタイムアウトしました",
+    "yoki.6911: 認定公開アカウントをフォローできません: PUT /api/follows/580a00d9-2995-4759-a01d-c7d843f37c63: 応答がタイムアウトしました",
+    "noaeva.9177: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "kerino-5617: 投稿 2c7830ec-7206-4fcd-8616-8f2bcab2a9ad に RealMoji を送れません: POST /api/posts/2c7830ec-7206-4fcd-8616-8f2bcab2a9ad/realmojis: 応答がタイムアウトしました",
+    "leoivyki.7455: 投稿 822a8c0f-79c0-4453-a44d-2a1f8aaaec9c にコメントできません: POST /api/posts/822a8c0f-79c0-4453-a44d-2a1f8aaaec9c/comments: 応答がタイムアウトしました",
+    "nuhika.7585: 投稿 822a8c0f-79c0-4453-a44d-2a1f8aaaec9c にコメントできません: POST /api/posts/822a8c0f-79c0-4453-a44d-2a1f8aaaec9c/comments: 応答がタイムアウトしました",
+    "ruyoko.8461: プロフィールを変えられません: PATCH /api/me: 応答がタイムアウトしました",
+    "taormo5711: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "liaki_5262: 投稿 822a8c0f-79c0-4453-a44d-2a1f8aaaec9c に RealMoji を送れません: POST /api/posts/822a8c0f-79c0-4453-a44d-2a1f8aaaec9c/realmojis: 応答がタイムアウトしました",
+    "yuzoe7145: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "marshiyu_7325: 投稿 822a8c0f-79c0-4453-a44d-2a1f8aaaec9c にコメントできません: POST /api/posts/822a8c0f-79c0-4453-a44d-2a1f8aaaec9c/comments: 応答がタイムアウトしました",
+    "nufu.7741: 投稿 822a8c0f-79c0-4453-a44d-2a1f8aaaec9c にコメントできません: POST /api/posts/822a8c0f-79c0-4453-a44d-2a1f8aaaec9c/comments: 応答がタイムアウトしました",
+    "chimaxta_9213: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hobakbit_sujokgwan_838: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "maxma7127: 投稿 822a8c0f-79c0-4453-a44d-2a1f8aaaec9c に RealMoji を送れません: POST /api/posts/822a8c0f-79c0-4453-a44d-2a1f8aaaec9c/realmojis: 応答がタイムアウトしました",
+    "rerileo.5175: 投稿 822a8c0f-79c0-4453-a44d-2a1f8aaaec9c にコメントできません: POST /api/posts/822a8c0f-79c0-4453-a44d-2a1f8aaaec9c/comments: 応答がタイムアウトしました",
+    "useon_jinjeoeil_2713: ログインできません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
