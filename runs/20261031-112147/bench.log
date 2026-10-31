@@ -1,0 +1,40 @@
+2026-10-31T02:21:50.730659931Z	BENCHMARK_START
+PORTAL_JOB_ID: 3599
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T02:22:25.553Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:22:28.537Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:22:31.535Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:22:34.554Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T02:22:35.397Z level=INFO msg="user moved" user=navin-5125 from=america to=europe
+time=2026-10-31T02:22:36.376Z level=INFO msg="user moved" user=sois_5216 from=asia to=europe
+time=2026-10-31T02:22:37.566Z level=INFO msg="europe 2 日目: 13 人"
+time=2026-10-31T02:22:40.538Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T02:22:41.840Z level=INFO msg="user moved" user=navin-5125 from=europe to=america
+time=2026-10-31T02:22:43.571Z level=INFO msg="asia 3 日目: 137 人"
+time=2026-10-31T02:22:46.731Z level=INFO msg="europe 3 日目: 29 人"
+time=2026-10-31T02:22:49.856Z level=INFO msg="america 3 日目: 36 人"
+time=2026-10-31T02:22:52.294Z level=INFO msg="user moved" user=shisu_5785 from=asia to=america
+time=2026-10-31T02:22:52.664Z level=INFO msg="asia 4 日目: 304 人"
+time=2026-10-31T02:22:56.257Z level=INFO msg="europe 4 日目: 29 人"
+time=2026-10-31T02:22:56.583Z level=INFO msg="user moved" user=sois_5216 from=europe to=america
+time=2026-10-31T02:22:59.278Z level=INFO msg="america 4 日目: 38 人"
+time=2026-10-31T02:23:02.161Z level=INFO msg="asia 5 日目: 304 人"
+time=2026-10-31T02:23:05.791Z level=INFO msg="europe 5 日目: 28 人"
+time=2026-10-31T02:23:08.517Z level=INFO msg="america 5 日目: 38 人"
+time=2026-10-31T02:23:16.755Z level=INFO msg="asia 最終日（グランプリ）: 303 人"
+time=2026-10-31T02:23:16.756Z level=INFO msg="europe 最終日（グランプリ）: 28 人"
+time=2026-10-31T02:23:16.757Z level=INFO msg="america 最終日（グランプリ）: 38 人"
+time=2026-10-31T02:23:25.542Z level=INFO msg="グランプリ: アジア 297 人, ヨーロッパ 25 人, アメリカ 34 人"
+{
+  "pass": true,
+  "score": 50862,
+  "messages": []
+}
+SCORE: 50862
+BENCHMARK_PASS
+2026-10-31T02:23:46.708457548Z	BENCHMARK_END
+
+SCORE: 50862
+BENCHMARK_PASS
