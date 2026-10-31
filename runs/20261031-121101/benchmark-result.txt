@@ -1,0 +1,42 @@
+time=2026-10-31T03:11:40.501Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:11:41.014Z level=INFO msg="user moved" user=hinemo5045 from=asia to=europe
+time=2026-10-31T03:11:43.487Z level=INFO msg="europe 1 日目: 8 人"
+time=2026-10-31T03:11:46.482Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:11:49.508Z level=INFO msg="asia 2 日目: 53 人"
+time=2026-10-31T03:11:52.486Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T03:11:55.483Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T03:11:58.522Z level=INFO msg="asia 3 日目: 159 人"
+time=2026-10-31T03:11:59.156Z level=INFO msg="user moved" user=toku-5510 from=america to=europe
+time=2026-10-31T03:12:00.877Z level=INFO msg="user moved" user=shiel_5876 from=asia to=europe
+time=2026-10-31T03:12:01.514Z level=INFO msg="europe 3 日目: 50 人"
+time=2026-10-31T03:12:04.484Z level=INFO msg="america 3 日目: 44 人"
+time=2026-10-31T03:12:05.009Z level=INFO msg="user moved" user=toku-5510 from=europe to=asia
+time=2026-10-31T03:12:07.518Z level=INFO msg="asia 4 日目: 469 人"
+time=2026-10-31T03:12:08.074Z level=INFO msg="user moved" user=hinemo5045 from=europe to=america
+time=2026-10-31T03:12:09.651Z level=INFO msg="user moved" user=toku-5510 from=asia to=europe
+time=2026-10-31T03:12:10.814Z level=INFO msg="europe 4 日目: 117 人"
+time=2026-10-31T03:12:11.737Z level=INFO msg="user moved" user=benka.7335 from=asia to=america
+time=2026-10-31T03:12:13.321Z level=INFO msg="user moved" user=torra-7473 from=asia to=america
+time=2026-10-31T03:12:13.769Z level=INFO msg="america 4 日目: 96 人"
+time=2026-10-31T03:12:14.147Z level=INFO msg="user moved" user=fuulni.8815 from=asia to=europe
+time=2026-10-31T03:12:14.805Z level=INFO msg="user moved" user=toya8480 from=asia to=america
+time=2026-10-31T03:12:16.678Z level=INFO msg="asia 5 日目: 1168 人"
+time=2026-10-31T03:12:20.457Z level=INFO msg="europe 5 日目: 118 人"
+time=2026-10-31T03:12:21.410Z level=INFO msg="user moved" user=shiel_5876 from=europe to=asia
+time=2026-10-31T03:12:22.849Z level=INFO msg="america 5 日目: 97 人"
+time=2026-10-31T03:12:32.823Z level=INFO msg="europe 最終日（グランプリ）: 117 人"
+time=2026-10-31T03:12:32.853Z level=INFO msg="asia 最終日（グランプリ）: 1169 人"
+time=2026-10-31T03:12:32.854Z level=INFO msg="america 最終日（グランプリ）: 97 人"
+time=2026-10-31T03:12:40.583Z level=INFO msg="グランプリ: アジア 630 人, ヨーロッパ 50 人, アメリカ 36 人"
+{
+  "pass": true,
+  "score": 131253,
+  "messages": [
+    "yuyu7381: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "lianoa10152: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "ratsuul_12160: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "hatsu-10460: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "kamoso9099: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "kone-10801: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
