@@ -1,0 +1,47 @@
+2026-10-31T03:03:54.330734742Z	BENCHMARK_START
+PORTAL_JOB_ID: 6518
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T03:04:29.113Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:04:32.094Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:04:35.095Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:04:38.112Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T03:04:39.305Z level=INFO msg="user moved" user=noakuho.5175 from=asia to=america
+time=2026-10-31T03:04:41.106Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T03:04:41.284Z level=INFO msg="user moved" user=ritsuwa-5339 from=asia to=europe
+time=2026-10-31T03:04:44.095Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T03:04:47.127Z level=INFO msg="asia 3 日目: 144 人"
+time=2026-10-31T03:04:47.669Z level=INFO msg="user moved" user=mewa.5542 from=asia to=america
+time=2026-10-31T03:04:50.128Z level=INFO msg="europe 3 日目: 48 人"
+time=2026-10-31T03:04:50.987Z level=INFO msg="user moved" user=chihise5904 from=asia to=america
+time=2026-10-31T03:04:53.115Z level=INFO msg="america 3 日目: 43 人"
+time=2026-10-31T03:04:53.820Z level=INFO msg="user moved" user=leoku_6173 from=europe to=asia
+time=2026-10-31T03:04:56.122Z level=INFO msg="asia 4 日目: 420 人"
+time=2026-10-31T03:04:59.106Z level=INFO msg="europe 4 日目: 119 人"
+time=2026-10-31T03:04:59.544Z level=INFO msg="user moved" user=noben6687 from=asia to=europe
+time=2026-10-31T03:05:01.763Z level=INFO msg="user moved" user=marraeva-7502 from=asia to=europe
+time=2026-10-31T03:05:02.410Z level=INFO msg="america 4 日目: 85 人"
+time=2026-10-31T03:05:05.266Z level=INFO msg="asia 5 日目: 1040 人"
+time=2026-10-31T03:05:08.629Z level=INFO msg="europe 5 日目: 141 人"
+time=2026-10-31T03:05:11.621Z level=INFO msg="america 5 日目: 85 人"
+time=2026-10-31T03:05:20.701Z level=INFO msg="asia 最終日（グランプリ）: 1039 人"
+time=2026-10-31T03:05:20.704Z level=INFO msg="europe 最終日（グランプリ）: 140 人"
+time=2026-10-31T03:05:20.706Z level=INFO msg="america 最終日（グランプリ）: 84 人"
+time=2026-10-31T03:05:29.193Z level=INFO msg="グランプリ: アジア 236 人, ヨーロッパ 30 人, アメリカ 12 人"
+{
+  "pass": true,
+  "score": 114703,
+  "messages": [
+    "orte-10896: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "muzoeni_13615: 友達申請を送れません: POST /api/friend-requests: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/friend-requests\": EOF",
+    "kito-5679: 友達申請を承認できません: POST /api/friend-requests/fff50f4d-8c15-4620-b37c-38f4f429ec1c/accept: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/friend-requests/fff50f4d-8c15-4620-b37c-38f4f429ec1c/accept\": EOF",
+    "evaivyto.9523: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF"
+  ]
+}
+SCORE: 114703
+BENCHMARK_PASS
+2026-10-31T03:05:55.252046692Z	BENCHMARK_END
+
+SCORE: 114703
+BENCHMARK_PASS
