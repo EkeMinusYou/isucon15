@@ -57,7 +57,7 @@ func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, p
 			a.put("comment", c)
 			output(w, 201, a.comment(&c))
 		} else {
-			_, ok := multipartImage(r, 512)
+			ok := preparedImageValid(r)
 			if r.MultipartForm != nil {
 				defer r.MultipartForm.RemoveAll()
 			}

@@ -11,10 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"isuconapp/internal/jpegvalidate"
-
 	measurement "github.com/EkeMinusYou/isucon-template/tools/measurement/app"
 )
+
+const signatureComputePath = "/api/internal/compute/signatures"
 
 var computeClient = &http.Client{Transport: measurement.NewUpstreamTransport(), Timeout: 3 * time.Second}
 var nativeSignatureBatch func([]signatureJob) ([]string, bool)
@@ -32,7 +32,6 @@ type signatureJob struct {
 // identical to local execution.
 func computeHandler(a *App) http.Handler {
 	slots := make(chan struct{}, 2)
-	jpegSlots := make(chan struct{}, 2)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/healthz" {
 			w.Write([]byte("ok\n"))
@@ -46,27 +45,8 @@ func computeHandler(a *App) http.Handler {
 			failure(w, 405, "method_not_allowed")
 			return
 		}
-		if r.URL.Path == "/api/internal/compute/jpeg" {
-			// Finish receiving the body before reserving a CPU slot. Signature
-			// work has its own limit, so slow uploads cannot block it.
-			data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 32<<20))
-			if err != nil {
-				failure(w, 400, "invalid_image")
-				return
-			}
-			select {
-			case jpegSlots <- struct{}{}:
-			case <-r.Context().Done():
-				return
-			}
-			defer func() { <-jpegSlots }()
-			jpegActive.Add(1)
-			started := time.Now()
-			valid := jpegvalidate.Validate(bytes.NewReader(data)) == nil
-			jpegWorkNS.Add(uint64(time.Since(started)))
-			jpegRequests.Add(1)
-			jpegActive.Add(-1)
-			output(w, 200, valid)
+		if r.URL.Path != signatureComputePath {
+			failure(w, 404, "not_found")
 			return
 		}
 		select {
@@ -76,40 +56,36 @@ func computeHandler(a *App) http.Handler {
 		}
 		defer func() { <-slots }()
 		r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
-		switch r.URL.Path {
-		case "/api/internal/compute/signatures":
-			// Keep the worker stateless; only the owner's resettable cache holds results.
-			var jobs []signatureJob
-			if !decode(r, &jobs) || len(jobs) > 256 {
-				failure(w, 400, "invalid_jobs")
-				return
-			}
-
-			started := time.Now()
-			var results []string
-			ok := false
-			if nativeSignatureBatch != nil && len(jobs) >= 8 {
-				results, ok = nativeSignatureBatch(jobs)
-			}
-			if ok {
-				nativeSignatureJobs.Add(uint64(len(jobs)))
-			} else {
-				results = make([]string, len(jobs))
-				for i, j := range jobs {
-					results[i] = computeImageSignature(j.ID, j.Secret, j.Exp)
-				}
-				scalarSignatureJobs.Add(uint64(len(jobs)))
-			}
-			a.signatureMisses.Add(uint64(len(jobs)))
-			a.signatureNS.Add(uint64(time.Since(started)))
-			output(w, 200, results)
-		default:
-			failure(w, 404, "not_found")
+		// Keep the worker stateless; only the owner's resettable cache holds results.
+		var jobs []signatureJob
+		if !decode(r, &jobs) || len(jobs) > 256 {
+			failure(w, 400, "invalid_jobs")
+			return
 		}
+
+		started := time.Now()
+		var results []string
+		ok := false
+		if nativeSignatureBatch != nil && len(jobs) >= 8 {
+			results, ok = nativeSignatureBatch(jobs)
+		}
+		if ok {
+			nativeSignatureJobs.Add(uint64(len(jobs)))
+		} else {
+			results = make([]string, len(jobs))
+			for i, j := range jobs {
+				results[i] = computeImageSignature(j.ID, j.Secret, j.Exp)
+			}
+			scalarSignatureJobs.Add(uint64(len(jobs)))
+		}
+		a.signatureMisses.Add(uint64(len(jobs)))
+		a.signatureNS.Add(uint64(time.Since(started)))
+		output(w, 200, results)
+
 	})
 }
-func computeRequest(ctx context.Context, path string, body []byte) (*http.Response, error) {
-	url := strings.TrimRight(os.Getenv("COMPUTE_URL"), "/") + "/api/internal/compute/" + path
+func requestSignatures(ctx context.Context, body []byte) (*http.Response, error) {
+	url := strings.TrimRight(os.Getenv("COMPUTE_URL"), "/") + signatureComputePath
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -179,7 +155,7 @@ func prefetchImageSignatures(ctx context.Context, value any) {
 			batch[i] = p.job
 		}
 		b, _ := json.Marshal(batch)
-		resp, err := computeRequest(ctx, "signatures", b)
+		resp, err := requestSignatures(ctx, b)
 		var results []string
 		if err == nil {
 			err = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&results)

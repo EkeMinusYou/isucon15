@@ -55,10 +55,6 @@ func metricRoute(path string) int {
 	}
 }
 func (a *App) snapshot() measurement.Snapshot {
-	entropy := 0
-	if validateJPEGEntropy() {
-		entropy = 1
-	}
 	m := map[string]any{
 		"app_regional_image_local_total":    a.regionalImages.local.Load(),
 		"app_regional_image_fallback_total": a.regionalImages.fallback.Load(),
@@ -74,15 +70,6 @@ func (a *App) snapshot() measurement.Snapshot {
 		"app_upload_stage_ns_total":         a.uploadStageNS.Load(),
 		"app_upload_stage_bytes_total":      a.uploadStageBytes.Load(),
 		"app_history_resident_bytes":        a.historyResidentBytes.Load(),
-		"app_jpeg_entropy_validation":       entropy,
-		"app_jpeg_queue_depth":              jpegQueued.Load(),
-		"app_jpeg_active":                   jpegActive.Load(),
-		"app_jpeg_requests_total":           jpegRequests.Load(),
-		"app_jpeg_cancelled_total":          jpegCancelled.Load(),
-		"app_jpeg_wait_ns_total":            jpegWaitNS.Load(),
-		"app_jpeg_work_ns_total":            jpegWorkNS.Load(),
-		"app_jpeg_remote_requests_total":    jpegRemoteRequests.Load(),
-		"app_jpeg_remote_failures_total":    jpegRemoteFailures.Load(),
 		"app_crypto_arch":                   nativeCryptoArch.Load(),
 		"app_native_sig_jobs_total":         nativeSignatureJobs.Load(),
 		"app_scalar_sig_jobs_total":         scalarSignatureJobs.Load(),

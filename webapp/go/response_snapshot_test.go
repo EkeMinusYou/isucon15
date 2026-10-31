@@ -36,7 +36,10 @@ func TestPostSnapshotSurvivesMutationAndReset(t *testing.T) {
 
 func TestRankingSnapshotOwnsGraph(t *testing.T) {
 	s := emptyState()
-	s.Adj = newShardedMapWith(map[string]map[string]bool{"viewer": {"a": true, "b": true}, "author": {"a": true, "x": true}, "a": {"viewer": true, "b": true}, "x": {"a": true}})
+	s.Adj.Set("viewer", map[string]bool{"a": true, "b": true})
+	s.Adj.Set("author", map[string]bool{"a": true, "x": true})
+	s.Adj.Set("a", map[string]bool{"viewer": true, "b": true})
+	s.Adj.Set("x", map[string]bool{"a": true})
 	r := s.snapshotRanking("viewer")
 	r.capture(s, "author")
 	r.capture(s, "a")

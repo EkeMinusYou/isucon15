@@ -18,17 +18,6 @@ var allStateStripes = func() (indices [stateShardCount]int) {
 
 // Never wait for one resource while retaining locks on unrelated resources.
 // After waking, retain that resource and try the rest without blocking.
-func (a *App) acquireStripes(indices []int, exclusive bool) {
-	var writes *[stateShardCount]bool
-	if exclusive {
-		writes = new([stateShardCount]bool)
-		for _, i := range indices {
-			writes[i] = true
-		}
-	}
-	a.acquireStripeModes(indices, writes)
-}
-
 func (a *App) acquireStripeModes(indices []int, writes *[stateShardCount]bool) {
 	held := -1
 	for {

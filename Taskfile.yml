@@ -38,7 +38,6 @@ vars:
       OWNER_URL: http://192.168.1.10
       COMPUTE_URL: http://192.168.4.10
       NATIVE_CRYPTO_LIB: /home/isucon/webapp/go/libisureal-crypto.so
-      JPEG_VALIDATION: header
       IMAGE_CACHE_DIR: /home/isucon/isureal-regional-images
   TARGET_OS: linux
   TARGET_ARCH: amd64

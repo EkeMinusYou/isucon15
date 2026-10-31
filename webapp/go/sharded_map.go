@@ -31,13 +31,6 @@ func stateHash[K comparable](key K) uint64 {
 	}
 	return h
 }
-func newShardedMapWith[K comparable, V any](values map[K]V) *shardedMap[K, V] {
-	m := new(shardedMap[K, V])
-	for k, v := range values {
-		m.Set(k, v)
-	}
-	return m
-}
 func (m *shardedMap[K, V]) Get(key K) V {
 	b := &m.shards[stateHash(key)%stateShardCount]
 	b.mu.RLock()

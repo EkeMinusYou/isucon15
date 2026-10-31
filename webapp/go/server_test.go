@@ -35,7 +35,7 @@ func TestServerSeparatesTrafficAndMeasurementsAndStops(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	result := make(chan error, 1)
-	go func() { result <- serve(ctx, config, newHandler()) }()
+	go func() { result <- serve(ctx, config, testHealthHandler()) }()
 	t.Cleanup(func() {
 		cancel()
 		select {
@@ -96,7 +96,7 @@ func TestServerSeparatesTrafficAndMeasurementsAndStops(t *testing.T) {
 }
 
 func TestServerRejectsPublicMeasurementListener(t *testing.T) {
-	err := serve(context.Background(), serverConfig{Address: "127.0.0.1:0", MeasurementAddr: "0.0.0.0:6060"}, newHandler())
+	err := serve(context.Background(), serverConfig{Address: "127.0.0.1:0", MeasurementAddr: "0.0.0.0:6060"}, testHealthHandler())
 	if err == nil || !strings.Contains(err.Error(), "loopback") {
 		t.Fatalf("public measurement listener accepted: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestDirectTLSProtocolConfigurationAndPublicConnectionLog(t *testing.T) {
 			config := serverConfig{HTTP2Enabled: tc.enabled, TLSAddress: availableAddress(t), TLSCertFile: certPath, TLSKeyFile: keyPath, MeasurementAddr: availableAddress(t), AccessLog: filepath.Join(root, "access.log")}
 			ctx, cancel := context.WithCancel(context.Background())
 			result := make(chan error, 1)
-			go func() { result <- serve(ctx, config, newHandler()) }()
+			go func() { result <- serve(ctx, config, testHealthHandler()) }()
 			transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, ForceAttemptHTTP2: true}
 			client := &http.Client{Transport: transport, Timeout: time.Second}
 			t.Cleanup(func() {
@@ -188,4 +188,22 @@ func TestDirectTLSProtocolConfigurationAndPublicConnectionLog(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A minimal handler keeps transport tests independent of application state.
+func testHealthHandler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.Header().Set("Allow", "GET, HEAD")
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		if r.Method != http.MethodHead {
+			_, _ = w.Write([]byte("ok\n"))
+		}
+	})
+	return mux
 }

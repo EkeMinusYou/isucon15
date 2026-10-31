@@ -256,7 +256,12 @@ func TestWaitingForOneStripeReleasesOtherStripes(t *testing.T) {
 			a.transactions[1].Lock()
 			acquired, release, finished := make(chan struct{}), make(chan struct{}), make(chan struct{})
 			go func() {
-				a.acquireStripes([]int{0, 1}, exclusive)
+				var writes *[stateShardCount]bool
+				if exclusive {
+					writes = new([stateShardCount]bool)
+					writes[0], writes[1] = true, true
+				}
+				a.acquireStripeModes([]int{0, 1}, writes)
 				close(acquired)
 				<-release
 				if exclusive {

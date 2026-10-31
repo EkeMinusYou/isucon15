@@ -26,7 +26,7 @@ type recordStore[T any] struct {
 }
 
 func newRecordStore[T any]() *recordStore[T] {
-	return &recordStore[T]{live: newShardedMapWith(map[string]*T{}), index: map[[16]byte]recordSpan{}}
+	return &recordStore[T]{live: new(shardedMap[string, *T]), index: map[[16]byte]recordSpan{}}
 }
 func uuidKey(id string) (key [16]byte, ok bool) {
 	if len(id) != 36 || id[8] != '-' || id[13] != '-' || id[18] != '-' || id[23] != '-' {

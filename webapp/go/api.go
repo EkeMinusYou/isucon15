@@ -9,9 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"image/jpeg"
 	"io"
-	"isuconapp/internal/jpegvalidate"
 	"math"
 	"mime/multipart"
 	"net"
@@ -56,41 +54,12 @@ func responseWork(w http.ResponseWriter, work func(http.ResponseWriter)) {
 
 type uploadKey struct{}
 type preparedUpload struct {
-	data        []byte
 	ok          bool
 	invalidJPEG bool
 	fileID      string
 	size        int64
 	storageErr  error
 	committed   bool
-}
-
-func validateJPEGEntropy() bool { return os.Getenv("JPEG_VALIDATION") != "header" }
-
-// Validate before taking the state lock. The tee retains original bytes only
-// after the JPEG header has been accepted; malformed bodies need not be read.
-func prepareProfile(body io.Reader) preparedUpload {
-	var b bytes.Buffer
-	r := io.TeeReader(body, &b)
-	cfg, err := jpeg.DecodeConfig(r)
-	if err != nil {
-		return preparedUpload{invalidJPEG: true}
-	}
-	if validateJPEGEntropy() {
-		header := append([]byte(nil), b.Bytes()...)
-		if err = jpegvalidate.Validate(io.MultiReader(bytes.NewReader(header), r)); err != nil {
-			return preparedUpload{invalidJPEG: true}
-		}
-	}
-	// Decode failures count toward the abuse limit even when dimensions also
-	// exceed the profile limit. A valid oversized JPEG does not.
-	if cfg.Width > 512 || cfg.Height > 512 {
-		return preparedUpload{}
-	}
-	if _, err = io.Copy(&b, body); err != nil {
-		return preparedUpload{invalidJPEG: true}
-	}
-	return preparedUpload{data: b.Bytes(), ok: true}
 }
 
 func output(w http.ResponseWriter, status int, v any) {
@@ -186,9 +155,6 @@ func requestRegion(r *http.Request) string {
 		return x
 	}
 	return fixedRegion
-}
-func (a *App) signed(im *Image, exp int64) string {
-	return a.signImage(im.ID, a.s.Accounts.Get(im.OwnerID).Secret, exp)
 }
 func (a *App) signImage(imageID, secret string, exp int64) string {
 	key := signatureKey(imageID, secret, exp)
@@ -352,34 +318,14 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
 		var p preparedUpload
-		if !validateJPEGEntropy() {
-			if profile {
-				p = a.stageImage(r.Body, 512)
-			} else {
-				max := 512
-				if r.URL.Path == "/api/posts" {
-					max = 4096
-				}
-				p = a.stageMultipartImage(r, max)
-			}
-		} else if profile {
-			p = prepareProfile(r.Body)
+		if profile {
+			p = a.stageImage(r.Body, 512)
 		} else {
 			max := 512
 			if r.URL.Path == "/api/posts" {
 				max = 4096
 			}
-			p.data, p.ok = multipartImage(r, max)
-			if r.MultipartForm != nil {
-				defer r.MultipartForm.RemoveAll()
-			}
-		}
-		if p.ok && validateJPEGEntropy() {
-			started := time.Now()
-			p.fileID, p.size = id(), int64(len(p.data))
-			p.storageErr = os.WriteFile(filepath.Join(a.durable, "images", p.fileID), p.data, 0600)
-			a.uploadStageNS.Add(uint64(time.Since(started)))
-			a.uploadStageBytes.Add(uint64(p.size))
+			p = a.stageMultipartImage(r, max)
 		}
 		if p.fileID != "" {
 			defer func() {
@@ -388,9 +334,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 			}()
 		}
-		// Persistence is complete before waiting for state. Keep only metadata
-		// while the request waits for its acceptance decision and response.
-		p.data = nil
+		// Keep only staged-file metadata while waiting for the acceptance decision.
 		r = r.WithContext(context.WithValue(r.Context(), uploadKey{}, &p))
 	} else if r.Body != nil {
 		b, e := io.ReadAll(http.MaxBytesReader(w, r.Body, 32<<20))
@@ -887,43 +831,13 @@ func imageETagMatches(values []string, etag string) bool {
 	return false
 }
 
-func multipartImage(r *http.Request, max int) ([]byte, bool) {
-	if p, ok := r.Context().Value(uploadKey{}).(*preparedUpload); ok {
-		return p.data, p.ok
-	}
-	b, ok := readMultipartImage(r)
-	if !ok {
-		return nil, false
-	}
-	cfg, e := jpeg.DecodeConfig(bytes.NewReader(b))
-	if e != nil || cfg.Width > max || cfg.Height > max {
-		return nil, false
-	}
-	if !validateJPEGEntropy() {
-		return b, true
-	}
-	if max > 512 {
-		if !validateLargeJPEG(r.Context(), b) {
-			return nil, false
-		}
-	} else if e = jpegvalidate.Validate(bytes.NewReader(b)); e != nil {
-		return nil, false
-	}
-	return b, true
+func preparedImageValid(r *http.Request) bool {
+	p, ok := r.Context().Value(uploadKey{}).(*preparedUpload)
+	return ok && p.ok
 }
 
-// Read the selected file once. ParseMultipartForm would retain a second copy
-// before callers read the file back. Preserve its query/form value ordering.
-func readMultipartImage(r *http.Request) ([]byte, bool) {
-	var image []byte
-	found := readMultipartSelected(r, func(part io.Reader) error {
-		var err error
-		image, err = io.ReadAll(part)
-		return err
-	})
-	return image, found
-}
-
+// Parse form fields and stream only the first image file to the consumer.
+// Preserve the standard multipart parser's query/form value ordering.
 func readMultipartSelected(r *http.Request, consume func(io.Reader) error) bool {
 	if err := r.ParseForm(); err != nil {
 		return false
@@ -966,7 +880,7 @@ func readMultipartSelected(r *http.Request, consume func(io.Reader) error) bool 
 	return found
 }
 func (a *App) createPost(w http.ResponseWriter, r *http.Request, u *Account) {
-	_, ok := multipartImage(r, 4096)
+	ok := preparedImageValid(r)
 	if r.MultipartForm != nil {
 		defer r.MultipartForm.RemoveAll()
 	}

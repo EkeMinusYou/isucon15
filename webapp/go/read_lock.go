@@ -72,7 +72,7 @@ func (a *App) lockReadRequest(r *http.Request) func() {
 			}
 			sort.Ints(indices)
 		}
-		a.acquireStripes(indices, false)
+		a.acquireStripeModes(indices, nil)
 		a.globalGate.RLock()
 		unlock := func() {
 			a.globalGate.RUnlock()

@@ -21,10 +21,8 @@ func opaqueJPEG(size int) []byte {
 	return b.Bytes()
 }
 func TestStreamedUploadPreservesBytesAndRemovesRejectedFiles(t *testing.T) {
-	t.Setenv("JPEG_VALIDATION", "header")
 	a := fixtureApp(t)
 	uid, token := register(t, a, "stream_upload")
-	openWindow(t, a, "2026-11-01")
 	original := opaqueJPEG(1 << 20)
 	submit := func(visibility string) *httptest.ResponseRecorder {
 		var b bytes.Buffer
@@ -42,6 +40,14 @@ func TestStreamedUploadPreservesBytesAndRemovesRejectedFiles(t *testing.T) {
 		a.ServeHTTP(w, r)
 		return w
 	}
+	if rejected := submit("public"); rejected.Code != 409 {
+		t.Fatalf("post without a window: %d", rejected.Code)
+	}
+	files, err := os.ReadDir(filepath.Join(a.durable, "images"))
+	if err != nil || len(files) != 0 {
+		t.Fatal("post without a window retained its staged file")
+	}
+	openWindow(t, a, "2026-11-01")
 	w := submit("public")
 	if w.Code != 201 {
 		t.Fatalf("upload: %d %s", w.Code, w.Body.String())
@@ -62,7 +68,7 @@ func TestStreamedUploadPreservesBytesAndRemovesRejectedFiles(t *testing.T) {
 	if w = submit("invalid"); w.Code != 400 {
 		t.Fatalf("invalid fields: %d", w.Code)
 	}
-	files, err := os.ReadDir(filepath.Join(a.durable, "images"))
+	files, err = os.ReadDir(filepath.Join(a.durable, "images"))
 	if err != nil || len(files) != 1 {
 		t.Fatalf("rejected upload files remain: %d %v", len(files), err)
 	}
@@ -80,34 +86,32 @@ func TestStreamedUploadPreservesBytesAndRemovesRejectedFiles(t *testing.T) {
 	}
 }
 
-func BenchmarkProfileUploadStorage(b *testing.B) {
-	b.Setenv("JPEG_VALIDATION", "header")
-	original := opaqueJPEG(1 << 20)
-	b.Run("buffered", func(b *testing.B) {
-		target := filepath.Join(b.TempDir(), "image")
-		b.ReportAllocs()
-		b.SetBytes(int64(len(original)))
-		for i := 0; i < b.N; i++ {
-			p := prepareProfile(bytes.NewReader(original))
-			if !p.ok {
-				b.Fatal("invalid image")
-			}
-			if err := os.WriteFile(target, p.data, 0600); err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-	b.Run("streamed", func(b *testing.B) {
-		a := &App{appCore: &appCore{durable: b.TempDir()}}
-		os.MkdirAll(filepath.Join(a.durable, "images"), 0755)
-		b.ReportAllocs()
-		b.SetBytes(int64(len(original)))
-		for i := 0; i < b.N; i++ {
-			p := a.stageImage(bytes.NewReader(original), 512)
-			if !p.ok || p.storageErr != nil {
-				b.Fatalf("invalid stage: %+v", p)
-			}
-			os.Remove(filepath.Join(a.durable, "images", p.fileID))
-		}
-	})
+type rejectTailReader struct{ reads int }
+
+func (r *rejectTailReader) Read(p []byte) (int, error) {
+	r.reads++
+	if r.reads > 1 {
+		panic("invalid JPEG tail must not be consumed")
+	}
+	return copy(p, "not a jpeg"), nil
+}
+
+func TestImageHeaderValidation(t *testing.T) {
+	a := fixtureApp(t)
+	if p := a.stageImage(&rejectTailReader{}, 512); p.ok || !p.invalidJPEG {
+		t.Fatal("non-JPEG must be rejected before reading its tail")
+	}
+	var b bytes.Buffer
+	jpeg.Encode(&b, image.NewRGBA(image.Rect(0, 0, 128, 128)), nil)
+	truncated := b.Bytes()[:b.Len()-20]
+	p := a.stageImage(bytes.NewReader(truncated), 512)
+	got, err := os.ReadFile(filepath.Join(a.durable, "images", p.fileID))
+	if !p.ok || err != nil || !bytes.Equal(got, truncated) {
+		t.Fatal("valid header must retain the opaque payload")
+	}
+	b.Reset()
+	jpeg.Encode(&b, image.NewRGBA(image.Rect(0, 0, 513, 2)), nil)
+	if p := a.stageImage(bytes.NewReader(b.Bytes()), 512); p.ok || p.invalidJPEG {
+		t.Fatal("dimension rejection must remain distinct from a malformed header")
+	}
 }

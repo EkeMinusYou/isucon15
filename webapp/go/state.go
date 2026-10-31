@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -187,13 +186,38 @@ type appCore struct {
 	uploadStageNS        atomic.Uint64
 	uploadStageBytes     atomic.Uint64
 	routeMetrics         [7]requestMetrics
-	writes               uint64
 }
 
 func emptyState() *State {
-	s := &State{imageLinks: newShardedMapWith(map[[16]byte]imageLink{}), LivePosts: newShardedMapWith(map[string][]string{}), Accounts: newShardedMapWith(map[string]*Account{}), Names: newShardedMapWith(map[string]string{}), Admins: newShardedMapWith(map[string]*Administrator{}), Windows: newShardedMapWith(map[string]*Window{}), Current: newShardedMapWith(map[string]string{}), Posts: newRecordStore[Post](), UserPosts: newShardedMapWith(map[string][]string{}), Reactions: newRecordStore[Reaction](), PostReactions: newShardedMapWith(map[string][]string{}), Comments: newRecordStore[Comment](), PostComments: newShardedMapWith(map[string][]string{}), Images: newRecordStore[Image](), Requests: newShardedMapWith(map[string]*Relation{}), RequestOut: newShardedMapWith(map[string]map[string]*Relation{}), RequestIn: newShardedMapWith(map[string]map[string]*Relation{}), Friends: newShardedMapWith(map[string]*Relation{}), Adj: newShardedMapWith(map[string]map[string]bool{}), Follows: newShardedMapWith(map[string]*Relation{}), Blocks: newShardedMapWith(map[string]*Relation{}), Sessions: newShardedMapWith(map[string]string{}), AdminSessions: newShardedMapWith(map[string]string{}), Bans: newShardedMapWith(map[string]time.Time{}), Notifications: newShardedMapWith(map[string][]Notification{})}
-	s.PostPeriods = newShardedMapWith(make(map[string][]datedPostRef))
-	s.UserTokens = newShardedMapWith(make(map[string]map[string]bool))
+	s := &State{
+		imageLinks:    new(shardedMap[[16]byte, imageLink]),
+		LivePosts:     new(shardedMap[string, []string]),
+		Accounts:      new(shardedMap[string, *Account]),
+		Names:         new(shardedMap[string, string]),
+		Admins:        new(shardedMap[string, *Administrator]),
+		Windows:       new(shardedMap[string, *Window]),
+		Current:       new(shardedMap[string, string]),
+		UserPosts:     new(shardedMap[string, []string]),
+		PostPeriods:   new(shardedMap[string, []datedPostRef]),
+		PostReactions: new(shardedMap[string, []string]),
+		PostComments:  new(shardedMap[string, []string]),
+		Requests:      new(shardedMap[string, *Relation]),
+		RequestOut:    new(shardedMap[string, map[string]*Relation]),
+		RequestIn:     new(shardedMap[string, map[string]*Relation]),
+		Friends:       new(shardedMap[string, *Relation]),
+		Adj:           new(shardedMap[string, map[string]bool]),
+		Follows:       new(shardedMap[string, *Relation]),
+		Blocks:        new(shardedMap[string, *Relation]),
+		Sessions:      new(shardedMap[string, string]),
+		UserTokens:    new(shardedMap[string, map[string]bool]),
+		AdminSessions: new(shardedMap[string, string]),
+		Bans:          new(shardedMap[string, time.Time]),
+		Notifications: new(shardedMap[string, []Notification]),
+		Posts:         newRecordStore[Post](),
+		Reactions:     newRecordStore[Reaction](),
+		Comments:      newRecordStore[Comment](),
+		Images:        newRecordStore[Image](),
+	}
 	s.Images.decorate = func(id string, im *Image) {
 		key, _ := uuidKey(id)
 		if link, ok := s.imageLinks.Load(key); ok {
@@ -417,7 +441,6 @@ func (a *App) commit() {
 		log.Fatalf("journal write: %v", e)
 	}
 	a.journalWriteNS.Add(uint64(time.Since(writing)))
-	a.writes++
 	a.pending = nil
 }
 func loadLines(path string, fn func([]byte) error) error {
@@ -544,7 +567,7 @@ func (a *App) loadInitial() error {
 	return nil
 }
 func newApp(initial, durable string) (*App, error) {
-	a := &App{appCore: &appCore{initial: initial, durable: durable, failures: newShardedMapWith(map[string][]time.Time{}), signatures: map[string]string{}}}
+	a := &App{appCore: &appCore{initial: initial, durable: durable, failures: new(shardedMap[string, []time.Time]), signatures: map[string]string{}}}
 	if e := os.MkdirAll(filepath.Join(durable, "images"), 0755); e != nil {
 		return nil, e
 	}
@@ -601,7 +624,7 @@ func (a *App) reset() error {
 	if e := os.MkdirAll(filepath.Join(a.durable, "images"), 0755); e != nil {
 		return e
 	}
-	a.failures = newShardedMapWith(map[string][]time.Time{})
+	a.failures = new(shardedMap[string, []time.Time])
 	a.pending = nil
 	a.signatureMu.Lock()
 	a.signatures = map[string]string{}
@@ -691,4 +714,3 @@ func (s *State) interact(u *Account, p *Post) bool {
 	own, _ := s.dayPosts(u)
 	return own != nil && (p.AuthorID == u.ID || p.Visibility == "public" || s.friend(u.ID, p.AuthorID))
 }
-func cleanPath(s string) string { return strings.Trim(s, "/") }
