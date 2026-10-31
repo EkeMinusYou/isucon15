@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -147,12 +148,12 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	actor := s.Sessions.Get(token)
 	keys := []string{"user:" + actor}
-	var input struct{ Username, RecipientID, Region string }
+	var input struct{ Username, SecretKey, RecipientID, Region string }
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") || strings.HasPrefix(path, "/api/auth/") || strings.HasPrefix(path, "/api/admin/auth/") || path == "/api/friend-requests" || path == "/api/me" {
 		if r.Body != nil {
 			b, _ := io.ReadAll(r.Body)
 			r.Body = io.NopCloser(bytes.NewReader(b))
-			json.Unmarshal(b, &input)
+			json.NewDecoder(bytes.NewReader(b)).Decode(&input)
 		}
 	}
 	if path == "/api/auth/register" {
@@ -160,7 +161,14 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 	}
 	if path == "/api/auth/login" {
 		uid := s.Names.Get(input.Username)
-		return []string{"name:" + input.Username, "user:" + uid, "ip:" + ipOf(r)}, false
+		keys := []string{"name:" + input.Username, "user:" + uid}
+		account := s.Accounts.Get(uid)
+		// Successful authentication does not modify the IP failure counter.
+		// lockRequest resolves these keys again after acquiring the user lock.
+		if !usernameRE.MatchString(input.Username) || account == nil || account.Status != "active" || !hmac.Equal([]byte(account.Secret), []byte(secretHash(input.SecretKey))) {
+			keys = append(keys, "ip:"+ipOf(r))
+		}
+		return keys, false
 	}
 	if strings.HasPrefix(path, "/api/admin/") {
 		return nil, true
