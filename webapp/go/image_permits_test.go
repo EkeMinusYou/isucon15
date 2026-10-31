@@ -20,8 +20,8 @@ func TestImagePermitRevocationRejectsDelayedGenerations(t *testing.T) {
 	owner := newOwnerImagePermits()
 	wire := imagePermit{URL: "/api/images/example?exp=9999999999&sig=valid", Part: "0000.bin", Size: 3, Exp: 9999999999, MediaType: "image/jpeg", Post: true}
 	ip := "192.0.2.1"
-	first, _ := owner.grant("europe", wire, []string{"ip:" + ip})
-	second, _ := owner.grant("europe", wire, []string{"ip:" + ip})
+	first, _ := owner.grant("europe", wire, []string{"ip:" + ip}, nil)
+	second, _ := owner.grant("europe", wire, []string{"ip:" + ip}, nil)
 	retired := owner.revoke("ip:" + ip)
 	if len(retired) != 2 || first.ID == second.ID {
 		t.Fatal("revocation did not retain every live grant generation")
@@ -67,7 +67,7 @@ func TestImagePermitRevocationRejectsDelayedGenerations(t *testing.T) {
 	if region.serve(httptest.NewRecorder(), request, root, nil, &regionalImageMetrics{}) {
 		t.Fatal("a delayed old generation revived a revoked permission")
 	}
-	third, _ := owner.grant("europe", wire, []string{"ip:" + ip})
+	third, _ := owner.grant("europe", wire, []string{"ip:" + ip}, nil)
 	install(third)
 	region.reset()
 	install(third)

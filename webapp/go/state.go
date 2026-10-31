@@ -420,13 +420,18 @@ func (s *State) apply(kind string, data []byte) error {
 	return nil
 }
 func (a *App) put(kind string, v any) {
-	a.retireImagePermits(kind, v)
+	if kind != "ban" {
+		a.retireImagePermits(kind, v)
+	}
 	b, e := json.Marshal(v)
 	if e != nil {
 		panic(e)
 	}
 	if e = a.s.apply(kind, b); e != nil {
 		panic(e)
+	}
+	if kind == "ban" {
+		a.retireImagePermits(kind, v)
 	}
 	a.pending = append(a.pending, change{kind, b})
 }

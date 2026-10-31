@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -83,9 +82,12 @@ func (p *ownerImagePermits) prune(now time.Time) {
 	}
 }
 
-func (p *ownerImagePermits) grant(region string, wire imagePermit, deps []string) (imagePermit, bool) {
+func (p *ownerImagePermits) grant(region string, wire imagePermit, deps []string, allowed func() bool) (imagePermit, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	if allowed != nil && !allowed() {
+		return imagePermit{}, false
+	}
 	now := time.Now()
 	p.prune(now)
 	if len(p.byID) >= 65536 {
@@ -142,22 +144,35 @@ func issueImagePermits(ctx context.Context, refs []imageReference) {
 	}
 	var grants []imagePermit
 	seen := map[string]bool{}
+	type candidate struct {
+		ref     imageReference
+		address string
+	}
+	var candidates []candidate
 	for _, ref := range refs {
-		if seen[ref.id] || len(grants) == 128 {
+		if seen[ref.id] || len(candidates) == 128 {
 			continue
 		}
 		seen[ref.id] = true
-		address := ref.address()
-		r := response.request.Clone(ctx)
-		r.Method = "GET"
-		r.URL, _ = url.Parse(address)
-		unlock := ref.app.lockReadRequest(r)
-		grant, ok := ref.app.issueImagePermit(r, address, ref.id, ref.secret, ref.exp)
-		unlock()
+		candidates = append(candidates, candidate{ref, ref.address()})
+	}
+	// Compute signatures before admission, then validate the entire response
+	// against one coherent snapshot instead of queuing once per image.
+	a := refs[0].app
+	a.mu.RLock()
+	a.snapshots.lock(&a.globalGate)
+	for _, candidate := range candidates {
+		ref := candidate.ref
+		if ref.app.appCore != a.appCore {
+			continue
+		}
+		grant, ok := a.issueImagePermit(response.request, candidate.address, ref.id, ref.secret, ref.exp)
 		if ok {
 			grants = append(grants, grant)
 		}
 	}
+	a.snapshots.unlock(&a.globalGate)
+	a.mu.RUnlock()
 	if len(grants) != 0 {
 		b, _ := json.Marshal(grants)
 		response.writer.Header().Add(imagePermitHeader, base64.RawURLEncoding.EncodeToString(b))
@@ -188,7 +203,11 @@ func (a *App) issueImagePermit(r *http.Request, address, imageID, secret string,
 		post := a.s.Posts.get(reaction.PostID)
 		deps = append(deps, "reaction:"+im.Ref, "post:"+post.ID, "account:"+post.AuthorID)
 	}
-	return a.imagePermits.grant(region, wire, deps)
+	// BAN publication and registry revocation are ordered by this registry
+	// mutex, so image reads do not need the login/IP transaction stripe.
+	return a.imagePermits.grant(region, wire, deps, func() bool {
+		return !time.Now().Before(a.s.Bans.Get(ipOf(r)))
+	})
 }
 
 func (a *App) retireImagePermits(kind string, value any) {
