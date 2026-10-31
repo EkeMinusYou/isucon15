@@ -130,19 +130,12 @@ func serviceHandler() (http.Handler, *App, error) {
 		r.Header.Set("X-ISU-Region", ingressRegion(r))
 		r.Header.Set("X-ISU-Source", ingressRegion(r))
 		r.Header.Set("X-ISU-Transport", transportSecret)
-		r.Header.Del(regionalImageRequest)
-		if imageRoot != "" && r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/api/images/") {
-			r.Header.Set(regionalImageRequest, "1")
-		}
 	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
 		if uploads != nil {
 			uploads.finish(resp)
 		}
 		resp.Header.Del(regionalUploadAccepted)
-		if err := serveRegionalImage(resp, imageRoot, uploads, proxy.Transport, &edge.regionalImages); err != nil {
-			return err
-		}
 		if identity := resp.Header.Get("X-ISU-Identity"); identity != "" {
 			setMeasurementIdentity(resp.Request, identity)
 		}

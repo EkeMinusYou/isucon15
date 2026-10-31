@@ -34,6 +34,12 @@ type requestMetrics struct {
 	responseNS atomic.Uint64 // Streaming responses include transfer time; JSON records materialization.
 }
 
+type regionalImageMetrics struct {
+	local     atomic.Uint64
+	bytes     atomic.Uint64
+	forwarded atomic.Uint64
+}
+
 var routeMetricNames = [...]string{"post", "image", "feed", "memory", "export", "auth", "other"}
 
 func metricRoute(path string) int {
@@ -57,7 +63,6 @@ func metricRoute(path string) int {
 func (a *App) snapshot() measurement.Snapshot {
 	m := map[string]any{
 		"app_image_local_total":          a.regionalImages.local.Load(),
-		"app_image_fallback_total":       a.regionalImages.fallback.Load(),
 		"app_image_local_bytes_total":    a.regionalImages.bytes.Load(),
 		"app_image_forward_total":        a.regionalImages.forwarded.Load(),
 		"app_notification_wakeups_total": a.notifier.wakeups.Load(),

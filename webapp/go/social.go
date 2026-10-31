@@ -670,7 +670,7 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 }
 func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
-	unlock := a.lockReadRequest(r)
+	unlock := a.lockReadView()
 	if started.Before(a.s.Bans.Get(ipOf(r))) {
 		unlock()
 		failure(w, 403, "ip_banned")
@@ -692,7 +692,7 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 	for {
-		unlock = a.lockUserRead(uid)
+		unlock = a.lockReadView()
 		s := a.s
 		u = s.Accounts.Get(uid)
 		if u == nil || u.Status != "active" || u.Region != region {

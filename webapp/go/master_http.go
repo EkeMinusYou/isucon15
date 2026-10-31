@@ -41,11 +41,6 @@ func masterRequest(ctx context.Context, region, path string, value any) (*http.R
 	}
 	r.Header.Set("X-ISU-Transport", transportSecret)
 	r.Header.Set("X-ISU-Region", "asia")
-	if path == "reset" {
-		client := *regionalClient
-		client.Timeout = 120 * time.Second
-		return client.Do(r)
-	}
 	return regionalClient.Do(r)
 }
 

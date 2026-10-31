@@ -19,18 +19,18 @@ type masterTransaction struct {
 // A regional master owns durable account/image state for its fixed users.
 // The coordinator's State is only an aggregated read view of these records.
 type regionalMaster struct {
-	mu                          sync.RWMutex
-	region                      string
-	initial, durable, imageRoot string
-	files                       *regionalUploads
-	s                           *State
-	initialState                *State
-	homes                       *masterHomes
-	journal                     *os.File
-	seen                        map[string]bool
-	epoch                       string
-	signer                      *App
-	stats                       *regionalImageMetrics
+	mu                 sync.RWMutex
+	region             string
+	durable, imageRoot string
+	files              *regionalUploads
+	s                  *State
+	initialState       *State
+	homes              *masterHomes
+	journal            *os.File
+	seen               map[string]bool
+	epoch              string
+	signer             *App
+	stats              *regionalImageMetrics
 }
 
 func loadMasterInitial(initial, region, backingDir string) (*State, *masterHomes, error) {
@@ -131,7 +131,7 @@ func newRegionalMaster(initial, durable, imageRoot, region string, files *region
 	if err != nil {
 		return nil, err
 	}
-	m := &regionalMaster{region: region, initial: initial, durable: durable, imageRoot: imageRoot, files: files, s: s.fork(), initialState: s, homes: homes, seen: map[string]bool{}, signer: &App{appCore: &appCore{}}}
+	m := &regionalMaster{region: region, durable: durable, imageRoot: imageRoot, files: files, s: s.fork(), initialState: s, homes: homes, seen: map[string]bool{}, signer: &App{appCore: &appCore{}}}
 	if b, readErr := os.ReadFile(filepath.Join(durable, "epoch")); readErr == nil {
 		m.epoch = strings.TrimSpace(string(b))
 	} else if !os.IsNotExist(readErr) {
@@ -301,12 +301,7 @@ func (m *regionalMaster) reset(epoch string) error {
 	m.s, m.seen = m.initialState.fork(), map[string]bool{}
 	// Truncate metadata before removing originals, so a restart never replays
 	// an old reference after its original has been removed by initialization.
-	m.files.mu.Lock()
-	defer m.files.mu.Unlock()
-	if err := os.RemoveAll(m.files.acceptedDir()); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(m.files.acceptedDir(), 0700); err != nil {
+	if err := m.files.reset(); err != nil {
 		return err
 	}
 	if err := writeTextAtomic(filepath.Join(m.durable, "epoch"), epoch); err != nil {

@@ -22,7 +22,6 @@ import (
 
 const regionalUploadHeader = "X-ISU-Upload"
 const regionalUploadAccepted = "X-ISU-Upload-Accepted"
-const regionalImageUploaded = "X-ISU-Image-Uploaded"
 const regionalFilePrefix = "/api/internal/region/images/"
 const regionalResetPath = "/api/internal/region/reset-images"
 
@@ -197,6 +196,32 @@ func (u *regionalUploads) open(id string) (*os.File, error) {
 	return f, err
 }
 
+func (u *regionalUploads) reset() error {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	if err := os.RemoveAll(u.acceptedDir()); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(u.acceptedDir(), 0700); err != nil {
+		return err
+	}
+	pending, err := os.ReadDir(u.pendingDir())
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, file := range pending {
+		if !u.active[file.Name()] && !file.IsDir() {
+			if err := os.Remove(filepath.Join(u.pendingDir(), file.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (u *regionalUploads) internal(w http.ResponseWriter, r *http.Request) bool {
 	if r.URL.Path != regionalResetPath && !strings.HasPrefix(r.URL.Path, regionalFilePrefix) {
 		return false
@@ -206,24 +231,7 @@ func (u *regionalUploads) internal(w http.ResponseWriter, r *http.Request) bool 
 		return true
 	}
 	if r.URL.Path == regionalResetPath && r.Method == "POST" {
-		u.mu.Lock()
-		err := os.RemoveAll(u.acceptedDir())
-		if err == nil {
-			err = os.MkdirAll(u.acceptedDir(), 0700)
-		}
-		if err == nil {
-			var pending []os.DirEntry
-			pending, err = os.ReadDir(u.pendingDir())
-			for _, file := range pending {
-				if !u.active[file.Name()] && !file.IsDir() {
-					if removeErr := os.Remove(filepath.Join(u.pendingDir(), file.Name())); err == nil {
-						err = removeErr
-					}
-				}
-			}
-		}
-		u.mu.Unlock()
-		if err != nil {
+		if err := u.reset(); err != nil {
 			failure(w, 500, "regional_reset_failed")
 		} else {
 			w.WriteHeader(http.StatusNoContent)

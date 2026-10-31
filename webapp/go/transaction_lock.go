@@ -69,7 +69,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 		return a.mu.Unlock
 	}
 	if r.Method == "GET" {
-		return a.lockReadRequest(r)
+		return a.lockReadView()
 	}
 	for {
 		a.mu.RLock()

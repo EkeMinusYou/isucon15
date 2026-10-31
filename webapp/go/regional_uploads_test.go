@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
+func TestRegionalUploadTransportPreservesFormsAndRecovery(t *testing.T) {
 	oldSecret, oldRegion := transportSecret, fixedRegion
 	transportSecret, fixedRegion = "regional-upload-test", "asia"
 	t.Cleanup(func() { transportSecret, fixedRegion = oldSecret, oldRegion })
@@ -37,7 +37,7 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	t.Setenv("REGIONAL_STATE_DIR", root)
 	t.Setenv("IMAGE_CACHE_DIR", t.TempDir())
 	t.Setenv("REGION_AMERICA_URL", "")
-	h, edge, err := serviceHandler()
+	h, _, err := serviceHandler()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,11 +89,8 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	}
 	imageURL := me["profileImageUrl"].(string)
 	got := request("GET", imageURL, "", "", nil, 200)
-	if !bytes.Equal(got, original.Bytes()) || edge.regionalImages.local.Load() != 1 {
-		t.Fatal("regional original was not served locally")
-	}
-	if _, err := os.Stat(filepath.Join(owner.durable, "images", profileID)); !os.IsNotExist(err) {
-		t.Fatal("local delivery fetched the original through the owner")
+	if !bytes.Equal(got, original.Bytes()) {
+		t.Fatal("regional upload transport changed the original")
 	}
 	_, _, response := call(t, owner, "GET", imageURL, "", nil)
 	if response.Code != 200 || !bytes.Equal(response.Body.Bytes(), original.Bytes()) {
