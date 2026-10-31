@@ -12,11 +12,9 @@ import (
 	"time"
 
 	measurement "github.com/EkeMinusYou/isucon-template/tools/measurement/app"
-	"isuconapp/internal/jpegvalidate"
 )
 
 var computeClient = &http.Client{Transport: measurement.NewUpstreamTransport(), Timeout: 3 * time.Second}
-var remoteJPEG atomic.Uint64
 var nativeSignatureBatch func([]signatureJob) ([]string, bool)
 var nativeCryptoArch atomic.Int64
 var nativeSignatureJobs atomic.Uint64
@@ -28,7 +26,7 @@ type signatureJob struct {
 }
 
 // The compute host has no application state. Only authenticated peers may
-// delegate validation or signatures; request bytes and signature rules stay
+// delegate signatures; request bytes and signature rules stay
 // identical to local execution.
 func computeHandler(a *App) http.Handler {
 	slots := make(chan struct{}, 2)
@@ -53,12 +51,6 @@ func computeHandler(a *App) http.Handler {
 		defer func() { <-slots }()
 		r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
 		switch r.URL.Path {
-		case "/api/internal/compute/jpeg":
-			if err := jpegvalidate.Validate(r.Body); err != nil {
-				failure(w, 400, "invalid_jpeg")
-				return
-			}
-			w.WriteHeader(http.StatusNoContent)
 		case "/api/internal/compute/signatures":
 			// Keep the worker stateless; only the owner's resettable cache holds results.
 			var jobs []signatureJob
@@ -99,24 +91,6 @@ func computeRequest(ctx context.Context, path string, body []byte) (*http.Respon
 	req.Header.Set("X-ISU-Transport", transportSecret)
 	req.Header.Set("X-ISU-Region", "asia")
 	return computeClient.Do(req)
-}
-func validateJPEG(ctx context.Context, b []byte) bool {
-	if os.Getenv("COMPUTE_URL") != "" {
-		resp, err := computeRequest(ctx, "jpeg", b)
-		if err == nil {
-			io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
-			if resp.StatusCode == 204 {
-				remoteJPEG.Add(1)
-				return true
-			}
-			if resp.StatusCode == 400 {
-				remoteJPEG.Add(1)
-				return false
-			}
-		}
-	}
-	return jpegvalidate.Validate(bytes.NewReader(b)) == nil
 }
 func prefetchImageSignatures(ctx context.Context, value any) {
 	var refs []imageReference

@@ -3,8 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"image"
-	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -26,14 +24,6 @@ func TestAuthenticatedComputePreservesResults(t *testing.T) {
 	response.Body.Close()
 	if response.StatusCode != 403 {
 		t.Fatal("compute endpoint accepted an unauthenticated request")
-	}
-	var imageBody bytes.Buffer
-	jpeg.Encode(&imageBody, image.NewRGBA(image.Rect(0, 0, 3, 3)), nil)
-	if !validateJPEG(context.Background(), imageBody.Bytes()) {
-		t.Fatal("valid delegated JPEG rejected")
-	}
-	if validateJPEG(context.Background(), []byte("invalid")) {
-		t.Fatal("invalid delegated JPEG accepted")
 	}
 	a := &App{signatures: map[string]string{}}
 	secret := secretHash("signing-secret")

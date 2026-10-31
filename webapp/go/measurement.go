@@ -67,7 +67,6 @@ func (a *App) snapshot() measurement.Snapshot {
 		"app_sig_evicted_total":     a.signatureEvictions.Load(),
 		"app_sig_rpc_failed_total":  a.signatureRPCFailures.Load(),
 		"app_remote_sig_total":      a.remoteSignatures.Load(),
-		"app_remote_jpeg_total":     remoteJPEG.Load(),
 	}
 	for i, name := range routeMetricNames {
 		p := "app_" + name + "_"
