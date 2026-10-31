@@ -1,0 +1,68 @@
+2026-10-31T07:17:58.822035652Z	BENCHMARK_START
+PORTAL_JOB_ID: 27397
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T07:18:35.947Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:18:38.908Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:18:41.909Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:18:44.934Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T07:18:47.913Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T07:18:50.909Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T07:18:53.940Z level=INFO msg="asia 3 日目: 138 人"
+time=2026-10-31T07:18:56.909Z level=INFO msg="europe 3 日目: 54 人"
+time=2026-10-31T07:18:59.924Z level=INFO msg="america 3 日目: 53 人"
+time=2026-10-31T07:19:01.322Z level=INFO msg="user moved" user=kora6256 from=europe to=america
+time=2026-10-31T07:19:02.941Z level=INFO msg="asia 4 日目: 408 人"
+time=2026-10-31T07:19:06.030Z level=INFO msg="europe 4 日目: 152 人"
+time=2026-10-31T07:19:06.209Z level=INFO msg="user moved" user=noatsu-7422 from=asia to=america
+time=2026-10-31T07:19:06.291Z level=INFO msg="user moved" user=mokemu.6400 from=america to=asia
+time=2026-10-31T07:19:07.092Z level=INFO msg="user moved" user=torna-7783 from=asia to=europe
+time=2026-10-31T07:19:07.328Z level=INFO msg="user moved" user=noatsu-7422 from=america to=asia
+time=2026-10-31T07:19:08.248Z level=INFO msg="user moved" user=shito.7727 from=asia to=america
+time=2026-10-31T07:19:08.638Z level=INFO msg="user moved" user=ramar_6896 from=asia to=europe
+time=2026-10-31T07:19:08.935Z level=INFO msg="america 4 日目: 152 人"
+time=2026-10-31T07:19:09.692Z level=INFO msg="user moved" user=isri7860 from=asia to=europe
+time=2026-10-31T07:19:10.452Z level=INFO msg="user moved" user=evama-8919 from=europe to=asia
+time=2026-10-31T07:19:10.641Z level=INFO msg="user moved" user=mokemu.6400 from=asia to=europe
+time=2026-10-31T07:19:11.164Z level=INFO msg="user moved" user=kora6256 from=america to=asia
+time=2026-10-31T07:19:11.857Z level=INFO msg="user moved" user=ulnuel9202 from=america to=asia
+time=2026-10-31T07:19:12.109Z level=INFO msg="asia 5 日目: 1178 人"
+time=2026-10-31T07:19:14.935Z level=INFO msg="europe 5 日目: 414 人"
+time=2026-10-31T07:19:17.978Z level=INFO msg="america 5 日目: 350 人"
+time=2026-10-31T07:19:26.987Z level=INFO msg="europe 最終日（グランプリ）: 413 人"
+time=2026-10-31T07:19:26.994Z level=INFO msg="america 最終日（グランプリ）: 347 人"
+time=2026-10-31T07:19:27.041Z level=INFO msg="asia 最終日（グランプリ）: 1178 人"
+time=2026-10-31T07:19:36.123Z level=INFO msg="グランプリ: アジア 1053 人, ヨーロッパ 352 人, アメリカ 290 人"
+{
+  "pass": true,
+  "score": 209788,
+  "messages": [
+    "shaguo_shadingyu_2734: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "martoul.9368: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "mazuwa_ginger_ale_2910: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "salmon_in_a_jar_2533: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "leososa.9775: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hupo_shuizuguan_4547: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hahiul10737: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "miari.10502: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "sardinhas_na_panela_de_barro_3911: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "zoeor11000: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "yune-11090: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "teivy_11208: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "nokoel-11129: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "tateme_11259: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "nokemi_11386: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "shaguo_shadingyu_1470: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "tankao_mini_huoji_121: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "kusu12518: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "suyoko_12569: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "ornoa.13335: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
+SCORE: 209788
+BENCHMARK_PASS
+2026-10-31T07:20:15.771910348Z	BENCHMARK_END
+
+SCORE: 209788
+BENCHMARK_PASS
