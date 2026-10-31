@@ -192,7 +192,8 @@ func (p *regionalImagePermits) serve(w http.ResponseWriter, r *http.Request, roo
 	now := time.Now()
 	w.Header().Set("Date", now.UTC().Format(http.TimeFormat))
 	if grant.Post {
-		w.Header().Set("Cache-Control", "private, max-age="+strconv.FormatInt(min(int64(5), grant.Exp-now.Unix()), 10)+", must-revalidate")
+		remaining := max(int64(0), int64(time.Until(grant.deadline)/time.Second))
+		w.Header().Set("Cache-Control", "private, max-age="+strconv.FormatInt(min(int64(5), grant.Exp-now.Unix(), remaining), 10)+", must-revalidate")
 	} else {
 		etag := strconv.Quote("image-" + strings.TrimPrefix(r.URL.Path, "/api/images/"))
 		w.Header().Set("Cache-Control", "private, no-cache")

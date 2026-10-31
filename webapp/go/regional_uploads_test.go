@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
@@ -69,6 +70,25 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 		}
 		return b
 	}
+	eventuallyRevoked := func(path string) {
+		t.Helper()
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			response, err := http.Get(regional.URL + path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			io.Copy(io.Discard, response.Body)
+			response.Body.Close()
+			if response.StatusCode == 403 {
+				return
+			}
+			if response.StatusCode != 200 || time.Now().After(deadline) {
+				t.Fatalf("image was not revoked within five seconds: status %d", response.StatusCode)
+			}
+			time.Sleep(time.Millisecond)
+		}
+	}
 	var original bytes.Buffer
 	if err := jpeg.Encode(&original, image.NewRGBA(image.Rect(0, 0, 2, 2)), nil); err != nil {
 		t.Fatal(err)
@@ -108,7 +128,7 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 		t.Fatal("another region could not fetch the original from its origin")
 	}
 	request("PUT", "/api/me/profile-image", token, "image/jpeg", original.Bytes(), 204)
-	request("GET", imageURL, "", "", nil, 403)
+	eventuallyRevoked(imageURL)
 	q := imageRequest("/api/posts", token, map[string]string{"caption": "body", "visibility": "public", "location_kind": "none"})
 	var post object
 	if err := json.Unmarshal(request("POST", "/api/posts?caption=query", token, q.contentType, q.body, 201), &post); err != nil {
@@ -138,7 +158,7 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	}
 	request("GET", reaction["imageUrl"].(string), "", "", nil, 200)
 	request("POST", "/api/posts/"+peerPost["id"].(string)+"/realmojis", token, reactionUpload.contentType, reactionUpload.body, 201)
-	request("GET", reaction["imageUrl"].(string), "", "", nil, 403)
+	eventuallyRevoked(reaction["imageUrl"].(string))
 	restored, err := newApp(owner.initial, owner.durable)
 	if err != nil {
 		t.Fatal(err)
@@ -158,7 +178,7 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	}
 	f.Close()
 	request("DELETE", "/api/posts/"+stored.ID, token, "", nil, 204)
-	request("GET", post["imageUrl"].(string), "", "", nil, 403)
+	eventuallyRevoked(post["imageUrl"].(string))
 	request("PUT", "/api/me/profile-image", "", "image/jpeg", original.Bytes(), 401)
 	request("PUT", "/api/me/profile-image", token, "image/jpeg", []byte("not jpeg"), 400)
 	request("GET", regionalFilePrefix+profileID, "", "", nil, 403)
@@ -174,7 +194,7 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	for range 3 {
 		request("GET", invalidURL, "", "", nil, 403)
 	}
-	request("GET", validURL, "", "", nil, 403)
+	eventuallyRevoked(validURL)
 	// Reset also retires an unconfirmed upload whose response was lost.
 	waitingID := id()
 	if err := os.WriteFile(filepath.Join(files.pendingDir(), waitingID), original.Bytes(), 0600); err != nil {

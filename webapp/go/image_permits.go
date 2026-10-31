@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const imagePermitLifetime = 2 * time.Second
+const imagePermitLifetime = 4500 * time.Millisecond
 const imagePermitHeader = "X-ISU-Image-Permits"
 const imageRevokePath = "/api/internal/region/revoke-images"
 
@@ -40,21 +40,22 @@ type heldImagePermit struct {
 // This registry contains only short-lived grants, not a replica of user or
 // image state. A grant is installed while the corresponding state is locked.
 type ownerImagePermits struct {
-	mu       sync.Mutex
-	prefix   string
-	next     uint64
-	byID     map[string]*heldImagePermit
-	byDep    map[string]map[string]*heldImagePermit
-	expires  []*heldImagePermit
-	head     int
-	issued   atomic.Uint64
-	revoked  atomic.Uint64
-	waitNS   atomic.Uint64
-	failures atomic.Uint64
+	mu          sync.Mutex
+	prefix      string
+	next        uint64
+	byID        map[string]*heldImagePermit
+	byDep       map[string]map[string]*heldImagePermit
+	expires     []*heldImagePermit
+	head        int
+	issued      atomic.Uint64
+	revoked     atomic.Uint64
+	rpcNS       atomic.Uint64
+	failures    atomic.Uint64
+	notifySlots chan struct{}
 }
 
 func newOwnerImagePermits() *ownerImagePermits {
-	return &ownerImagePermits{prefix: id(), byID: map[string]*heldImagePermit{}, byDep: map[string]map[string]*heldImagePermit{}}
+	return &ownerImagePermits{prefix: id(), byID: map[string]*heldImagePermit{}, byDep: map[string]map[string]*heldImagePermit{}, notifySlots: make(chan struct{}, 32)}
 }
 
 func (p *ownerImagePermits) remove(grant *heldImagePermit) {
@@ -248,20 +249,33 @@ func (a *App) retireImagePermits(kind string, value any) {
 	}
 }
 
-func (a *App) waitImageRevocations() {
+func (a *App) sendImageRevocations() {
 	if len(a.revocations) == 0 {
 		return
 	}
-	started := time.Now()
+	manager := a.imagePermits
+	secret := transportSecret
 	byRegion := map[string][]*heldImagePermit{}
 	for _, grant := range a.revocations {
 		byRegion[grant.region] = append(byRegion[grant.region], grant)
 	}
-	var done sync.WaitGroup
+	a.revocations = nil
 	for region, grants := range byRegion {
-		done.Add(1)
+		address := regionalPeer(region) + imageRevokePath
+		select {
+		case manager.notifySlots <- struct{}{}:
+		default:
+			// Expiry still enforces the five-second invalidation bound if an
+			// overloaded or disconnected region cannot receive a notice.
+			manager.failures.Add(1)
+			continue
+		}
 		go func(region string, grants []*heldImagePermit) {
-			defer done.Done()
+			started := time.Now()
+			defer func() {
+				<-manager.notifySlots
+				manager.rpcNS.Add(uint64(time.Since(started)))
+			}()
 			deadline := grants[0].deadline
 			ids := make([]string, len(grants))
 			for i, grant := range grants {
@@ -273,9 +287,9 @@ func (a *App) waitImageRevocations() {
 			ctx, cancel := context.WithDeadline(context.Background(), deadline)
 			defer cancel()
 			b, _ := json.Marshal(ids)
-			r, err := http.NewRequestWithContext(ctx, "POST", regionalPeer(region)+imageRevokePath, bytes.NewReader(b))
+			r, err := http.NewRequestWithContext(ctx, "POST", address, bytes.NewReader(b))
 			if err == nil {
-				r.Header.Set("X-ISU-Transport", transportSecret)
+				r.Header.Set("X-ISU-Transport", secret)
 				resp, requestErr := regionalClient.Do(r)
 				if requestErr == nil {
 					io.Copy(io.Discard, resp.Body)
@@ -285,13 +299,7 @@ func (a *App) waitImageRevocations() {
 					}
 				}
 			}
-			a.imagePermits.failures.Add(1)
-			if remaining := time.Until(deadline); remaining > 0 {
-				time.Sleep(remaining)
-			}
+			manager.failures.Add(1)
 		}(region, grants)
 	}
-	done.Wait()
-	a.imagePermits.waitNS.Add(uint64(time.Since(started)))
-	a.revocations = nil
 }

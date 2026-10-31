@@ -378,7 +378,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	stats.holdNS.Add(uint64(time.Since(locked)))
 	unlock()
 	unlock = nil
-	a.waitImageRevocations()
+	a.sendImageRevocations()
 	if p, ok := r.Context().Value(uploadKey{}).(*preparedUpload); ok && p.origin != "" && p.committed {
 		rr.Header().Set(regionalUploadAccepted, p.fileID)
 	}
@@ -775,7 +775,7 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			a.globalGate.RUnlock()
 			stripe.Unlock()
 			a.mu.RUnlock()
-			a.waitImageRevocations()
+			a.sendImageRevocations()
 			failure(w, 403, "image_forbidden")
 			return
 		}

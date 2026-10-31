@@ -95,7 +95,7 @@ func (a *App) snapshot() measurement.Snapshot {
 	if p := a.imagePermits; p != nil {
 		m["app_permit_issued_total"] = p.issued.Load()
 		m["app_permit_revoked_total"] = p.revoked.Load()
-		m["app_permit_wait_ns_total"] = p.waitNS.Load()
+		m["app_permit_rpc_ns_total"] = p.rpcNS.Load()
 		m["app_permit_rpc_failed_total"] = p.failures.Load()
 	}
 	if p := a.regionalPermits; p != nil {
