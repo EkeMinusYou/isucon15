@@ -21,16 +21,6 @@ var transportSecret string
 func isInternal(r *http.Request) bool {
 	return transportSecret != "" && hmac.Equal([]byte(r.Header.Get("X-ISU-Transport")), []byte(transportSecret))
 }
-func addressRole(address string) (string, bool) {
-	region := map[string]string{
-		"192.168.1.10": "asia",
-		"192.168.2.10": "europe",
-		"192.168.3.10": "america",
-		"192.168.4.10": "asia",
-	}[address]
-	owner, _ := url.Parse(os.Getenv("OWNER_URL"))
-	return region, owner != nil && owner.Hostname() == address
-}
 func detectRole() (string, bool, error) {
 	if x := os.Getenv("REGION"); x != "" {
 		return x, os.Getenv("OWNER_URL") == "", nil
@@ -44,8 +34,15 @@ func detectRole() (string, bool, error) {
 		if ip == nil {
 			continue
 		}
-		if region, owner := addressRole(ip.String()); region != "" {
-			return region, owner, nil
+		switch ip.String() {
+		case "192.168.1.10":
+			return "asia", true, nil
+		case "192.168.2.10":
+			return "europe", false, nil
+		case "192.168.3.10":
+			return "america", false, nil
+		case "192.168.4.10":
+			return "compute", false, nil
 		}
 	}
 	return "", false, fmt.Errorf("host has no configured contest interface")
@@ -65,6 +62,10 @@ func serviceHandler() (http.Handler, *App, error) {
 		return nil, nil, fmt.Errorf("empty transport key")
 	}
 	log.Printf("region=%s state_owner=%v", region, owner)
+	if region == "compute" {
+		a := &App{appCore: &appCore{}}
+		return computeHandler(a), a, nil
+	}
 	if owner {
 		a, e := newApp(envOr("INITIAL_DIR", "/home/isucon/isureal-initial"), envOr("STATE_DIR", "/home/isucon/isureal-state"))
 		if e != nil {
@@ -88,7 +89,6 @@ func serviceHandler() (http.Handler, *App, error) {
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	edge := &App{appCore: &appCore{}}
-	compute := computeHandler(edge)
 	var uploads *regionalUploads
 	if root := os.Getenv("REGIONAL_STATE_DIR"); root != "" {
 		uploads, e = newRegionalUploads(root)
@@ -130,10 +130,6 @@ func serviceHandler() (http.Handler, *App, error) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/healthz" {
 			w.Write([]byte("ok\n"))
-			return
-		}
-		if r.URL.Path == signatureComputePath {
-			compute.ServeHTTP(w, r)
 			return
 		}
 		if uploads != nil && uploads.internal(w, r) {

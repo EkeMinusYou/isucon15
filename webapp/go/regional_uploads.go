@@ -254,7 +254,7 @@ func regionalRequest(method, address string) (*http.Response, error) {
 }
 
 func resetRegionalImages() error {
-	for _, region := range []string{"asia", "europe", "america"} {
+	for _, region := range []string{"europe", "america"} {
 		if address := regionalPeer(region); address != "" {
 			resp, err := regionalRequest("POST", address+regionalResetPath)
 			if err != nil {

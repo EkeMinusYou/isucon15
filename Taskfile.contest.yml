@@ -92,7 +92,7 @@ tasks:
       - '{{.OPERATION_LOCK}} python3 tools/contest/public-contract.py verify'
 
   deploy-regional-images:
-    desc: 各入口へ不変の初期画像原本を配布する
+    desc: 欧州・米州へ不変の初期画像原本を配布する
     preconditions:
       - sh: test ! -f '{{.RUN_STATE_FILE}}'
         msg: active benchmark exists
@@ -102,7 +102,6 @@ tasks:
       - |
         {{.OPERATION_LOCK}} bash <<'BASH'
         set -eu
-        {{.DEPLOYCTL_DIR}}/deployctl apply regional-image-layout -config tools/contest/initial-deployments.yaml {{.DEPLOYCTL_COMMON}}
         {{.DEPLOYCTL_DIR}}/deployctl apply regional-image-data -config tools/contest/initial-deployments.yaml {{.DEPLOYCTL_COMMON}}
         {{.DEPLOYCTL_DIR}}/deployctl apply regional-images-version -config {{.DEPLOYCTL_CONFIG}} {{.DEPLOYCTL_COMMON}}
         BASH
