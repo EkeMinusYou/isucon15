@@ -232,6 +232,10 @@ func TestPublicContract(t *testing.T) {
 	}
 	profileURL := requireCall(t, a, "GET", "/api/me", ut, nil, 200)["profileImageUrl"].(string)
 	requireCall(t, a, "GET", profileURL, "", nil, 200)
+	if err := os.Remove(filepath.Join(a.durable, "images", *a.s.Accounts[uid].ProfileImageID)); err != nil {
+		t.Fatal(err)
+	}
+	requireCall(t, a, "GET", profileURL, "", nil, 500)
 	requireCall(t, a, "DELETE", "/api/me/profile-image", ut, nil, 204)
 	requireCall(t, a, "GET", profileURL, "", nil, 403)
 	vid, vt := register(t, a, "bob")

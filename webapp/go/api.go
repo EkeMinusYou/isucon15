@@ -39,9 +39,6 @@ type deferredResponse struct {
 }
 
 func (d *deferredResponse) finish() {
-	if d.work != nil {
-		d.work(d)
-	}
 	if d.json && d.value != nil {
 		prefetchImageSignatures(d.ctx, d.value)
 		json.NewEncoder(d.Body).Encode(d.value)
@@ -377,13 +374,20 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	stats.holdNS.Add(uint64(time.Since(locked)))
 	a.mu.Unlock()
 	started = time.Now()
-	rr.finish()
-	stats.responseNS.Add(uint64(time.Since(started)))
 	for k, vs := range rr.Header() {
 		for _, v := range vs {
 			w.Header().Add(k, v)
 		}
 	}
+	if rr.work != nil {
+		// Stream the captured response after releasing state. Image and ZIP
+		// bytes must not be materialized again in the response recorder.
+		rr.work(w)
+		stats.responseNS.Add(uint64(time.Since(started)))
+		return
+	}
+	rr.finish()
+	stats.responseNS.Add(uint64(time.Since(started)))
 	w.WriteHeader(rr.Code)
 	io.Copy(w, rr.Body)
 }

@@ -31,7 +31,7 @@ type requestMetrics struct {
 	requests   atomic.Uint64
 	waitNS     atomic.Uint64
 	holdNS     atomic.Uint64
-	responseNS atomic.Uint64
+	responseNS atomic.Uint64 // Streaming responses include transfer time; JSON records materialization.
 }
 
 var routeMetricNames = [...]string{"post", "image", "feed", "memory", "export", "auth", "other"}
