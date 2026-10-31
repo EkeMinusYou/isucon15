@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,47 @@ import (
 	"testing"
 	"time"
 )
+
+func TestLocalReadDoesNotWaitForUnrelatedRegion(t *testing.T) {
+	a := fixtureApp(t)
+	uid, token := register(t, a, "scoped_reader")
+	local, err := newRegionalMaster(a.initial, t.TempDir(), a.initial+"/images", "asia", &regionalUploads{root: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer local.close()
+	a.master, a.mastersEnabled = local, true
+	entered, release := make(chan struct{}), make(chan struct{})
+	var once sync.Once
+	defer once.Do(func() { close(release) })
+	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(entered)
+		<-release
+		output(w, 200, masterPull{})
+	}))
+	defer func() { once.Do(func() { close(release) }); remote.Close() }()
+	t.Setenv("REGION_EUROPE_URL", remote.URL)
+	finished := make(chan error, 1)
+	go func() { finished <- a.ensureFresh(context.Background(), 2) }()
+	<-entered
+	read := make(chan int, 1)
+	go func() {
+		code, _, _ := call(t, a, "GET", "/api/users/"+uid, token, nil)
+		read <- code
+	}()
+	select {
+	case code := <-read:
+		if code != 200 {
+			t.Fatalf("local profile read: %d", code)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("local read waited for another region's barrier")
+	}
+	once.Do(func() { close(release) })
+	if err := <-finished; err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	oldSecret := transportSecret
@@ -128,7 +170,14 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	visible := make(chan map[string]any, 1)
-	go func() { _, value, _ := call(t, a, "GET", "/api/users/"+uid, viewer, nil); visible <- value }()
+	go func() {
+		if err := a.ensureFresh(context.Background(), 2); err != nil {
+			visible <- nil
+			return
+		}
+		_, value, _ := call(t, a, "GET", "/api/users/"+uid, viewer, nil)
+		visible <- value
+	}()
 	select {
 	case value := <-visible:
 		if value["displayName"] != "before" {
@@ -165,7 +214,7 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	if err := europe.commit([]masterTransaction{{Epoch: europe.epoch, ID: id(), Source: "europe", Sequence: 2, Changes: []change{masterChange(t, "session", tokenChange{token, ""}), masterChange(t, "session", tokenChange{newToken, uid})}}}); err != nil {
 		t.Fatal(err)
 	}
-	requireCall(t, restored, "GET", "/api/users/"+uid, viewer, nil, 200)
+	requireCall(t, restored, "GET", "/api/users/"+uid, newToken, nil, 403)
 	if restored.s.Sessions.Get(token) != "" || restored.s.Sessions.Get(newToken) != uid {
 		t.Fatal("read barrier did not recover a locally committed session")
 	}

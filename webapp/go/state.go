@@ -169,7 +169,7 @@ type appCore struct {
 	initialState         *State
 	masterEpoch          string
 	mirrored             [3]uint64
-	mirror               mirrorQueue
+	mirror               [3]mirrorQueue
 	mirrorWaitNS         atomic.Uint64
 	mirrorPulls          atomic.Uint64
 	mirrorRecords        atomic.Uint64

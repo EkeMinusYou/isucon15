@@ -298,7 +298,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	a = &App{appCore: a.appCore}
 	if a.mastersEnabled && needsMirror(r) {
-		if err := a.ensureFresh(r.Context()); err != nil {
+		if err := a.ensureFresh(r.Context(), a.mirrorRegions(r)); err != nil {
 			failure(w, 503, "state_unavailable")
 			return
 		}

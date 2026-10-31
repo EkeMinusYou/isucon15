@@ -24,39 +24,74 @@ func needsMirror(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.Path, "/api/") && !strings.HasPrefix(r.URL.Path, "/api/internal/") && !strings.HasPrefix(r.URL.Path, "/api/admin/") && r.URL.Path != "/api/initialize" && r.URL.Path != "/api/auth/register"
 }
 
-// Each batch starts its master reads after every waiter in that batch arrived.
-// A later read joins the next batch, so a completed write cannot be missed.
-func (a *App) ensureFresh(ctx context.Context) error {
-	start := time.Now()
-	defer func() { a.mirrorWaitNS.Add(uint64(time.Since(start))) }()
-	done := make(chan error, 1)
-	a.mirror.mu.Lock()
-	a.mirror.waiting = append(a.mirror.waiting, done)
-	if !a.mirror.running {
-		a.mirror.running = true
-		go a.refreshLoop()
+// Only sessions, posts and post images can be changed without the coordinator.
+// All other records are synchronously published by their coordinator update.
+func (a *App) mirrorRegions(r *http.Request) uint8 {
+	mask := uint8(0)
+	add := func(region string) {
+		if code := masterRegionCode(region); code != 0 {
+			mask |= 1 << (code - 1)
+		}
 	}
-	a.mirror.mu.Unlock()
-	select {
-	case err := <-done:
-		return err
-	case <-ctx.Done():
-		return ctx.Err()
+	add(homeOfNewID(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")))
+	path := r.URL.Path
+	switch {
+	case strings.HasPrefix(path, "/api/feeds/"), strings.HasPrefix(path, "/api/comments/"), strings.HasPrefix(path, "/api/realmojis/"):
+		return 7
+	case strings.HasPrefix(path, "/api/posts/") && path != "/api/posts/me/current":
+		pid := strings.Split(strings.TrimPrefix(path, "/api/posts/"), "/")[0]
+		add(indexedHome(a.master.homes.posts, pid))
 	}
+	return mask
 }
 
-func (a *App) refreshLoop() {
+// Each region starts its read after every waiter in that batch arrived.
+// Independent queues keep unrelated regions out of the read's critical path.
+func (a *App) ensureFresh(ctx context.Context, mask uint8) error {
+	start := time.Now()
+	defer func() { a.mirrorWaitNS.Add(uint64(time.Since(start))) }()
+	done := make(chan error, len(masterRegions))
+	count := 0
+	for index := range masterRegions {
+		if mask&(1<<index) == 0 {
+			continue
+		}
+		count++
+		queue := &a.mirror[index]
+		queue.mu.Lock()
+		queue.waiting = append(queue.waiting, done)
+		if !queue.running {
+			queue.running = true
+			go a.refreshLoop(index)
+		}
+		queue.mu.Unlock()
+	}
+	for ; count > 0; count-- {
+		select {
+		case err := <-done:
+			if err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
+}
+
+func (a *App) refreshLoop(index int) {
+	queue := &a.mirror[index]
 	for {
-		a.mirror.mu.Lock()
-		batch := a.mirror.waiting
-		a.mirror.waiting = nil
+		queue.mu.Lock()
+		batch := queue.waiting
+		queue.waiting = nil
 		if len(batch) == 0 {
-			a.mirror.running = false
-			a.mirror.mu.Unlock()
+			queue.running = false
+			queue.mu.Unlock()
 			return
 		}
-		a.mirror.mu.Unlock()
-		err := a.pullFresh()
+		queue.mu.Unlock()
+		err := a.pullFresh(index)
 		for _, done := range batch {
 			done <- err
 		}
@@ -84,73 +119,51 @@ func (a *App) fetchMaster(epoch, region string, after uint64) (masterPull, error
 	return result, nil
 }
 
-func (a *App) pullFresh() error {
+func (a *App) pullFresh(index int) error {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	epoch := a.masterEpoch
-	var records [3][]masterTransaction
-	var errs [3]error
-	var group sync.WaitGroup
-	for index, region := range masterRegions {
-		group.Add(1)
-		go func(index int, region string) {
-			defer group.Done()
-			cursor := a.mirrored[index]
-			var target uint64
-			first := true
-			for {
-				result, err := a.fetchMaster(epoch, region, cursor)
-				if err != nil {
-					errs[index] = err
-					return
-				}
-				if result.Epoch != epoch || result.Through < cursor {
-					errs[index] = fmt.Errorf("invalid master cursor")
-					return
-				}
-				if first {
-					target = result.Head
-					first = false
-				}
-				for _, txn := range result.Transactions {
-					if txn.Source != region || txn.Epoch != epoch || txn.Sequence != cursor+1 {
-						errs[index] = fmt.Errorf("invalid master sequence")
-						return
-					}
-					records[index] = append(records[index], txn)
-					cursor = txn.Sequence
-				}
-				if cursor != result.Through {
-					errs[index] = fmt.Errorf("incomplete master batch")
-					return
-				}
-				if cursor >= target {
-					return
-				}
-				if len(result.Transactions) == 0 {
-					errs[index] = fmt.Errorf("master made no progress")
-					return
-				}
-			}
-		}(index, region)
-	}
-	group.Wait()
-	for _, err := range errs {
+	region := masterRegions[index]
+	var records []masterTransaction
+	cursor := a.mirrored[index]
+	var target uint64
+	first := true
+	for {
+		result, err := a.fetchMaster(epoch, region, cursor)
 		if err != nil {
 			return err
 		}
-	}
-	var buffer bytes.Buffer
-	count := 0
-	for _, batch := range records {
-		for _, txn := range batch {
-			if err := json.NewEncoder(&buffer).Encode(txn); err != nil {
-				return err
+		if result.Epoch != epoch || result.Through < cursor {
+			return fmt.Errorf("invalid master cursor")
+		}
+		if first {
+			target = result.Head
+			first = false
+		}
+		for _, txn := range result.Transactions {
+			if txn.Source != region || txn.Epoch != epoch || txn.Sequence != cursor+1 {
+				return fmt.Errorf("invalid master sequence")
 			}
-			count++
+			records = append(records, txn)
+			cursor = txn.Sequence
+		}
+		if cursor != result.Through {
+			return fmt.Errorf("incomplete master batch")
+		}
+		if cursor >= target {
+			break
+		}
+		if len(result.Transactions) == 0 {
+			return fmt.Errorf("master made no progress")
 		}
 	}
-	if count == 0 {
+	var buffer bytes.Buffer
+	for _, txn := range records {
+		if err := json.NewEncoder(&buffer).Encode(txn); err != nil {
+			return err
+		}
+	}
+	if len(records) == 0 {
 		return nil
 	}
 	// Regional events only change owned sessions, posts and their new images.
@@ -166,16 +179,14 @@ func (a *App) pullFresh() error {
 	}
 	a.viewMu.Lock()
 	defer a.viewMu.Unlock()
-	for index, batch := range records {
-		for _, txn := range batch {
-			for _, change := range txn.Changes {
-				if err := a.appCore.s.apply(change.Kind, change.Data); err != nil {
-					return err
-				}
+	for _, txn := range records {
+		for _, change := range txn.Changes {
+			if err := a.appCore.s.apply(change.Kind, change.Data); err != nil {
+				return err
 			}
-			a.mirrored[index] = txn.Sequence
 		}
+		a.mirrored[index] = txn.Sequence
 	}
-	a.mirrorRecords.Add(uint64(count))
+	a.mirrorRecords.Add(uint64(len(records)))
 	return nil
 }
