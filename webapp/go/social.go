@@ -2,11 +2,11 @@ package main
 
 import (
 	"archive/zip"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -342,42 +342,54 @@ func (a *App) export(w http.ResponseWriter, r *http.Request, u *Account) {
 	}
 	responseWork(w, func(w http.ResponseWriter) {
 		prefetchImageSignatures(r.Context(), items)
-		var buf bytes.Buffer
-		zw := zip.NewWriter(&buf)
-		for n, im := range images {
-			f, e := zw.CreateHeader(&zip.FileHeader{Name: fmt.Sprintf("images/%06d.jpg", n+1), Method: zip.Store})
-			if e != nil {
-				failure(w, 500, "export_failed")
-				return
-			}
-			src, off, e := a.imageReader(&im)
-			if e != nil {
-				failure(w, 500, "export_failed")
-				return
-			}
-			_, e = io.Copy(f, io.NewSectionReader(src, off, im.Size))
-			src.Close()
-			if e != nil {
-				failure(w, 500, "export_failed")
-				return
-			}
-		}
-		f, e := zw.Create("posts.json")
-		if e == nil {
-			e = json.NewEncoder(f).Encode(items)
-		}
+		metadata, e := json.Marshal(items)
 		if e != nil {
 			failure(w, 500, "export_failed")
 			return
 		}
-		if e = zw.Close(); e != nil {
-			failure(w, 500, "export_failed")
-			return
+		metadata = append(metadata, '\n')
+		type source struct {
+			file         *os.File
+			offset, size int64
+		}
+		sources := make([]source, 0, len(images))
+		defer func() {
+			for _, src := range sources {
+				src.file.Close()
+			}
+		}()
+		// Resolve every file before committing ZIP response headers.
+		for _, im := range images {
+			file, offset, err := a.imageReader(&im)
+			if err != nil {
+				failure(w, 500, "export_failed")
+				return
+			}
+			sources = append(sources, source{file, offset, im.Size})
 		}
 		w.Header().Set("Content-Type", "application/zip")
 		w.Header().Set("Content-Disposition", `attachment; filename="isureal-posts.zip"`)
 		w.Header().Set("Cache-Control", "no-store")
-		w.Write(buf.Bytes())
+		zw := zip.NewWriter(w)
+		for n, src := range sources {
+			f, err := zw.CreateHeader(&zip.FileHeader{Name: fmt.Sprintf("images/%06d.jpg", n+1), Method: zip.Store})
+			if err != nil {
+				panic(http.ErrAbortHandler)
+			}
+			if _, err = io.Copy(f, io.NewSectionReader(src.file, src.offset, src.size)); err != nil {
+				panic(http.ErrAbortHandler)
+			}
+		}
+		f, e := zw.Create("posts.json")
+		if e == nil {
+			_, e = f.Write(metadata)
+		}
+		if e != nil {
+			panic(http.ErrAbortHandler)
+		}
+		if e = zw.Close(); e != nil {
+			panic(http.ErrAbortHandler)
+		}
 	})
 }
 func relationJSON(v *Relation) object {
