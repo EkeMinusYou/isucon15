@@ -317,6 +317,9 @@ func (m *regionalMaster) commitLocked(txns []masterTransaction) error {
 			return fmt.Errorf("invalid local transaction sequence")
 		}
 		for _, c := range txn.Changes {
+			if txn.Source != "" && c.Kind != "session" && c.Kind != "post" && c.Kind != "image" {
+				return fmt.Errorf("invalid regional event kind %q", c.Kind)
+			}
 			if err := m.validate(c); err != nil {
 				return err
 			}

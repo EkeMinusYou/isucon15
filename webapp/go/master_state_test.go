@@ -53,7 +53,7 @@ func TestRegionalMasterDurabilityAndEpoch(t *testing.T) {
 	if err := m.commit([]masterTransaction{{ID: id(), Changes: []change{masterChange(t, "account", u)}}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := m.commit([]masterTransaction{{ID: id(), Source: "asia", Sequence: 1, Changes: []change{masterChange(t, "account", u)}}}); err != nil {
+	if err := m.commit([]masterTransaction{{ID: id(), Source: "asia", Sequence: 1, Changes: []change{masterChange(t, "session", tokenChange{token, uid})}}}); err != nil {
 		t.Fatal(err)
 	}
 	m.close()

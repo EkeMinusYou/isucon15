@@ -153,8 +153,11 @@ func (a *App) pullFresh() error {
 	if count == 0 {
 		return nil
 	}
-	a.globalGate.Lock()
-	defer a.globalGate.Unlock()
+	// Regional events only change owned sessions, posts and their new images.
+	// Exclude window switches, but do not drain unrelated resource updates.
+	// The committed-view lock makes the publication itself atomic.
+	a.globalGate.RLock()
+	defer a.globalGate.RUnlock()
 	a.journalMu.Lock()
 	_, err := a.journal.Write(buffer.Bytes())
 	a.journalMu.Unlock()

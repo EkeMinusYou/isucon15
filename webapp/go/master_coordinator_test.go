@@ -123,12 +123,19 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("master commit was not reached")
 	}
+	duringToken := idInRegion("europe")
+	if err := europe.commit([]masterTransaction{{Epoch: europe.epoch, ID: id(), Source: "europe", Sequence: 1, Changes: []change{masterChange(t, "session", tokenChange{duringToken, uid})}}}); err != nil {
+		t.Fatal(err)
+	}
 	visible := make(chan map[string]any, 1)
 	go func() { _, value, _ := call(t, a, "GET", "/api/users/"+uid, viewer, nil); visible <- value }()
 	select {
 	case value := <-visible:
 		if value["displayName"] != "before" {
 			t.Fatal("uncommitted master update leaked")
+		}
+		if a.appCore.s.Sessions.Get(duringToken) != uid {
+			t.Fatal("regional publication waited for an unrelated prepared update")
 		}
 	case <-time.After(time.Second):
 		t.Fatal("master RPC blocked unrelated committed reads")
@@ -155,7 +162,7 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 		t.Fatal("coordinator intent replay lost master state")
 	}
 	newToken := idInRegion("europe")
-	if err := europe.commit([]masterTransaction{{Epoch: europe.epoch, ID: id(), Source: "europe", Sequence: 1, Changes: []change{masterChange(t, "session", tokenChange{token, ""}), masterChange(t, "session", tokenChange{newToken, uid})}}}); err != nil {
+	if err := europe.commit([]masterTransaction{{Epoch: europe.epoch, ID: id(), Source: "europe", Sequence: 2, Changes: []change{masterChange(t, "session", tokenChange{token, ""}), masterChange(t, "session", tokenChange{newToken, uid})}}}); err != nil {
 		t.Fatal(err)
 	}
 	requireCall(t, restored, "GET", "/api/users/"+uid, viewer, nil, 200)
