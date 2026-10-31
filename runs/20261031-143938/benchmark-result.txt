@@ -1,0 +1,60 @@
+time=2026-10-31T05:39:47.693Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T05:39:50.669Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T05:39:53.667Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T05:39:54.941Z level=INFO msg="user moved" user=reeva5085 from=europe to=asia
+time=2026-10-31T05:39:56.703Z level=INFO msg="asia 2 日目: 53 人"
+time=2026-10-31T05:39:59.671Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T05:39:59.874Z level=INFO msg="user moved" user=noivyri.5323 from=asia to=europe
+time=2026-10-31T05:39:59.980Z level=INFO msg="user moved" user=reeva5085 from=asia to=europe
+time=2026-10-31T05:40:00.841Z level=INFO msg="user moved" user=rifu-5404 from=asia to=america
+time=2026-10-31T05:40:02.746Z level=INFO msg="america 2 日目: 20 人"
+time=2026-10-31T05:40:05.826Z level=INFO msg="asia 3 日目: 154 人"
+time=2026-10-31T05:40:08.854Z level=INFO msg="europe 3 日目: 57 人"
+time=2026-10-31T05:40:09.420Z level=INFO msg="user moved" user=solno5610 from=asia to=europe
+time=2026-10-31T05:40:09.481Z level=INFO msg="user moved" user=shidan-5948 from=asia to=america
+time=2026-10-31T05:40:10.021Z level=INFO msg="user moved" user=honaro-6187 from=asia to=america
+time=2026-10-31T05:40:11.766Z level=INFO msg="america 3 日目: 58 人"
+time=2026-10-31T05:40:14.041Z level=INFO msg="user moved" user=reeva5085 from=europe to=asia
+time=2026-10-31T05:40:14.328Z level=INFO msg="user moved" user=elto_6472 from=europe to=asia
+time=2026-10-31T05:40:14.857Z level=INFO msg="asia 4 日目: 449 人"
+time=2026-10-31T05:40:17.758Z level=INFO msg="europe 4 日目: 149 人"
+time=2026-10-31T05:40:18.035Z level=INFO msg="user moved" user=reeva5085 from=asia to=europe
+time=2026-10-31T05:40:18.555Z level=INFO msg="user moved" user=elto_6472 from=asia to=america
+time=2026-10-31T05:40:19.663Z level=INFO msg="user moved" user=homianoa_6941 from=asia to=europe
+time=2026-10-31T05:40:20.894Z level=INFO msg="america 4 日目: 127 人"
+time=2026-10-31T05:40:21.149Z level=INFO msg="user moved" user=vinhaki_7864 from=asia to=europe
+time=2026-10-31T05:40:21.255Z level=INFO msg="user moved" user=shimator-8049 from=asia to=europe
+time=2026-10-31T05:40:23.912Z level=INFO msg="asia 5 日目: 1036 人"
+time=2026-10-31T05:40:25.644Z level=INFO msg="user moved" user=honaro-6187 from=america to=asia
+time=2026-10-31T05:40:27.463Z level=INFO msg="europe 5 日目: 153 人"
+time=2026-10-31T05:40:30.265Z level=INFO msg="america 5 日目: 129 人"
+time=2026-10-31T05:40:39.046Z level=INFO msg="america 最終日（グランプリ）: 120 人"
+time=2026-10-31T05:40:39.715Z level=INFO msg="asia 最終日（グランプリ）: 1021 人"
+time=2026-10-31T05:40:39.848Z level=INFO msg="europe 最終日（グランプリ）: 142 人"
+time=2026-10-31T05:40:47.718Z level=INFO msg="グランプリ: アジア 501 人, ヨーロッパ 96 人, アメリカ 61 人"
+{
+  "pass": true,
+  "score": 107694,
+  "messages": [
+    "tsumo7922: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "moshito-7918: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "zoera-8119: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "dreifach_forschungsclub_709: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "sardines_en_cocotte_de_terre_2092: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "ivyandan8484: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "orwa-8573: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hanako_sato_1991: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "chireyo_8838: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "muel.8888: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "yang_liu_3571: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "na_li_4666: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "rudanta9132: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "homarlia9150: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "ting_huang_2419: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "moleo_9158: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "yui_kato_1233: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "fan_yang_1635: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "nurozoe_9268: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "liahi_9327: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
