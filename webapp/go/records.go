@@ -82,6 +82,17 @@ func (s *recordStore[T]) get(id string) *T {
 	}
 	return &v
 }
+func (s *recordStore[T]) has(id string) bool {
+	if s.live[id] != nil {
+		return true
+	}
+	key, ok := uuidKey(id)
+	if !ok {
+		return false
+	}
+	_, ok = s.index[key]
+	return ok
+}
 func (s *recordStore[T]) set(id string, v *T) { s.live[id] = v }
 func (s *recordStore[T]) add(id string, raw []byte, v *T) error {
 	key, ok := uuidKey(id)

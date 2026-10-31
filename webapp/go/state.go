@@ -129,6 +129,8 @@ type State struct {
 	Current       map[string]string
 	Posts         *recordStore[Post]
 	UserPosts     map[string][]string
+	PostPeriods   map[string][]datedPostRef
+	periodsReady  bool
 	Reactions     *recordStore[Reaction]
 	PostReactions map[string][]string
 	Comments      *recordStore[Comment]
@@ -176,6 +178,7 @@ type App struct {
 
 func emptyState() *State {
 	s := &State{imageLinks: map[[16]byte]imageLink{}, LivePosts: map[string][]string{}, Accounts: map[string]*Account{}, Names: map[string]string{}, Admins: map[string]*Administrator{}, Windows: map[string]*Window{}, Current: map[string]string{}, Posts: newRecordStore[Post](), UserPosts: map[string][]string{}, Reactions: newRecordStore[Reaction](), PostReactions: map[string][]string{}, Comments: newRecordStore[Comment](), PostComments: map[string][]string{}, Images: newRecordStore[Image](), Requests: map[string]*Relation{}, RequestOut: map[string]map[string]*Relation{}, RequestIn: map[string]map[string]*Relation{}, Friends: map[string]*Relation{}, Adj: map[string]map[string]bool{}, Follows: map[string]*Relation{}, Blocks: map[string]*Relation{}, Sessions: map[string]string{}, AdminSessions: map[string]string{}, Bans: map[string]time.Time{}, Notifications: map[string][]Notification{}}
+	s.PostPeriods = make(map[string][]datedPostRef)
 	s.Images.decorate = func(id string, im *Image) {
 		key, _ := uuidKey(id)
 		if link, ok := s.imageLinks[key]; ok {
@@ -257,6 +260,7 @@ func (s *State) apply(kind string, data []byte) error {
 		s.dayPostCache.Delete(v.AuthorID)
 		if s.Posts.get(v.ID) == nil {
 			s.UserPosts[v.AuthorID] = append(s.UserPosts[v.AuthorID], v.ID)
+			s.indexPostPeriod(&v)
 			if win := s.Windows[v.WindowID]; win != nil && win.EndedAt == nil {
 				s.LivePosts[v.AuthorID] = append(s.LivePosts[v.AuthorID], v.ID)
 			}
@@ -444,6 +448,7 @@ func (a *App) loadInitial() error {
 						return err
 					}
 					s.UserPosts[v.AuthorID] = append(s.UserPosts[v.AuthorID], v.ID)
+					s.indexPostPeriod(&v)
 					if win := s.Windows[v.WindowID]; win != nil && win.EndedAt == nil {
 						s.LivePosts[v.AuthorID] = append(s.LivePosts[v.AuthorID], v.ID)
 					}
@@ -499,6 +504,7 @@ func (a *App) loadInitial() error {
 	}
 	// Historical notifications precede all future SSE connection times. They are
 	// immutable input, and therefore need no live index or replay allocation.
+	s.finishPostPeriods()
 	complete = true
 	a.s = s
 	a.historyResidentBytes.Store(uint64(len(s.Posts.data)+len(s.Reactions.data)+len(s.Comments.data)+len(s.Images.data)) * recordChunkBytes)
@@ -602,14 +608,13 @@ func (s *State) dayPosts(u *Account) (*Post, int) {
 	}
 	var p *Post
 	deleted := 0
-	for _, pid := range s.UserPosts[u.ID] {
-		x := s.Posts.get(pid)
-		if s.Windows[x.WindowID].LocalDate == w.LocalDate {
-			if x.DeletedAt != nil {
-				deleted++
-			} else {
-				p = x
-			}
+	day := dateNumber(w.LocalDate)
+	for _, ref := range s.postsInPeriod(u.ID, day, day+1) {
+		x := s.Posts.get(ref.id)
+		if x.DeletedAt != nil {
+			deleted++
+		} else {
+			p = x
 		}
 	}
 	s.dayPostCache.Store(u.ID, dayPostState{date: w.LocalDate, post: p, deleted: deleted})

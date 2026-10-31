@@ -155,30 +155,6 @@ func (a *App) deleteInteraction(w http.ResponseWriter, r *http.Request, u *Accou
 	}
 	w.WriteHeader(204)
 }
-func (a *App) score(uid string, p *Post) int {
-	s := a.s
-	engaged := map[string]bool{}
-	for _, x := range s.PostComments[p.ID] {
-		v := s.Comments.get(x)
-		if v.DeletedAt == nil && s.active(v.AuthorID) && s.friend(uid, v.AuthorID) {
-			engaged[v.AuthorID] = true
-		}
-	}
-	for _, x := range s.PostReactions[p.ID] {
-		v := s.Reactions.get(x)
-		if v.DeletedAt == nil && v.ReplacedAt == nil && s.active(v.ReactorID) && s.friend(uid, v.ReactorID) {
-			engaged[v.ReactorID] = true
-		}
-	}
-	c := 0
-	for x := range s.Adj[p.AuthorID] {
-		c += s.common(uid, x)
-	}
-	if c > 30 {
-		c = 30
-	}
-	return 10*len(engaged) + 3*s.common(uid, p.AuthorID) + c
-}
 func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind string) {
 	if kind != "friends" && kind != "following" && kind != "public" && kind != "friends-of-friends" {
 		failure(w, 400, "invalid_post")
@@ -196,83 +172,104 @@ func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind stri
 			return
 		}
 		if sc != "" {
-			var e error
-			cs, e = strconv.Atoi(sc)
-			if e != nil {
+			var err error
+			cs, err = strconv.Atoi(sc)
+			if err != nil {
 				failure(w, 400, "invalid_pagination")
 				return
 			}
 		}
 	}
 	type entry struct {
-		p *Post
-		s int
+		post    postSnapshot
+		author  string
+		engaged []string
+		score   int
 	}
 	xs := []entry{}
 	s := a.s
-	// Only the active windows can contribute visible posts, independent of history size.
-	for aid := range s.LivePosts {
+	var ranking *rankingSnapshot
+	if kind == "friends-of-friends" {
+		ranking = s.snapshotRanking(u.ID)
+	}
+	for aid, ids := range s.LivePosts {
 		author := s.Accounts[aid]
 		if author.ID == u.ID || author.Status != "active" {
 			continue
 		}
-		match := kind == "public" || kind == "friends" && s.friend(u.ID, author.ID) || kind == "following" && s.Follows[directed(u.ID, author.ID)] != nil || kind == "friends-of-friends" && !s.friend(u.ID, author.ID) && s.common(u.ID, author.ID) > 0
+		match := kind == "public" || kind == "friends" && s.friend(u.ID, aid) || kind == "following" && s.Follows[directed(u.ID, aid)] != nil || kind == "friends-of-friends" && !s.friend(u.ID, aid) && s.common(u.ID, aid) > 0
 		if !match {
 			continue
 		}
-		for _, pid := range s.LivePosts[author.ID] {
+		for _, pid := range ids {
 			p := s.Posts.get(pid)
 			if s.Windows[p.WindowID].EndedAt != nil || !s.view(u, p) || kind == "public" && p.Visibility != "public" {
 				continue
 			}
-			score := 0
-			if kind == "friends-of-friends" {
-				score = a.score(u.ID, p)
-			}
-			if ci != "" {
-				if kind == "friends-of-friends" {
-					if score > cs || score == cs && !before(p.PostedAt, p.ID, ct, ci) {
-						continue
+			x := entry{post: a.snapshotPost(p), author: aid}
+			if ranking != nil {
+				ranking.capture(s, aid)
+				for _, id := range ranking.graph[aid] {
+					ranking.capture(s, id)
+				}
+				for _, id := range s.PostComments[pid] {
+					c := s.Comments.get(id)
+					if c.DeletedAt == nil && s.active(c.AuthorID) {
+						x.engaged = append(x.engaged, c.AuthorID)
 					}
-				} else if !before(p.PostedAt, p.ID, ct, ci) {
-					continue
+				}
+				for _, id := range s.PostReactions[pid] {
+					v := s.Reactions.get(id)
+					if v.DeletedAt == nil && v.ReplacedAt == nil && s.active(v.ReactorID) {
+						x.engaged = append(x.engaged, v.ReactorID)
+					}
 				}
 			}
-			xs = append(xs, entry{p, score})
+			xs = append(xs, x)
 		}
 	}
-	sort.Slice(xs, func(i, j int) bool {
-		if xs[i].s != xs[j].s {
-			return xs[i].s > xs[j].s
+	responseWork(w, func(w http.ResponseWriter) {
+		for i := range xs {
+			if ranking != nil {
+				xs[i].score = ranking.score(xs[i].author, xs[i].engaged)
+			}
 		}
-		return before(xs[j].p.PostedAt, xs[j].p.ID, xs[i].p.PostedAt, xs[i].p.ID)
+		sort.Slice(xs, func(i, j int) bool {
+			if xs[i].score != xs[j].score {
+				return xs[i].score > xs[j].score
+			}
+			return before(xs[j].post.postedAt, xs[j].post.id, xs[i].post.postedAt, xs[i].post.id)
+		})
+		items := []object{}
+		for _, x := range xs {
+			if ci != "" && (ranking != nil && (x.score > cs || x.score == cs && !before(x.post.postedAt, x.post.id, ct, ci)) || ranking == nil && !before(x.post.postedAt, x.post.id, ct, ci)) {
+				continue
+			}
+			v := x.post.object()
+			if ranking != nil {
+				v["score"] = x.score
+			}
+			items = append(items, v)
+			if len(items) == 51 {
+				break
+			}
+		}
+		prefetchImageSignatures(r.Context(), items)
+		page(w, items)
 	})
-	items := []object{}
-	for _, x := range xs {
-		v := a.post(x.p)
-		if kind == "friends-of-friends" {
-			v["score"] = x.s
-		}
-		items = append(items, v)
-		if len(items) == 51 {
-			break
-		}
-	}
-	page(w, items)
 }
 func (a *App) memories(w http.ResponseWriter, r *http.Request, u *Account) {
 	if r.Method != "GET" {
 		failure(w, 405, "method_not_allowed")
 		return
 	}
-	key := r.URL.Query().Get("month")
-	layout := "2006-01"
+	key, layout := r.URL.Query().Get("month"), "2006-01"
 	if r.URL.Path != "/api/memories" {
 		key = strings.TrimPrefix(r.URL.Path, "/api/memories/")
 		layout = "2006-01-02"
 	}
-	t, e := time.Parse(layout, key)
-	if e != nil || t.Format(layout) != key {
+	t, err := time.Parse(layout, key)
+	if err != nil || t.Format(layout) != key {
 		failure(w, 400, "invalid_memory_period")
 		return
 	}
@@ -280,67 +277,104 @@ func (a *App) memories(w http.ResponseWriter, r *http.Request, u *Account) {
 	if !ok {
 		return
 	}
-	ps := a.ownPosts(u, false)
-	items := []object{}
-	for _, p := range ps {
-		if !strings.HasPrefix(a.s.Windows[p.WindowID].LocalDate, key) || !before(p.PostedAt, p.ID, ct, ci) {
+	end := t.AddDate(0, 1, 0)
+	if layout == "2006-01-02" {
+		end = t.AddDate(0, 0, 1)
+	}
+	type memory struct {
+		post      postSnapshot
+		comments  []commentSnapshot
+		reactions []reactionSnapshot
+	}
+	memories := []memory{}
+	for _, ref := range a.s.postsInPeriod(u.ID, dateNumber(t.Format("2006-01-02")), dateNumber(end.Format("2006-01-02"))) {
+		p := a.s.Posts.get(ref.id)
+		if p.DeletedAt != nil {
 			continue
 		}
-		v := a.post(p)
-		cs := []object{}
-		rs := []object{}
-		for _, c := range a.listComments(p.ID) {
-			cs = append(cs, a.comment(c))
-			if len(cs) == 50 {
+		m := memory{post: a.snapshotPost(p)}
+		for _, id := range a.s.PostComments[p.ID] {
+			c := a.s.Comments.get(id)
+			if c.DeletedAt == nil && a.s.active(c.AuthorID) {
+				m.comments = append(m.comments, a.snapshotComment(c))
+			}
+		}
+		for _, id := range a.s.PostReactions[p.ID] {
+			v := a.s.Reactions.get(id)
+			if v.DeletedAt == nil && v.ReplacedAt == nil && a.s.active(v.ReactorID) {
+				m.reactions = append(m.reactions, a.snapshotReaction(v))
+			}
+		}
+		memories = append(memories, m)
+	}
+	responseWork(w, func(w http.ResponseWriter) {
+		sort.Slice(memories, func(i, j int) bool {
+			return before(memories[j].post.postedAt, memories[j].post.id, memories[i].post.postedAt, memories[i].post.id)
+		})
+		items := []object{}
+		for _, m := range memories {
+			if !before(m.post.postedAt, m.post.id, ct, ci) {
+				continue
+			}
+			sort.Slice(m.comments, func(i, j int) bool {
+				return after(m.comments[j].createdAt, m.comments[j].id, m.comments[i].createdAt, m.comments[i].id)
+			})
+			sort.Slice(m.reactions, func(i, j int) bool {
+				return before(m.reactions[j].createdAt, m.reactions[j].id, m.reactions[i].createdAt, m.reactions[i].id)
+			})
+			cs, rs := []object{}, []object{}
+			for _, c := range m.comments {
+				cs = append(cs, c.object())
+				if len(cs) == 50 {
+					break
+				}
+			}
+			for _, v := range m.reactions {
+				rs = append(rs, v.object())
+				if len(rs) == 50 {
+					break
+				}
+			}
+			v := m.post.object()
+			v["comments"], v["realmojis"] = cs, rs
+			items = append(items, v)
+			if len(items) == 51 {
 				break
 			}
 		}
-		for _, c := range a.listReactions(p.ID) {
-			rs = append(rs, a.reaction(c))
-			if len(rs) == 50 {
-				break
-			}
-		}
-		v["comments"] = cs
-		v["realmojis"] = rs
-		items = append(items, v)
-		if len(items) == 51 {
-			break
-		}
-	}
-	page(w, items)
-}
-func (a *App) ownPosts(u *Account, asc bool) []*Post {
-	ps := []*Post{}
-	for _, i := range a.s.UserPosts[u.ID] {
-		p := a.s.Posts.get(i)
-		if p.DeletedAt == nil {
-			ps = append(ps, p)
-		}
-	}
-	sort.Slice(ps, func(i, j int) bool {
-		if asc {
-			return before(ps[i].PostedAt, ps[i].ID, ps[j].PostedAt, ps[j].ID)
-		}
-		return before(ps[j].PostedAt, ps[j].ID, ps[i].PostedAt, ps[i].ID)
+		prefetchImageSignatures(r.Context(), items)
+		page(w, items)
 	})
-	return ps
 }
 func (a *App) export(w http.ResponseWriter, r *http.Request, u *Account) {
-	items := []object{}
-	images := []Image{}
-	for n, p := range a.ownPosts(u, true) {
-		v := a.post(p)
-		v["imagePath"] = fmt.Sprintf("images/%06d.jpg", n+1)
-		items = append(items, v)
+	type entry struct {
+		post  postSnapshot
+		image Image
+	}
+	entries := []entry{}
+	for _, id := range a.s.UserPosts[u.ID] {
+		p := a.s.Posts.get(id)
+		if p.DeletedAt != nil {
+			continue
+		}
 		im := a.s.Images.get(p.ImageID)
 		if im == nil {
 			failure(w, 500, "export_failed")
 			return
 		}
-		images = append(images, *im)
+		entries = append(entries, entry{a.snapshotPost(p), *im})
 	}
 	responseWork(w, func(w http.ResponseWriter) {
+		sort.Slice(entries, func(i, j int) bool {
+			return before(entries[i].post.postedAt, entries[i].post.id, entries[j].post.postedAt, entries[j].post.id)
+		})
+		items, images := []object{}, []Image{}
+		for i, e := range entries {
+			v := e.post.object()
+			v["imagePath"] = fmt.Sprintf("images/%06d.jpg", i+1)
+			items = append(items, v)
+			images = append(images, e.image)
+		}
 		prefetchImageSignatures(r.Context(), items)
 		metadata, e := json.Marshal(items)
 		if e != nil {
