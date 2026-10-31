@@ -5,9 +5,39 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestResidentRecordsCrossChunkBoundaries(t *testing.T) {
+	s := newRecordStore[Post]()
+	for n := 0; n < 3; n++ {
+		p := Post{ID: id(), Caption: strings.Repeat(string(rune('a'+n)), recordChunkBytes/2)}
+		raw, err := json.Marshal(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := s.add(p.ID, raw, &p); err != nil {
+			t.Fatal(err)
+		}
+		if got := s.get(p.ID); got == nil || got.Caption != p.Caption {
+			t.Fatal("record changed across a chunk boundary")
+		}
+		p.Caption = "updated"
+		s.set(p.ID, &p)
+		if s.get(p.ID).Caption != "updated" {
+			t.Fatal("overlay did not replace resident record")
+		}
+	}
+	if len(s.data) != 3 {
+		t.Fatalf("expected three chunks, got %d", len(s.data))
+	}
+	s.close()
+	if len(s.data) != 0 {
+		t.Fatal("resident storage was not released")
+	}
+}
 
 func TestHistoricalOverlayRestoresAndInitializes(t *testing.T) {
 	a := fixtureApp(t)

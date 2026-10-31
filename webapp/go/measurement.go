@@ -60,6 +60,7 @@ func (a *App) snapshot() measurement.Snapshot {
 		entropy = 1
 	}
 	m := map[string]any{
+		"app_history_resident_bytes":     a.historyResidentBytes.Load(),
 		"app_jpeg_entropy_validation":    entropy,
 		"app_jpeg_queue_depth":           jpegQueued.Load(),
 		"app_jpeg_active":                jpegActive.Load(),

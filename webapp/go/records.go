@@ -1,18 +1,16 @@
 package main
 
 import (
-	"bufio"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"os"
-
-	"golang.org/x/sys/unix"
 )
 
-// Historical rows stay in a read-only mapping. The fixed-width index contains
-// no Go pointers, so allocation-heavy requests do not repeatedly trace history.
+// Historical rows stay in resident byte chunks. Neither their contents nor
+// the fixed-width index require pointer tracing by the garbage collector.
 // Mutations are an overlay, persisted by the existing journal.
+const recordChunkBytes = 4 << 20
+
 type recordSpan struct {
 	Offset uint64
 	Length uint32
@@ -20,10 +18,7 @@ type recordSpan struct {
 type recordStore[T any] struct {
 	live     map[string]*T
 	index    map[[16]byte]recordSpan
-	data     []byte
-	file     *os.File
-	writer   *bufio.Writer
-	offset   uint64
+	data     [][]byte
 	decorate func(string, *T)
 }
 
@@ -75,7 +70,8 @@ func (s *recordStore[T]) get(id string) *T {
 		return nil
 	}
 	var v T
-	if err := json.Unmarshal(s.data[span.Offset:span.Offset+uint64(span.Length)], &v); err != nil {
+	chunk, offset := span.Offset/recordChunkBytes, span.Offset%recordChunkBytes
+	if err := json.Unmarshal(s.data[chunk][offset:offset+uint64(span.Length)], &v); err != nil {
 		panic(fmt.Errorf("decode immutable record: %w", err))
 	}
 	if s.decorate != nil {
@@ -84,59 +80,27 @@ func (s *recordStore[T]) get(id string) *T {
 	return &v
 }
 func (s *recordStore[T]) set(id string, v *T) { s.live[id] = v }
-func (s *recordStore[T]) start(dir string) error {
-	f, err := os.CreateTemp(dir, "history-*.jsonl")
-	if err != nil {
-		return err
-	}
-	s.file = f
-	s.writer = bufio.NewWriterSize(f, 1<<20)
-	return nil
-}
 func (s *recordStore[T]) add(id string, raw []byte, v *T) error {
 	key, ok := uuidKey(id)
 	if !ok {
 		s.set(id, v)
 		return nil
 	}
-	if _, err := s.writer.Write(raw); err != nil {
-		return err
+	if len(raw) > recordChunkBytes {
+		return fmt.Errorf("historical record exceeds chunk size: %d", len(raw))
 	}
-	s.index[key] = recordSpan{s.offset, uint32(len(raw))}
-	s.offset += uint64(len(raw))
+	n := len(s.data) - 1
+	if n < 0 || len(s.data[n])+len(raw) > recordChunkBytes {
+		s.data = append(s.data, make([]byte, 0, recordChunkBytes))
+		n++
+	}
+	offset := uint64(n)*recordChunkBytes + uint64(len(s.data[n]))
+	s.data[n] = append(s.data[n], raw...)
+	s.index[key] = recordSpan{offset, uint32(len(raw))}
 	return nil
 }
-func (s *recordStore[T]) finish() error {
-	if err := s.writer.Flush(); err != nil {
-		return err
-	}
-	if s.offset != 0 {
-		data, err := unix.Mmap(int(s.file.Fd()), 0, int(s.offset), unix.PROT_READ, unix.MAP_SHARED)
-		if err != nil {
-			return err
-		}
-		s.data = data
-	}
-	name := s.file.Name()
-	err := s.file.Close()
-	s.file = nil
-	s.writer = nil
-	if err != nil {
-		return err
-	}
-	return os.Remove(name)
-}
 func (s *recordStore[T]) close() {
-	if s.data != nil {
-		unix.Munmap(s.data)
-		s.data = nil
-	}
-	if s.file != nil {
-		name := s.file.Name()
-		s.file.Close()
-		os.Remove(name)
-		s.file = nil
-	}
+	s.data = nil
 }
 func (s *recordStore[T]) len() int { return len(s.index) + len(s.live) }
 

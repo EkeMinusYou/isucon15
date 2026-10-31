@@ -167,6 +167,7 @@ type App struct {
 	signatureResets      atomic.Uint64
 	signatureNS          atomic.Uint64
 	remoteSignatures     atomic.Uint64
+	historyResidentBytes atomic.Uint64
 	routeMetrics         [7]requestMetrics
 	requests             uint64
 	writes               uint64
@@ -403,22 +404,12 @@ func loadLines(path string, fn func([]byte) error) error {
 }
 func (a *App) loadInitial() error {
 	s := emptyState()
-	stores := []interface {
-		start(string) error
-		finish() error
-		close()
-	}{s.Posts, s.Reactions, s.Comments, s.Images}
 	complete := false
 	defer func() {
 		if !complete {
 			s.closeHistory()
 		}
 	}()
-	for _, store := range stores {
-		if err := store.start(a.durable); err != nil {
-			return err
-		}
-	}
 	pool := map[string]string{}
 	intern := func(x string) string {
 		if y, ok := pool[x]; ok {
@@ -507,13 +498,9 @@ func (a *App) loadInitial() error {
 	}
 	// Historical notifications precede all future SSE connection times. They are
 	// immutable input, and therefore need no live index or replay allocation.
-	for _, store := range stores {
-		if err := store.finish(); err != nil {
-			return err
-		}
-	}
 	complete = true
 	a.s = s
+	a.historyResidentBytes.Store(uint64(len(s.Posts.data)+len(s.Reactions.data)+len(s.Comments.data)+len(s.Images.data)) * recordChunkBytes)
 	return nil
 }
 func newApp(initial, durable string) (*App, error) {
