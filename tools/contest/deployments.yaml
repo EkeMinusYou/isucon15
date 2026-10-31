@@ -2,6 +2,18 @@ include:
   - ../deployctl/deployments.yaml
 
 deployments:
+  maintenance-off:
+    uploads:
+      - label: contest OS maintenance policy
+        role: all
+        local: tools/contest/maintenance.sh
+        remote: /usr/local/bin/isureal-maintenance
+        validate: sh -n /usr/local/bin/isureal-maintenance
+        verify_required: true
+    activations:
+      - label: stop unrelated OS maintenance and hold Snap updates
+        role: all
+        script: sudo sh /usr/local/bin/isureal-maintenance apply
   initial-data-version:
     uploads:
       - label: installed initial data version
@@ -53,7 +65,8 @@ deployments:
 plans:
   deploy-all:
     deployments:
-      roles-off: {}
+      maintenance-off: {}
+      roles-off: {needs: [maintenance-off]}
       sysctl: {needs: [roles-off]}
       transport-key: {needs: [roles-off]}
       static: {needs: [roles-off]}
@@ -66,3 +79,6 @@ plans:
   initial-version:
     deployments:
       initial-data-version: {}
+  maintenance:
+    deployments:
+      maintenance-off: {}

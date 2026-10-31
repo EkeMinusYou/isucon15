@@ -10,6 +10,21 @@
 version: '3'
 
 tasks:
+  deploy-maintenance:
+    desc: 競技に不要なOS保守を全ホストで停止しSnap自動更新を保留
+    preconditions:
+      - sh: test ! -f '{{.RUN_STATE_FILE}}'
+        msg: active benchmark exists
+    deps: [build-deployctl]
+    cmds:
+      - '{{.OPERATION_LOCK}} {{.DEPLOYCTL_DIR}}/deployctl apply-plan maintenance -config {{.DEPLOYCTL_CONFIG}} {{.DEPLOYCTL_COMMON}}'
+
+  check-maintenance:
+    desc: OS保守の停止と競技に必要な基盤の維持を読み取り確認
+    cmds:
+      - for: { var: ALL_HOSTS }
+        cmd: '{{.SSH}} {{.SSH_USER}}@{{.ITEM}} "sudo sh /usr/local/bin/isureal-maintenance check"'
+
   build-contest-assets:
     desc: アプリbuildに付随する競技固有binaryをビルドする（buildのhook、既定は何もしない）
 
