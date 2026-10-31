@@ -1,0 +1,56 @@
+time=2026-10-31T03:29:23.618Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:29:26.601Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:29:29.598Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:29:32.625Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T03:29:32.775Z level=INFO msg="user moved" user=reis.5156 from=asia to=america
+time=2026-10-31T03:29:33.712Z level=INFO msg="user moved" user=nuhe_5212 from=asia to=europe
+time=2026-10-31T03:29:35.601Z level=INFO msg="europe 2 日目: 21 人"
+time=2026-10-31T03:29:37.434Z level=INFO msg="user moved" user=reis.5156 from=america to=asia
+time=2026-10-31T03:29:38.598Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T03:29:39.995Z level=INFO msg="user moved" user=else.5432 from=europe to=america
+time=2026-10-31T03:29:41.145Z level=INFO msg="user moved" user=torneke-5469 from=america to=europe
+time=2026-10-31T03:29:41.621Z level=INFO msg="asia 3 日目: 145 人"
+time=2026-10-31T03:29:44.254Z level=INFO msg="user moved" user=sochidan5323 from=asia to=america
+time=2026-10-31T03:29:44.601Z level=INFO msg="europe 3 日目: 54 人"
+time=2026-10-31T03:29:47.598Z level=INFO msg="america 3 日目: 51 人"
+time=2026-10-31T03:29:48.601Z level=INFO msg="user moved" user=reis.5156 from=asia to=america
+time=2026-10-31T03:29:50.581Z level=INFO msg="user moved" user=else.5432 from=america to=asia
+time=2026-10-31T03:29:50.761Z level=INFO msg="asia 4 日目: 424 人"
+time=2026-10-31T03:29:55.423Z level=INFO msg="user moved" user=saru7322 from=asia to=europe
+time=2026-10-31T03:29:58.486Z level=INFO msg="user moved" user=else.5432 from=asia to=europe
+time=2026-10-31T03:29:58.672Z level=INFO msg="user moved" user=saru7322 from=europe to=america
+time=2026-10-31T03:29:59.219Z level=INFO msg="user moved" user=nuhe_5212 from=europe to=america
+time=2026-10-31T03:29:59.571Z level=INFO msg="europe 4 日目: 133 人"
+time=2026-10-31T03:29:59.582Z level=INFO msg="america 4 日目: 114 人"
+time=2026-10-31T03:29:59.590Z level=INFO msg="user moved" user=miahichi-8434 from=asia to=america
+time=2026-10-31T03:30:00.931Z level=INFO msg="user moved" user=rako_7598 from=asia to=america
+time=2026-10-31T03:30:01.342Z level=INFO msg="asia 5 日目: 1013 人"
+time=2026-10-31T03:30:01.457Z level=INFO msg="user moved" user=heru-7608 from=asia to=europe
+time=2026-10-31T03:30:13.983Z level=INFO msg="user moved" user=kior.8773 from=america to=asia
+time=2026-10-31T03:30:23.627Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 111283,
+  "messages": [
+    "america の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "europe の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "tomeshi-9916: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "waben10284: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "dankoel.10539: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "rileoke_9534: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "minjun_kim_323: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "liahe_8938: 認定公開アカウントをフォローできません: PUT /api/follows/c830739c-4b94-483b-aa54-7abb6c940a97: 応答がタイムアウトしました",
+    "solmar-9836: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "seru8170: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "tema_8124: 投稿できません: POST /api/posts: 応答がタイムアウトしました",
+    "hekone.10772: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "marso_10801: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "rumarte_10903: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "kikomu_11009: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "ninoamax.10975: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "teuripeul_yeongu_128: ログアウトできません: POST /api/auth/logout: 応答がタイムアウトしました",
+    "duncai_ayi_3685: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "min_zhang_3864: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "maraso-10559: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました"
+  ]
+}
