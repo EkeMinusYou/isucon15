@@ -45,8 +45,8 @@ func TestPostImageCachePreservesExpiryAndRevocation(t *testing.T) {
 	upload(t, a, "/api/posts", other, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
 	reaction := upload(t, a, "/api/posts/"+post["id"].(string)+"/realmojis", other, map[string]string{"reactionType": "like"}, 201)
 	status, _, w = call(t, a, "GET", reaction["imageUrl"].(string), "", nil)
-	if status != 200 || w.Header().Get("Cache-Control") != "no-store" {
-		t.Fatal("reaction cache policy changed")
+	if status != 200 || w.Header().Get("Cache-Control") != "private, no-cache" || w.Header().Get("ETag") == "" {
+		t.Fatal("reaction must be revalidated before reuse")
 	}
 
 	requireCall(t, a, "DELETE", "/api/posts/"+post["id"].(string), token, nil, 204)

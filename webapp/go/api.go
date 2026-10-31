@@ -818,27 +818,49 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			return
 		}
 		defer f.Close()
+		// Signature work and opening storage can wait. Recheck immediately
+		// before publishing a cacheable response or evaluating its validator.
+		a.lockSnapshot()
+		current := a.s.Images.get(i)
+		cacheable := a.validImage(current)
+		checkedAt := time.Now()
+		a.unlockSnapshot()
+		if !cacheable || exp <= checkedAt.Unix() {
+			failure(w, 403, "image_forbidden")
+			return
+		}
+		w.Header().Set("Date", checkedAt.UTC().Format(http.TimeFormat))
 		if copyImage.Kind == 'p' {
-			// Signature work and opening storage can wait. Recheck immediately
-			// before publishing a cacheable response, with a matching Date.
-			a.lockSnapshot()
-			current := a.s.Images.get(i)
-			cacheable := a.validImage(current)
-			checkedAt := time.Now()
-			a.unlockSnapshot()
-			if !cacheable || exp <= checkedAt.Unix() {
-				failure(w, 403, "image_forbidden")
+			maxAge := min(int64(5), exp-checkedAt.Unix())
+			w.Header().Set("Cache-Control", "private, max-age="+strconv.FormatInt(maxAge, 10)+", must-revalidate")
+		} else {
+			// Image bytes are immutable for an ID; replacement creates a new ID.
+			etag := strconv.Quote("image-" + copyImage.ID)
+			w.Header().Set("ETag", etag)
+			w.Header().Set("Cache-Control", "private, no-cache")
+			if imageETagMatches(r.Header.Values("If-None-Match"), etag) {
+				w.WriteHeader(http.StatusNotModified)
 				return
 			}
-			maxAge := min(int64(5), exp-checkedAt.Unix())
-			w.Header().Set("Date", checkedAt.UTC().Format(http.TimeFormat))
-			w.Header().Set("Cache-Control", "private, max-age="+strconv.FormatInt(maxAge, 10)+", must-revalidate")
 		}
 		w.Header().Set("Content-Type", copyImage.MediaType)
 		w.Header().Set("Content-Length", strconv.FormatInt(copyImage.Size, 10))
 		io.Copy(w, io.NewSectionReader(f, off, copyImage.Size))
 	})
 }
+
+func imageETagMatches(values []string, etag string) bool {
+	for _, value := range values {
+		for _, candidate := range strings.Split(value, ",") {
+			candidate = strings.TrimSpace(candidate)
+			if candidate == "*" || strings.TrimPrefix(candidate, "W/") == etag {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func multipartImage(r *http.Request, max int) ([]byte, bool) {
 	if p, ok := r.Context().Value(uploadKey{}).(*preparedUpload); ok {
 		return p.data, p.ok
