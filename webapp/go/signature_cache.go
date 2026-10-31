@@ -53,3 +53,12 @@ func (a *App) finishSignature(key string, f *signatureFlight, value string) {
 	delete(a.signatureFlights, key)
 	close(f.done)
 }
+
+func (a *App) resetSignatureCache() {
+	a.signatureMu.Lock()
+	a.signatures = map[string]string{}
+	a.signatureOrder = nil
+	a.signatureNext = 0
+	a.signatureResets.Add(1)
+	a.signatureMu.Unlock()
+}

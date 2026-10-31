@@ -153,7 +153,8 @@ type State struct {
 }
 type App struct {
 	*appCore
-	pending []change // Owned by one request, never shared between handlers.
+	pending        []change // Owned by one request, never shared between handlers.
+	unsignedImages bool
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics
@@ -175,6 +176,7 @@ type appCore struct {
 	failures             *shardedMap[string, []time.Time]
 	signatures           map[string]string
 	signatureMu          sync.Mutex
+	localSignatureSlots  chan struct{}
 	signatureFlights     map[string]*signatureFlight
 	signatureOrder       []string
 	signatureNext        int
@@ -637,12 +639,7 @@ func (a *App) reset() error {
 	}
 	a.failures = new(shardedMap[string, []time.Time])
 	a.pending = nil
-	a.signatureMu.Lock()
-	a.signatures = map[string]string{}
-	a.signatureOrder = nil
-	a.signatureNext = 0
-	a.signatureResets.Add(1)
-	a.signatureMu.Unlock()
+	a.resetSignatureCache()
 	a.notifier.reset()
 	return resetRegionalImages()
 }
