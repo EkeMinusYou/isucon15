@@ -35,27 +35,29 @@ func (a *App) lockRequest(r *http.Request) func() {
 	}
 	a.mu.RLock()
 	keys, all := a.mutationKeys(r)
-	indices := []int{}
 	if all {
-		for i := range a.transactions {
+		// Stop admitting requests before draining the existing transactions.
+		// Walking every stripe as a writer lets new readers queue between
+		// stripes and can delay a posting-window transition indefinitely.
+		a.mu.RUnlock()
+		a.mu.Lock()
+		a.transactionRequests.Add(1)
+		a.transactionShards.Add(stateShardCount)
+		a.transactionGlobal.Add(1)
+		return a.mu.Unlock
+	}
+	indices := []int{}
+	seen := [stateShardCount]bool{}
+	for _, key := range keys {
+		i := int(stateHash(key) % stateShardCount)
+		if !seen[i] {
+			seen[i] = true
 			indices = append(indices, i)
 		}
-	} else {
-		seen := [stateShardCount]bool{}
-		for _, key := range keys {
-			i := int(stateHash(key) % stateShardCount)
-			if !seen[i] {
-				seen[i] = true
-				indices = append(indices, i)
-			}
-		}
-		sort.Ints(indices)
 	}
+	sort.Ints(indices)
 	a.transactionRequests.Add(1)
 	a.transactionShards.Add(uint64(len(indices)))
-	if all {
-		a.transactionGlobal.Add(1)
-	}
 	for _, i := range indices {
 		a.transactions[i].Lock()
 	}
