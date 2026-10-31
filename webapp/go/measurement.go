@@ -56,18 +56,14 @@ func metricRoute(path string) int {
 }
 func (a *App) snapshot() measurement.Snapshot {
 	m := map[string]any{
-		"app_snapshot_groups_total":      a.snapshots.cohorts.Load(),
-		"app_snapshot_reads_total":       a.snapshots.reads.Load(),
+		"app_state_requests_total":       a.executor.requests.Load(),
+		"app_state_wait_ns_total":        a.executor.waitNS.Load(),
+		"app_state_execution_ns_total":   a.executor.executionNS.Load(),
 		"app_image_local_total":          a.regionalImages.local.Load(),
 		"app_image_fallback_total":       a.regionalImages.fallback.Load(),
 		"app_image_local_bytes_total":    a.regionalImages.bytes.Load(),
 		"app_notification_wakeups_total": a.notifier.wakeups.Load(),
 		"app_notification_targets_total": a.notifier.targeted.Load(),
-		"app_transaction_requests_total": a.transactionRequests.Load(),
-		"app_transaction_shards_total":   a.transactionShards.Load(),
-		"app_transaction_global_total":   a.transactionGlobal.Load(),
-		"app_stripe_retries_total":       a.stripeRetries.Load(),
-		"app_journal_wait_ns_total":      a.journalWaitNS.Load(),
 		"app_journal_write_ns_total":     a.journalWriteNS.Load(),
 		"app_upload_stage_ns_total":      a.uploadStageNS.Load(),
 		"app_upload_stage_bytes_total":   a.uploadStageBytes.Load(),

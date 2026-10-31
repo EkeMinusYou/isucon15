@@ -23,6 +23,7 @@ func main() {
 	}
 	if app != nil {
 		config.Snapshot = app.snapshot
+		defer app.executor.close()
 		if app.journal != nil {
 			defer app.journal.Close()
 		}

@@ -66,7 +66,7 @@ func fixtureApp(t *testing.T) *App {
 	if e != nil {
 		t.Fatal(e)
 	}
-	t.Cleanup(func() { a.journal.Close(); a.s.closeHistory() })
+	t.Cleanup(func() { a.executor.close(); a.journal.Close(); a.s.closeHistory() })
 	a.put("admin", Administrator{ID: "admin", Username: "admin", Password: secretHash("password")})
 	a.commit()
 	return a

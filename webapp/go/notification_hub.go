@@ -23,7 +23,7 @@ type notificationSubscription struct {
 	user, region string
 }
 
-// Subscription and channel snapshots are taken while holding state locks, so
+// Subscription and channel snapshots run on the state executor, so
 // a committed state change cannot be missed between the check and the wait.
 func (h *notificationHub) subscribe(user, region string) notificationSubscription {
 	h.mu.Lock()
