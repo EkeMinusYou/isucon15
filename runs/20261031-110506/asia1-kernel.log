@@ -1,0 +1,2 @@
+# host=asia1 kernel load_window=2026-10-31T02:05:09.51416715Z..2026-10-31T02:07:11.046147358Z
+2026-10-31T02:06:45.175368+00:00 ip-192-168-1-10 kernel: ena 0000:00:05.0: Type was not set for devlink port.

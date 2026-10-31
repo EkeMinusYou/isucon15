@@ -5,3 +5,4 @@ run_id	score	app	ingress	app_traffic
 20261031-105200	28023	asia1,europe1,america1	asia1,europe1,america1	asia1,europe1,america1
 20261031-105550	30387	asia1,europe1,america1	asia1,europe1,america1	asia1,europe1,america1
 20261031-105953	35001	asia1,europe1,america1	asia1,europe1,america1	asia1,europe1,america1
+20261031-110506	45221	asia1,europe1,america1,asia2	asia1,europe1,america1	asia1,europe1,america1
