@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -81,19 +82,27 @@ func serve(ctx context.Context, config serverConfig, handler http.Handler) error
 		if prefix == "" {
 			prefix = "/static/"
 		}
-		if len(prefix) < 2 || prefix[0] != '/' || prefix[len(prefix)-1] != '/' {
-			return errors.New("STATIC_URL_PREFIX must start and end with / and must not be /")
+		if len(prefix) < 1 || prefix[0] != '/' || prefix[len(prefix)-1] != '/' {
+			return errors.New("STATIC_URL_PREFIX must start and end with /")
 		}
 		api := handler
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if len(r.URL.Path) >= len(prefix) && r.URL.Path[:len(prefix)] == prefix {
+			if len(r.URL.Path) >= len(prefix) && r.URL.Path[:len(prefix)] == prefix && !strings.HasPrefix(r.URL.Path, "/api/") && r.URL.Path != "/healthz" {
 				http.StripPrefix(prefix, static).ServeHTTP(w, r)
 				return
 			}
 			api.ServeHTTP(w, r)
 		})
 	}
-	handler = observer.Wrap(connectionPolicy(handler))
+	publicHandler := observer.Wrap(connectionPolicy(handler))
+	internalHandler := handler
+	handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isInternal(r) {
+			internalHandler.ServeHTTP(w, r)
+		} else {
+			publicHandler.ServeHTTP(w, r)
+		}
+	})
 	var servers []*http.Server
 	var listeners []net.Listener
 	defer func() {

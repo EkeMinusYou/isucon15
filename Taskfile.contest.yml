@@ -14,7 +14,9 @@ tasks:
     desc: アプリbuildに付随する競技固有binaryをビルドする（buildのhook、既定は何もしない）
 
   prepare-initial-data:
-    desc: deployへ載せる前に初期データを生成・検証する（deploy系のhook、既定は何もしない）
+    desc: 初期画像ファイルの存在と転送認証鍵を準備
+    cmds:
+      - python3 tools/contest/prepare.py
 
   gen-contest-routing:
     desc: 共通生成では扱わない競技固有の配布物を追加する（genのhook、既定は何もしない）
@@ -34,3 +36,18 @@ tasks:
     desc: 参加者向け保存ログの日次人数・グランプリ・結果の解析を検証する
     cmds:
       - 'python3 tools/contest/test_bench_analysis.py'
+
+  verify-public-history:
+    desc: 公開入口から初期履歴と画像原本を検証
+    cmds:
+      - '{{.OPERATION_LOCK}} python3 tools/contest/public-contract.py history'
+
+  capture-restart-contract:
+    desc: 再起動検証用に3regionの新規状態と友達関係を保存
+    cmds:
+      - '{{.OPERATION_LOCK}} python3 tools/contest/public-contract.py capture'
+
+  verify-restart-contract:
+    desc: 通常再起動後の公開APIから受理済み状態を検証
+    cmds:
+      - '{{.OPERATION_LOCK}} python3 tools/contest/public-contract.py verify'

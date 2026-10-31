@@ -60,11 +60,18 @@ func (h *staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.TrimPrefix(path.Clean("/"+r.URL.Path), "/")
-	if name == "" || name == "." || strings.HasPrefix(filepath.Base(name), ".") {
+	if name == "" || name == "." {
+		name = "index.html"
+	}
+	if strings.HasPrefix(filepath.Base(name), ".") {
 		http.NotFound(w, r)
 		return
 	}
 	asset, file, err := h.load(name)
+	if os.IsNotExist(err) {
+		name = "index.html"
+		asset, file, err = h.load(name)
+	}
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -79,6 +86,9 @@ func (h *staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		staticHeaders(w, time.Now())
 		http.ServeContent(w, r, name, info.ModTime(), file)
 		return
+	}
+	if name == "index.html" || name == "isureal-logo.svg" {
+		w.Header().Set("Cache-Control", "no-cache")
 	}
 	data, etag := asset.data, asset.etag
 	if asset.compressed != nil {

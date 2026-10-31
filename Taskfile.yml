@@ -32,7 +32,8 @@ vars:
   STATIC_URL_PREFIX: /
   # Optional non-secret service environment; choose runtime values from measurements.
   APP_ENV:
-    map: {}
+    map:
+      GOMEMLIMIT: 2600MiB
   TARGET_OS: linux
   TARGET_ARCH: amd64
   # Optional Go PGO profile path for build/build-pgo; unset uses -pgo=auto (default.pgo).
@@ -40,7 +41,244 @@ vars:
   # Safety cap; normal collection stops with the benchmark, regardless of load timing.
   PROFILE_SECONDS: '3600'
   # Files required for initialization; list all files, or use 'none'.
-  RESET_INPUTS: ''
+  RESET_INPUTS: >-
+    data/initial/accounts.jsonl.gz
+    data/initial/administrators.jsonl.gz
+    data/initial/blocks.jsonl.gz
+    data/initial/comments.jsonl.gz
+    data/initial/follows.jsonl.gz
+    data/initial/friend-requests.jsonl.gz
+    data/initial/friendships.jsonl.gz
+    data/initial/images/0000.bin
+    data/initial/images/0001.bin
+    data/initial/images/0002.bin
+    data/initial/images/0003.bin
+    data/initial/images/0004.bin
+    data/initial/images/0005.bin
+    data/initial/images/0006.bin
+    data/initial/images/0007.bin
+    data/initial/images/0008.bin
+    data/initial/images/0009.bin
+    data/initial/images/0010.bin
+    data/initial/images/0011.bin
+    data/initial/images/0012.bin
+    data/initial/images/0013.bin
+    data/initial/images/0014.bin
+    data/initial/images/0015.bin
+    data/initial/images/0016.bin
+    data/initial/images/0017.bin
+    data/initial/images/0018.bin
+    data/initial/images/0019.bin
+    data/initial/images/0020.bin
+    data/initial/images/0021.bin
+    data/initial/images/0022.bin
+    data/initial/images/0023.bin
+    data/initial/images/0024.bin
+    data/initial/images/0025.bin
+    data/initial/images/0026.bin
+    data/initial/images/0027.bin
+    data/initial/images/0028.bin
+    data/initial/images/0029.bin
+    data/initial/images/0030.bin
+    data/initial/images/0031.bin
+    data/initial/images/0032.bin
+    data/initial/images/0033.bin
+    data/initial/images/0034.bin
+    data/initial/images/0035.bin
+    data/initial/images/0036.bin
+    data/initial/images/0037.bin
+    data/initial/images/0038.bin
+    data/initial/images/0039.bin
+    data/initial/images/0040.bin
+    data/initial/images/0041.bin
+    data/initial/images/0042.bin
+    data/initial/images/0043.bin
+    data/initial/images/0044.bin
+    data/initial/images/0045.bin
+    data/initial/images/0046.bin
+    data/initial/images/0047.bin
+    data/initial/images/0048.bin
+    data/initial/images/0049.bin
+    data/initial/images/0050.bin
+    data/initial/images/0051.bin
+    data/initial/images/0052.bin
+    data/initial/images/0053.bin
+    data/initial/images/0054.bin
+    data/initial/images/0055.bin
+    data/initial/images/0056.bin
+    data/initial/images/0057.bin
+    data/initial/images/0058.bin
+    data/initial/images/0059.bin
+    data/initial/images/0060.bin
+    data/initial/images/0061.bin
+    data/initial/images/0062.bin
+    data/initial/images/0063.bin
+    data/initial/images/0064.bin
+    data/initial/images/0065.bin
+    data/initial/images/0066.bin
+    data/initial/images/0067.bin
+    data/initial/images/0068.bin
+    data/initial/images/0069.bin
+    data/initial/images/0070.bin
+    data/initial/images/0071.bin
+    data/initial/images/0072.bin
+    data/initial/images/0073.bin
+    data/initial/images/0074.bin
+    data/initial/images/0075.bin
+    data/initial/images/0076.bin
+    data/initial/images/0077.bin
+    data/initial/images/0078.bin
+    data/initial/images/0079.bin
+    data/initial/images/0080.bin
+    data/initial/images/0081.bin
+    data/initial/images/0082.bin
+    data/initial/images/0083.bin
+    data/initial/images/0084.bin
+    data/initial/images/0085.bin
+    data/initial/images/0086.bin
+    data/initial/images/0087.bin
+    data/initial/images/0088.bin
+    data/initial/images/0089.bin
+    data/initial/images/0090.bin
+    data/initial/images/0091.bin
+    data/initial/images/0092.bin
+    data/initial/images/0093.bin
+    data/initial/images/0094.bin
+    data/initial/images/0095.bin
+    data/initial/images/0096.bin
+    data/initial/images/0097.bin
+    data/initial/images/0098.bin
+    data/initial/images/0099.bin
+    data/initial/images/0100.bin
+    data/initial/images/0101.bin
+    data/initial/images/0102.bin
+    data/initial/images/0103.bin
+    data/initial/images/0104.bin
+    data/initial/images/0105.bin
+    data/initial/images/0106.bin
+    data/initial/images/0107.bin
+    data/initial/images/0108.bin
+    data/initial/images/0109.bin
+    data/initial/images/0110.bin
+    data/initial/images/0111.bin
+    data/initial/images/0112.bin
+    data/initial/images/0113.bin
+    data/initial/images/0114.bin
+    data/initial/images/0115.bin
+    data/initial/images/0116.bin
+    data/initial/images/0117.bin
+    data/initial/images/0118.bin
+    data/initial/images/0119.bin
+    data/initial/images/0120.bin
+    data/initial/images/0121.bin
+    data/initial/images/0122.bin
+    data/initial/images/0123.bin
+    data/initial/images/0124.bin
+    data/initial/images/0125.bin
+    data/initial/images/0126.bin
+    data/initial/images/0127.bin
+    data/initial/images/0128.bin
+    data/initial/images/0129.bin
+    data/initial/images/0130.bin
+    data/initial/images/0131.bin
+    data/initial/images/0132.bin
+    data/initial/images/0133.bin
+    data/initial/images/0134.bin
+    data/initial/images/0135.bin
+    data/initial/images/0136.bin
+    data/initial/images/0137.bin
+    data/initial/images/0138.bin
+    data/initial/images/0139.bin
+    data/initial/images/0140.bin
+    data/initial/images/0141.bin
+    data/initial/images/0142.bin
+    data/initial/images/0143.bin
+    data/initial/images/0144.bin
+    data/initial/images/0145.bin
+    data/initial/images/0146.bin
+    data/initial/images/0147.bin
+    data/initial/images/0148.bin
+    data/initial/images/0149.bin
+    data/initial/images/0150.bin
+    data/initial/images/0151.bin
+    data/initial/images/0152.bin
+    data/initial/images/0153.bin
+    data/initial/images/0154.bin
+    data/initial/images/0155.bin
+    data/initial/images/0156.bin
+    data/initial/images/0157.bin
+    data/initial/images/0158.bin
+    data/initial/images/0159.bin
+    data/initial/images/0160.bin
+    data/initial/images/0161.bin
+    data/initial/images/0162.bin
+    data/initial/images/0163.bin
+    data/initial/images/0164.bin
+    data/initial/images/0165.bin
+    data/initial/images/0166.bin
+    data/initial/images/0167.bin
+    data/initial/images/0168.bin
+    data/initial/images/0169.bin
+    data/initial/images/0170.bin
+    data/initial/images/0171.bin
+    data/initial/images/0172.bin
+    data/initial/images/0173.bin
+    data/initial/images/0174.bin
+    data/initial/images/0175.bin
+    data/initial/images/0176.bin
+    data/initial/images/0177.bin
+    data/initial/images/0178.bin
+    data/initial/images/0179.bin
+    data/initial/images/0180.bin
+    data/initial/images/0181.bin
+    data/initial/images/0182.bin
+    data/initial/images/0183.bin
+    data/initial/images/0184.bin
+    data/initial/images/0185.bin
+    data/initial/images/0186.bin
+    data/initial/images/0187.bin
+    data/initial/images/0188.bin
+    data/initial/images/0189.bin
+    data/initial/images/0190.bin
+    data/initial/images/0191.bin
+    data/initial/images/0192.bin
+    data/initial/images/0193.bin
+    data/initial/images/0194.bin
+    data/initial/images/0195.bin
+    data/initial/images/0196.bin
+    data/initial/images/0197.bin
+    data/initial/images/0198.bin
+    data/initial/images/0199.bin
+    data/initial/images/0200.bin
+    data/initial/images/0201.bin
+    data/initial/images/0202.bin
+    data/initial/images/0203.bin
+    data/initial/images/0204.bin
+    data/initial/images/index.part-000.jsonl.gz
+    data/initial/images/index.part-001.jsonl.gz
+    data/initial/images/index.part-002.jsonl.gz
+    data/initial/images/index.part-003.jsonl.gz
+    data/initial/images/index.part-004.jsonl.gz
+    data/initial/images/index.part-005.jsonl.gz
+    data/initial/images/index.part-006.jsonl.gz
+    data/initial/images/index.part-007.jsonl.gz
+    data/initial/images/manifest.json
+    data/initial/manifest.json
+    data/initial/notifications.part-000.jsonl.gz
+    data/initial/notifications.part-001.jsonl.gz
+    data/initial/notifications.part-002.jsonl.gz
+    data/initial/notifications.part-003.jsonl.gz
+    data/initial/notifications.part-004.jsonl.gz
+    data/initial/notifications.part-005.jsonl.gz
+    data/initial/notifications.part-006.jsonl.gz
+    data/initial/notifications.part-007.jsonl.gz
+    data/initial/posting-windows.jsonl.gz
+    data/initial/posts.jsonl.gz
+    data/initial/realmojis.part-000.jsonl.gz
+    data/initial/realmojis.part-001.jsonl.gz
+    data/initial/realmojis.part-002.jsonl.gz
+    data/initial/realmojis.part-003.jsonl.gz
+    data/initial/realmojis.part-004.jsonl.gz
   # The Go application implements this endpoint.
   INITIALIZE_PATH: /api/initialize
   CONFIG_CHECK_COMMAND: 'go -C {{.APP_DIR}} vet ./...'
@@ -80,7 +318,8 @@ vars:
   # Setup-only source checkout, excluded from the design workspace.
   REFERENCE_DIR: /Users/mineo/Library/Caches/codex/isucon15/reference
   # Additional Go services can declare their roles and deployment variables here.
-  DEPLOYCTL_FLAGS: ''
+  OWNER_HOSTS: asia1
+  DEPLOYCTL_FLAGS: '-role owner={{.OWNER_HOSTS}}'
   # Optional additional systemd unit:role pairs.
   CONTEST_SERVICE_ROLES: ''
   # Optional extra measurectl roles referenced by contest collectors/digesters.
@@ -104,7 +343,7 @@ vars:
   ANALYSIS_DB: runs/analysis.duckdb
   ANALYSIS_CONFIG: tools/analysis/sources.yaml
   # >>> contest values >>>
-  DEPLOYCTL_CONFIG: tools/deployctl/deployments.yaml
+  DEPLOYCTL_CONFIG: tools/contest/deployments.yaml
   # <<< contest values <<<
 
   MEASUREMENT_DIR: tools/measurement

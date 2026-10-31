@@ -45,7 +45,7 @@ func TestTaskfileSystemdSetupDoesNotCreateRemoteFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command("task", "--dry", "setup-systemd", "SERVICE=app")
+	cmd := exec.Command("task", "--dry", "setup-systemd", "SERVICE=app", "REFERENCE_DIR="+filepath.Join(t.TempDir(), "app-reference"))
 	cmd.Dir = root
 	output, runErr := cmd.CombinedOutput()
 	if runErr != nil {

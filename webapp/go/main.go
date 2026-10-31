@@ -17,7 +17,14 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if err := serve(ctx, config, newHandler()); err != nil {
+	handler, app, err := serviceHandler()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if app != nil {
+		defer app.journal.Close()
+	}
+	if err := serve(ctx, config, handler); err != nil {
 		log.Print(err)
 		os.Exit(1)
 	}

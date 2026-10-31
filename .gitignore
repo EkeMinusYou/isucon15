@@ -76,3 +76,5 @@ __pycache__/
 /generated/portal-check/
 
 /webapp/go/isureal
+
+/generated/isureal-transport.key

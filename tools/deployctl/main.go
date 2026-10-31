@@ -133,7 +133,7 @@ func (v variableValues) String() string { return "name=value" }
 func (v variableValues) Set(value string) error {
 	name, raw, ok := strings.Cut(value, "=")
 	if !ok || !nameRE.MatchString(name) || (raw != "" && !valueRE.MatchString(raw)) {
-		return fmt.Errorf("invalid variable %q; values may contain letters, digits, and _./,:-", value)
+		return fmt.Errorf("invalid variable %q; values may contain letters, digits, and _./,:@-", value)
 	}
 	v[name] = raw
 	return nil

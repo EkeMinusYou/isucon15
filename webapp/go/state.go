@@ -1,0 +1,586 @@
+package main
+
+import (
+	"bufio"
+	"compress/gzip"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"path/filepath"
+	"runtime"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+)
+
+type Account struct {
+	ID             string  `json:"id"`
+	Username       string  `json:"username"`
+	Secret         string  `json:"secretKeySha256"`
+	DisplayName    string  `json:"displayName"`
+	Bio            string  `json:"bio"`
+	ProfileImageID *string `json:"profileImageId"`
+	Region         string  `json:"region"`
+	AccountType    string  `json:"accountType"`
+	Status         string  `json:"status"`
+}
+type Administrator struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Password string `json:"passwordSha256"`
+}
+type Window struct {
+	ID        string     `json:"id"`
+	Region    string     `json:"region"`
+	LocalDate string     `json:"localDate"`
+	StartsAt  time.Time  `json:"startsAt"`
+	Deadline  time.Time  `json:"onTimeDeadline"`
+	EndedAt   *time.Time `json:"endedAt,omitempty"`
+}
+type Location struct {
+	Kind      string   `json:"kind"`
+	Latitude  *float64 `json:"latitude,omitempty"`
+	Longitude *float64 `json:"longitude,omitempty"`
+	Locality  *string  `json:"locality,omitempty"`
+}
+type Post struct {
+	ID         string     `json:"id"`
+	AuthorID   string     `json:"authorId"`
+	WindowID   string     `json:"postingWindowId"`
+	ImageID    string     `json:"imageId"`
+	Caption    string     `json:"caption"`
+	Visibility string     `json:"visibility"`
+	Location   Location   `json:"location"`
+	PostedAt   time.Time  `json:"postedAt"`
+	DeletedAt  *time.Time `json:"deletedAt,omitempty"`
+}
+type Reaction struct {
+	ID         string     `json:"id"`
+	PostID     string     `json:"postId"`
+	ReactorID  string     `json:"reactorId"`
+	ImageID    string     `json:"imageId"`
+	Type       string     `json:"reactionType"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	ReplacedAt *time.Time `json:"replacedAt,omitempty"`
+	DeletedAt  *time.Time `json:"deletedAt,omitempty"`
+}
+type Comment struct {
+	ID        string     `json:"id"`
+	PostID    string     `json:"postId"`
+	AuthorID  string     `json:"authorId"`
+	Body      string     `json:"body"`
+	CreatedAt time.Time  `json:"createdAt"`
+	DeletedAt *time.Time `json:"deletedAt,omitempty"`
+}
+type Relation struct {
+	ID          string    `json:"id"`
+	RequesterID string    `json:"requesterId,omitempty"`
+	RecipientID string    `json:"recipientId,omitempty"`
+	User1ID     string    `json:"user1Id,omitempty"`
+	User2ID     string    `json:"user2Id,omitempty"`
+	FollowerID  string    `json:"followerId,omitempty"`
+	FolloweeID  string    `json:"followeeId,omitempty"`
+	BlockerID   string    `json:"blockerId,omitempty"`
+	BlockedID   string    `json:"blockedId,omitempty"`
+	Status      string    `json:"status,omitempty"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+type Image struct {
+	ID        string `json:"id"`
+	OwnerID   string `json:"ownerId"`
+	MediaType string `json:"mediaType"`
+	Part      string `json:"part"`
+	Offset    int64  `json:"offset"`
+	Size      int64  `json:"size"`
+	Ref       string `json:"-"`
+	Kind      byte   `json:"-"`
+}
+type Notification struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"userId"`
+	WindowID  string    `json:"postingWindowId"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+type change struct {
+	Kind string          `json:"kind"`
+	Data json.RawMessage `json:"data"`
+}
+type tokenChange struct{ Token, User string }
+type banChange struct {
+	IP    string
+	Until time.Time
+}
+type State struct {
+	LivePosts     map[string][]string
+	Accounts      map[string]*Account
+	Names         map[string]string
+	Admins        map[string]*Administrator
+	Windows       map[string]*Window
+	Current       map[string]string
+	Posts         map[string]*Post
+	UserPosts     map[string][]string
+	Reactions     map[string]*Reaction
+	PostReactions map[string][]string
+	Comments      map[string]*Comment
+	PostComments  map[string][]string
+	Images        map[string]*Image
+	Requests      map[string]*Relation
+	Friends       map[string]*Relation
+	Adj           map[string]map[string]bool
+	Follows       map[string]*Relation
+	Blocks        map[string]*Relation
+	Sessions      map[string]string
+	AdminSessions map[string]string
+	Bans          map[string]time.Time
+	Notifications map[string][]Notification
+}
+type App struct {
+	mu               sync.Mutex
+	s                *State
+	initial, durable string
+	journal          *os.File
+	changes          []change
+	failures         map[string][]time.Time
+	signal           chan struct{}
+	signatures       map[string]string
+	signatureSecond  int64
+	requests         uint64
+	writes           uint64
+}
+
+func emptyState() *State {
+	return &State{LivePosts: map[string][]string{}, Accounts: map[string]*Account{}, Names: map[string]string{}, Admins: map[string]*Administrator{}, Windows: map[string]*Window{}, Current: map[string]string{}, Posts: map[string]*Post{}, UserPosts: map[string][]string{}, Reactions: map[string]*Reaction{}, PostReactions: map[string][]string{}, Comments: map[string]*Comment{}, PostComments: map[string][]string{}, Images: map[string]*Image{}, Requests: map[string]*Relation{}, Friends: map[string]*Relation{}, Adj: map[string]map[string]bool{}, Follows: map[string]*Relation{}, Blocks: map[string]*Relation{}, Sessions: map[string]string{}, AdminSessions: map[string]string{}, Bans: map[string]time.Time{}, Notifications: map[string][]Notification{}}
+}
+func id() string {
+	var b [16]byte
+	if _, e := rand.Read(b[:]); e != nil {
+		panic(e)
+	}
+	b[6] = (b[6] & 15) | 64
+	b[8] = (b[8] & 63) | 128
+	x := hex.EncodeToString(b[:])
+	return x[:8] + "-" + x[8:12] + "-" + x[12:16] + "-" + x[16:20] + "-" + x[20:]
+}
+func pair(a, b string) string {
+	if a > b {
+		a, b = b, a
+	}
+	return a + "/" + b
+}
+func directed(a, b string) string        { return a + "/" + b }
+func (s *State) friend(a, b string) bool { return s.Adj[a][b] }
+func (s *State) blocked(a, b string) bool {
+	return s.Blocks[directed(a, b)] != nil || s.Blocks[directed(b, a)] != nil
+}
+func (s *State) active(a string) bool {
+	return s.Accounts[a] != nil && s.Accounts[a].Status == "active"
+}
+func (s *State) apply(kind string, data []byte) error {
+	decode := func(v any) {
+		if e := json.Unmarshal(data, v); e != nil {
+			panic(e)
+		}
+	}
+	switch kind {
+	case "account":
+		var v Account
+		decode(&v)
+		s.Accounts[v.ID] = &v
+		s.Names[v.Username] = v.ID
+	case "admin":
+		var v Administrator
+		decode(&v)
+		s.Admins[v.Username] = &v
+	case "window":
+		var v Window
+		decode(&v)
+		s.Windows[v.ID] = &v
+		if v.EndedAt != nil {
+			for uid, ids := range s.LivePosts {
+				keep := ids[:0]
+				for _, pid := range ids {
+					if s.Posts[pid].WindowID != v.ID {
+						keep = append(keep, pid)
+					}
+				}
+				if len(keep) == 0 {
+					delete(s.LivePosts, uid)
+				} else {
+					s.LivePosts[uid] = keep
+				}
+			}
+		}
+		if v.EndedAt == nil {
+			s.Current[v.Region] = v.ID
+		} else if s.Current[v.Region] == v.ID {
+			delete(s.Current, v.Region)
+		}
+	case "post":
+		var v Post
+		decode(&v)
+		if s.Posts[v.ID] == nil {
+			s.UserPosts[v.AuthorID] = append(s.UserPosts[v.AuthorID], v.ID)
+			if win := s.Windows[v.WindowID]; win != nil && win.EndedAt == nil {
+				s.LivePosts[v.AuthorID] = append(s.LivePosts[v.AuthorID], v.ID)
+			}
+		}
+		s.Posts[v.ID] = &v
+		if im := s.Images[v.ImageID]; im != nil {
+			im.Kind = 'p'
+			im.Ref = v.ID
+		}
+	case "reaction":
+		var v Reaction
+		decode(&v)
+		if s.Reactions[v.ID] == nil {
+			s.PostReactions[v.PostID] = append(s.PostReactions[v.PostID], v.ID)
+		}
+		s.Reactions[v.ID] = &v
+		if im := s.Images[v.ImageID]; im != nil {
+			im.Kind = 'r'
+			im.Ref = v.ID
+		}
+	case "comment":
+		var v Comment
+		decode(&v)
+		if s.Comments[v.ID] == nil {
+			s.PostComments[v.PostID] = append(s.PostComments[v.PostID], v.ID)
+		}
+		s.Comments[v.ID] = &v
+	case "image":
+		var v Image
+		decode(&v)
+		s.Images[v.ID] = &v
+	case "request":
+		var v Relation
+		decode(&v)
+		s.Requests[v.ID] = &v
+	case "friend":
+		var v Relation
+		decode(&v)
+		s.Friends[pair(v.User1ID, v.User2ID)] = &v
+		for _, x := range [][2]string{{v.User1ID, v.User2ID}, {v.User2ID, v.User1ID}} {
+			if s.Adj[x[0]] == nil {
+				s.Adj[x[0]] = map[string]bool{}
+			}
+			s.Adj[x[0]][x[1]] = true
+		}
+	case "unfriend":
+		var v [2]string
+		decode(&v)
+		delete(s.Friends, pair(v[0], v[1]))
+		delete(s.Adj[v[0]], v[1])
+		delete(s.Adj[v[1]], v[0])
+	case "follow":
+		var v Relation
+		decode(&v)
+		s.Follows[directed(v.FollowerID, v.FolloweeID)] = &v
+	case "unfollow":
+		var v [2]string
+		decode(&v)
+		delete(s.Follows, directed(v[0], v[1]))
+	case "block":
+		var v Relation
+		decode(&v)
+		s.Blocks[directed(v.BlockerID, v.BlockedID)] = &v
+	case "unblock":
+		var v [2]string
+		decode(&v)
+		delete(s.Blocks, directed(v[0], v[1]))
+	case "session", "adminsession":
+		var v tokenChange
+		decode(&v)
+		m := s.Sessions
+		if kind == "adminsession" {
+			m = s.AdminSessions
+		}
+		if v.User == "" {
+			delete(m, v.Token)
+		} else {
+			m[v.Token] = v.User
+		}
+	case "ban":
+		var v banChange
+		decode(&v)
+		s.Bans[v.IP] = v.Until
+	case "notification":
+		var v Notification
+		decode(&v)
+		s.Notifications[v.UserID] = append(s.Notifications[v.UserID], v)
+	default:
+		return fmt.Errorf("unknown journal kind %q", kind)
+	}
+	return nil
+}
+func (a *App) put(kind string, v any) {
+	b, e := json.Marshal(v)
+	if e != nil {
+		panic(e)
+	}
+	if e = a.s.apply(kind, b); e != nil {
+		panic(e)
+	}
+	a.changes = append(a.changes, change{kind, b})
+}
+func (a *App) commit() {
+	if len(a.changes) == 0 {
+		return
+	}
+	b, e := json.Marshal(a.changes)
+	if e != nil {
+		panic(e)
+	}
+	b = append(b, '\n')
+	if _, e = a.journal.Write(b); e != nil {
+		log.Fatalf("journal write: %v", e)
+	}
+	a.writes++
+	a.changes = nil
+}
+func (a *App) wake() { close(a.signal); a.signal = make(chan struct{}) }
+func loadLines(path string, fn func([]byte) error) error {
+	f, e := os.Open(path)
+	if e != nil {
+		return e
+	}
+	defer f.Close()
+	g, e := gzip.NewReader(f)
+	if e != nil {
+		return e
+	}
+	defer g.Close()
+	sc := bufio.NewScanner(g)
+	sc.Buffer(make([]byte, 65536), 4<<20)
+	for sc.Scan() {
+		if e = fn(sc.Bytes()); e != nil {
+			return e
+		}
+	}
+	return sc.Err()
+}
+func (a *App) loadInitial() error {
+	s := emptyState()
+	pool := map[string]string{}
+	intern := func(x string) string {
+		if y, ok := pool[x]; ok {
+			return y
+		}
+		pool[x] = x
+		return x
+	}
+	// Intern identifiers shared across history and image metadata.
+	files := []struct{ pattern, kind string }{{"accounts.jsonl.gz", "account"}, {"administrators.jsonl.gz", "admin"}, {"posting-windows.jsonl.gz", "window"}, {"friend-requests.jsonl.gz", "request"}, {"friendships.jsonl.gz", "friend"}, {"follows.jsonl.gz", "follow"}, {"blocks.jsonl.gz", "block"}, {"images/index.part-*.jsonl.gz", "image"}, {"posts.jsonl.gz", "post"}, {"realmojis.part-*.jsonl.gz", "reaction"}, {"comments.jsonl.gz", "comment"}}
+	for _, spec := range files {
+		paths, e := filepath.Glob(filepath.Join(a.initial, spec.pattern))
+		if e != nil || len(paths) == 0 {
+			return fmt.Errorf("initial input missing: %s", spec.pattern)
+		}
+		for _, p := range paths {
+			if e = loadLines(p, func(b []byte) error {
+				switch spec.kind {
+				case "post":
+					var v Post
+					if e := json.Unmarshal(b, &v); e != nil {
+						return e
+					}
+					v.ID = intern(v.ID)
+					v.AuthorID = intern(v.AuthorID)
+					v.WindowID = intern(v.WindowID)
+					v.ImageID = intern(v.ImageID)
+					v.Visibility = intern(v.Visibility)
+					v.Location.Kind = intern(v.Location.Kind)
+					s.Posts[v.ID] = &v
+					s.UserPosts[v.AuthorID] = append(s.UserPosts[v.AuthorID], v.ID)
+					if win := s.Windows[v.WindowID]; win != nil && win.EndedAt == nil {
+						s.LivePosts[v.AuthorID] = append(s.LivePosts[v.AuthorID], v.ID)
+					}
+					if im := s.Images[v.ImageID]; im != nil {
+						im.Kind = 'p'
+						im.Ref = v.ID
+					}
+				case "reaction":
+					var v Reaction
+					if e := json.Unmarshal(b, &v); e != nil {
+						return e
+					}
+					v.ID = intern(v.ID)
+					v.PostID = intern(v.PostID)
+					v.ReactorID = intern(v.ReactorID)
+					v.ImageID = intern(v.ImageID)
+					v.Type = intern(v.Type)
+					s.Reactions[v.ID] = &v
+					s.PostReactions[v.PostID] = append(s.PostReactions[v.PostID], v.ID)
+					if im := s.Images[v.ImageID]; im != nil {
+						im.Kind = 'r'
+						im.Ref = v.ID
+					}
+				case "comment":
+					var v Comment
+					if e := json.Unmarshal(b, &v); e != nil {
+						return e
+					}
+					v.ID = intern(v.ID)
+					v.PostID = intern(v.PostID)
+					v.AuthorID = intern(v.AuthorID)
+					s.Comments[v.ID] = &v
+					s.PostComments[v.PostID] = append(s.PostComments[v.PostID], v.ID)
+				case "image":
+					var v Image
+					if e := json.Unmarshal(b, &v); e != nil {
+						return e
+					}
+					v.ID = intern(v.ID)
+					v.OwnerID = intern(v.OwnerID)
+					v.Part = intern(v.Part)
+					v.MediaType = intern(v.MediaType)
+					s.Images[v.ID] = &v
+				default:
+					return s.apply(spec.kind, b)
+				}
+				return nil
+			}); e != nil {
+				return fmt.Errorf("load %s: %w", p, e)
+			}
+			log.Printf("loaded %s", filepath.Base(p))
+		}
+	}
+	// Historical notifications precede all future SSE connection times. They are
+	// immutable input, and therefore need no live index or replay allocation.
+	a.s = s
+	return nil
+}
+func newApp(initial, durable string) (*App, error) {
+	a := &App{initial: initial, durable: durable, failures: map[string][]time.Time{}, signal: make(chan struct{}), signatures: map[string]string{}}
+	if e := os.MkdirAll(filepath.Join(durable, "images"), 0755); e != nil {
+		return nil, e
+	}
+	if e := a.loadInitial(); e != nil {
+		return nil, e
+	}
+	p := filepath.Join(durable, "journal.jsonl")
+	f, e := os.OpenFile(p, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
+	if e != nil {
+		return nil, e
+	}
+	a.journal = f
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 65536), 64<<20)
+	for sc.Scan() {
+		var cs []change
+		if e = json.Unmarshal(sc.Bytes(), &cs); e != nil {
+			f.Close()
+			return nil, e
+		}
+		for _, c := range cs {
+			if e = a.s.apply(c.Kind, c.Data); e != nil {
+				f.Close()
+				return nil, e
+			}
+		}
+	}
+	if e = sc.Err(); e != nil {
+		f.Close()
+		return nil, e
+	}
+	log.Printf("state ready: accounts=%d posts=%d images=%d", len(a.s.Accounts), len(a.s.Posts), len(a.s.Images))
+	return a, nil
+}
+func (a *App) reset() error {
+	a.s = nil
+	runtime.GC()
+	if e := a.loadInitial(); e != nil {
+		return e
+	}
+	if e := a.journal.Truncate(0); e != nil {
+		return e
+	}
+	if _, e := a.journal.Seek(0, io.SeekEnd); e != nil {
+		return e
+	}
+	a.failures = map[string][]time.Time{}
+	a.changes = nil
+	a.signatures = map[string]string{}
+	a.wake()
+	return nil
+}
+func sortedIDs(m map[string]*Post) []string {
+	r := make([]string, 0, len(m))
+	for k := range m {
+		r = append(r, k)
+	}
+	sort.Strings(r)
+	return r
+}
+func (a *App) imageReader(im *Image) (*os.File, int64, error) {
+	p := filepath.Join(a.initial, "images", im.Part)
+	if im.Part == "" {
+		p = filepath.Join(a.durable, "images", im.ID)
+	}
+	f, e := os.Open(p)
+	return f, im.Offset, e
+}
+func (s *State) window(u *Account) *Window { return s.Windows[s.Current[u.Region]] }
+func (s *State) dayPosts(u *Account) (*Post, int) {
+	w := s.window(u)
+	if w == nil {
+		return nil, 0
+	}
+	var p *Post
+	deleted := 0
+	for _, pid := range s.UserPosts[u.ID] {
+		x := s.Posts[pid]
+		if s.Windows[x.WindowID].LocalDate == w.LocalDate {
+			if x.DeletedAt != nil {
+				deleted++
+			} else {
+				p = x
+			}
+		}
+	}
+	return p, deleted
+}
+func (s *State) canPost(u *Account) bool {
+	w := s.window(u)
+	p, d := s.dayPosts(u)
+	return w != nil && w.EndedAt == nil && !time.Now().Before(w.StartsAt) && p == nil && d < 2
+}
+func (s *State) common(a, b string) int {
+	n := 0
+	for x := range s.Adj[a] {
+		if s.Adj[b][x] {
+			n++
+		}
+	}
+	return n
+}
+func (s *State) view(u *Account, p *Post) bool {
+	if p == nil || p.DeletedAt != nil || !s.active(p.AuthorID) {
+		return false
+	}
+	if p.AuthorID == u.ID {
+		return true
+	}
+	w := s.Windows[p.WindowID]
+	if w == nil || w.EndedAt != nil || s.blocked(u.ID, p.AuthorID) {
+		return false
+	}
+	own, _ := s.dayPosts(u)
+	if own == nil {
+		return false
+	}
+	return p.Visibility == "public" || s.friend(u.ID, p.AuthorID) || (p.Visibility == "friends_of_friends" && s.common(u.ID, p.AuthorID) > 0)
+}
+func (s *State) interact(u *Account, p *Post) bool {
+	if !s.view(u, p) || s.Windows[p.WindowID].EndedAt != nil {
+		return false
+	}
+	own, _ := s.dayPosts(u)
+	return own != nil && (p.AuthorID == u.ID || p.Visibility == "public" || s.friend(u.ID, p.AuthorID))
+}
+func cleanPath(s string) string { return strings.Trim(s, "/") }

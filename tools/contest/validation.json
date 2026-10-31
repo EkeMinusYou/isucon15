@@ -1,5 +1,132 @@
 {
   "version": 1,
-  "http": [],
-  "commands": []
+  "http": [
+    {
+      "id": "index.html",
+      "url": "http://13.192.72.111:8080/",
+      "expect": {
+        "status": 200,
+        "headers": {
+          "Cache-Control": "no-cache",
+          "ETag": {
+            "matches": ".+"
+          }
+        },
+        "body": {
+          "sha256": "3d06f7d72d2b09adb3744a597b776dd98b8fbc6348420a4e52d10ff6648e0f49"
+        }
+      }
+    },
+    {
+      "id": "assets-index-DVx2k2rA.js",
+      "url": "http://13.192.72.111:8080/assets/index-DVx2k2rA.js",
+      "expect": {
+        "status": 200,
+        "headers": {
+          "Cache-Control": "public, max-age=86400",
+          "ETag": {
+            "matches": ".+"
+          }
+        },
+        "body": {
+          "sha256": "e7f03bef3f20b4348d771b6f886fc62f32c3ba558e471251899dffb1105a7965"
+        }
+      }
+    },
+    {
+      "id": "assets-index-DRoYlDJr.css",
+      "url": "http://13.192.72.111:8080/assets/index-DRoYlDJr.css",
+      "expect": {
+        "status": 200,
+        "headers": {
+          "Cache-Control": "public, max-age=86400",
+          "ETag": {
+            "matches": ".+"
+          }
+        },
+        "body": {
+          "sha256": "84d8d5277934301476f15865fb264bbf69a72dfe51d0e764729576fa2037d9e5"
+        }
+      }
+    },
+    {
+      "id": "isureal-logo.svg",
+      "url": "http://13.192.72.111:8080/isureal-logo.svg",
+      "expect": {
+        "status": 200,
+        "headers": {
+          "Cache-Control": "no-cache",
+          "ETag": {
+            "matches": ".+"
+          }
+        },
+        "body": {
+          "sha256": "f00f3c1115979f6a9d4fb83db5f1b8d65598eaff52e9f2aee4674d2589cc7d47"
+        }
+      }
+    },
+    {
+      "id": "spa-fallback",
+      "url": "http://13.192.72.111:8080/settings/profile",
+      "expect": {
+        "status": 200,
+        "headers": {
+          "Cache-Control": "no-cache"
+        },
+        "body": {
+          "sha256": "3d06f7d72d2b09adb3744a597b776dd98b8fbc6348420a4e52d10ff6648e0f49"
+        }
+      }
+    },
+    {
+      "id": "static-gzip",
+      "url": "http://13.192.72.111:8080/assets/index-DVx2k2rA.js",
+      "headers": {
+        "Accept-Encoding": "gzip"
+      },
+      "expect": {
+        "status": 200,
+        "headers": {
+          "Content-Encoding": "gzip",
+          "Vary": "Accept-Encoding"
+        }
+      }
+    },
+    {
+      "id": "unauthenticated-api",
+      "url": "http://13.192.72.111:8080/api/me",
+      "expect": {
+        "status": 401,
+        "body": {
+          "contains": "invalid_session"
+        }
+      }
+    },
+    {
+      "id": "image-no-store",
+      "url": "http://13.192.72.111:8080/api/images/does-not-exist",
+      "expect": {
+        "status": 403,
+        "headers": {
+          "Cache-Control": "no-store"
+        }
+      }
+    }
+  ],
+  "commands": [
+    {
+      "id": "business-state-transitions-and-recovery",
+      "argv": [
+        "go",
+        "-C",
+        "webapp/go",
+        "test",
+        "-race",
+        "-run",
+        "TestPublicContract|TestSSEContract",
+        "./..."
+      ],
+      "timeout_seconds": 60
+    }
+  ]
 }

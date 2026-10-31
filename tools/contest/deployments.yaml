@@ -1,0 +1,70 @@
+include:
+  - ../deployctl/deployments.yaml
+
+deployments:
+  initial-data:
+    uploads:
+      - label: independent initial data and original image bytes
+        role: owner
+        local: data/initial/
+        remote: /home/isucon/isureal-initial/
+        delete: true
+    activations:
+      - label: initial input ownership
+        role: owner
+        script: sudo chown -R isucon:isucon /home/isucon/isureal-initial
+  transport-key:
+    uploads:
+      - label: authenticated router transport key
+        role: app
+        local: generated/isureal-transport.key
+        remote: /home/isucon/isureal-transport.key
+    activations:
+      - label: restrict transport key
+        role: app
+        script: sudo chown isucon:isucon /home/isucon/isureal-transport.key && sudo chmod 600 /home/isucon/isureal-transport.key
+  app:
+    uploads:
+      - label: application
+        role: app
+        local: '{var:app_dir}/'
+        remote: '{var:remote_home}/{var:app_dir}/'
+        delete: true
+        excludes: ['node_modules', '*.pprof', 'default.pgo']
+      - label: systemd unit
+        role: app
+        local: 'generated/systemd/{var:service}.service'
+        remote: '/etc/systemd/system/{var:service}.service'
+    activations:
+      - label: restart application after restoring durable state
+        role: app
+        script: |
+          set -eu
+          sudo chown -R {var:isucon_user}:{var:isucon_user} {var:remote_home}/{var:app_dir}
+          sudo install -d -m 0775 -o {var:isucon_user} -g {var:isucon_user} {var:access_log_dir}
+          sudo systemctl daemon-reload
+          sudo systemctl restart {var:service}
+          sudo systemctl is-active --quiet {var:service}
+        ready:
+          url: http://127.0.0.1:{var:listen_port}/healthz
+          timeout: 180s
+  app-initialize:
+    activations:
+      - label: initialize authoritative Go state
+        role: owner
+        script: curl --fail-with-body --silent --show-error --max-time 180 -X POST http://127.0.0.1:80/api/initialize
+
+plans:
+  deploy-all:
+    deployments:
+      roles-off: {}
+      sysctl: {needs: [roles-off]}
+      initial-data: {needs: [roles-off]}
+      transport-key: {needs: [roles-off]}
+      static: {needs: [roles-off]}
+      tls: {needs: [roles-off]}
+      app: {needs: [initial-data, transport-key, static, tls]}
+      roles-on: {needs: [app]}
+  initialize:
+    deployments:
+      app-initialize: {}

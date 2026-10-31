@@ -57,7 +57,7 @@ var (
 	placeholderRE = regexp.MustCompile(`\{(host|var:[A-Za-z0-9_]+)\}`)
 	nameRE        = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
 	hostRE        = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
-	valueRE       = regexp.MustCompile(`^[A-Za-z0-9_./,:-]+$`)
+	valueRE       = regexp.MustCompile(`^[A-Za-z0-9_./,:@-]+$`)
 	remotePathRE  = regexp.MustCompile(`^/[A-Za-z0-9_./-]+/?$`)
 )
 

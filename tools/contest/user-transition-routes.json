@@ -1,6 +1,6 @@
 {
-  "_comment": "Bearer authentication is used; cookie-based user correlation is unavailable. Configure authenticated user correlation in bootstrap without recording tokens.",
-  "cookie_field": "not_used_bearer_auth",
+  "_comment": "Authenticated account IDs are hashed by the Go access observer. Internal forwarded requests are only logged at their public ingress.",
+  "cookie_field": "session_id",
   "api_prefix": "/api/",
   "routes": [
     {
@@ -136,6 +136,81 @@
       "pattern": "^/api/admin/posting-window$"
     }
   ],
-  "operation_pairs": [],
-  "operation_intervals": []
+  "operation_pairs": [
+    {
+      "name": "notification_to_post",
+      "from": {
+        "method": "GET",
+        "route": "/api/notifications"
+      },
+      "to": {
+        "method": "POST",
+        "route": "/api/posts",
+        "statuses": [
+          201
+        ]
+      }
+    },
+    {
+      "name": "post_to_feed",
+      "from": {
+        "method": "POST",
+        "route": "/api/posts",
+        "statuses": [
+          201
+        ]
+      },
+      "to": {
+        "method": "GET",
+        "route": "/api/feeds/:feed"
+      }
+    },
+    {
+      "name": "post_to_reaction",
+      "from": {
+        "method": "POST",
+        "route": "/api/posts",
+        "statuses": [
+          201
+        ]
+      },
+      "to": {
+        "method": "POST",
+        "route": "/api/posts/:postId/realmojis",
+        "statuses": [
+          201
+        ]
+      }
+    }
+  ],
+  "operation_intervals": [
+    {
+      "name": "notification_to_post",
+      "start": {
+        "method": "GET",
+        "route": "/api/notifications"
+      },
+      "end": {
+        "method": "POST",
+        "route": "/api/posts",
+        "statuses": [
+          201
+        ]
+      }
+    },
+    {
+      "name": "post_to_feed",
+      "start": {
+        "method": "POST",
+        "route": "/api/posts",
+        "statuses": [
+          201
+        ]
+      },
+      "end": {
+        "method": "GET",
+        "route": "/api/feeds/:feed"
+      }
+    }
+  ]
 }

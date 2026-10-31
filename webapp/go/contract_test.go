@@ -1,0 +1,187 @@
+package main
+
+import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
+	"fmt"
+	"image"
+	"image/jpeg"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+func fixtureApp(t *testing.T) *App {
+	t.Helper()
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "images"), 0755)
+	for _, n := range []string{"accounts", "administrators", "posting-windows", "friend-requests", "friendships", "follows", "blocks", "images/index.part-000", "posts", "realmojis.part-000", "comments"} {
+		f, e := os.Create(filepath.Join(dir, n+".jsonl.gz"))
+		if e != nil {
+			t.Fatal(e)
+		}
+		g := gzip.NewWriter(f)
+		g.Close()
+		f.Close()
+	}
+	a, e := newApp(dir, t.TempDir())
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { a.journal.Close() })
+	a.put("admin", Administrator{ID: "admin", Username: "admin", Password: secretHash("password")})
+	a.commit()
+	return a
+}
+func call(t *testing.T, a http.Handler, method, path, token string, body any) (int, map[string]any, *httptest.ResponseRecorder) {
+	t.Helper()
+	var b io.Reader
+	if body != nil {
+		x, _ := json.Marshal(body)
+		b = bytes.NewReader(x)
+	}
+	r := httptest.NewRequest(method, path, b)
+	if token != "" {
+		r.Header.Set("Authorization", "Bearer "+token)
+	}
+	w := httptest.NewRecorder()
+	a.ServeHTTP(w, r)
+	var v map[string]any
+	json.Unmarshal(w.Body.Bytes(), &v)
+	return w.Code, v, w
+}
+func requireCall(t *testing.T, a http.Handler, method, path, token string, body any, want int) map[string]any {
+	t.Helper()
+	s, v, w := call(t, a, method, path, token, body)
+	if s != want {
+		t.Fatalf("%s %s: %d want %d: %s", method, path, s, want, w.Body.String())
+	}
+	return v
+}
+func register(t *testing.T, a *App, name string) (string, string) {
+	v := requireCall(t, a, "POST", "/api/auth/register", "", object{"username": name, "displayName": name, "region": "asia"}, 201)
+	uid := v["user"].(map[string]any)["id"].(string)
+	l := requireCall(t, a, "POST", "/api/auth/login", "", object{"username": name, "secretKey": v["secretKey"]}, 200)
+	return uid, l["token"].(string)
+}
+func upload(t *testing.T, a *App, path, token string, fields map[string]string, want int) map[string]any {
+	t.Helper()
+	var b bytes.Buffer
+	mw := multipart.NewWriter(&b)
+	f, _ := mw.CreateFormFile("image", "image.jpg")
+	jpeg.Encode(f, image.NewRGBA(image.Rect(0, 0, 2, 2)), nil)
+	for k, v := range fields {
+		mw.WriteField(k, v)
+	}
+	mw.Close()
+	r := httptest.NewRequest("POST", path, &b)
+	r.Header.Set("Content-Type", mw.FormDataContentType())
+	r.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	a.ServeHTTP(w, r)
+	if w.Code != want {
+		t.Fatalf("upload %s: %d %s", path, w.Code, w.Body.String())
+	}
+	var v map[string]any
+	json.Unmarshal(w.Body.Bytes(), &v)
+	return v
+}
+func TestPublicContract(t *testing.T) {
+	a := fixtureApp(t)
+	uid, ut := register(t, a, "alice")
+	vid, vt := register(t, a, "bob")
+	_, wt := register(t, a, "carol")
+	adm := requireCall(t, a, "POST", "/api/admin/auth/login", "", object{"username": "admin", "password": "password"}, 200)["token"].(string)
+	requireCall(t, a, "PATCH", "/api/me", ut, object{"bio": "private"}, 200)
+	v := requireCall(t, a, "GET", "/api/users/"+uid, vt, nil, 200)
+	if v["bio"] != "" {
+		t.Fatal("bio leaked")
+	}
+	q := requireCall(t, a, "POST", "/api/friend-requests", ut, object{"recipientId": vid}, 201)
+	rid := q["relationId"].(string)
+	requireCall(t, a, "POST", "/api/friend-requests/"+rid+"/accept", vt, nil, 200)
+	if v = requireCall(t, a, "GET", "/api/users/"+uid, vt, nil, 200); v["bio"] != "private" {
+		t.Fatal("friend bio missing")
+	}
+	requireCall(t, a, "PUT", "/api/admin/users/"+uid+"/certification", adm, nil, 204)
+	requireCall(t, a, "PUT", "/api/follows/"+uid, vt, nil, 204)
+	for _, path := range []string{"/api/users?q=alice", "/api/relationships/friends", "/api/relationships/following", "/api/relationships/followers", "/api/relationships/incoming-requests", "/api/relationships/outgoing-requests"} {
+		requireCall(t, a, "GET", path, vt, nil, 200)
+	}
+	requireCall(t, a, "GET", "/api/posting-window/current", ut, nil, 200)
+	requireCall(t, a, "POST", "/api/admin/posting-window", adm, object{"region": "asia", "localDate": "2026-11-01"}, 201)
+	fields := map[string]string{"caption": "hello", "visibility": "friends", "location_kind": "none"}
+	p := upload(t, a, "/api/posts", ut, fields, 201)
+	pid := p["id"].(string)
+	requireCall(t, a, "GET", "/api/posts/"+pid, vt, nil, 404)
+	upload(t, a, "/api/posts", vt, fields, 201)
+	requireCall(t, a, "GET", "/api/posts/"+pid, vt, nil, 200)
+	requireCall(t, a, "GET", "/api/posts/"+pid, wt, nil, 404)
+	for _, kind := range []string{"friends", "following", "public", "friends-of-friends"} {
+		requireCall(t, a, "GET", "/api/feeds/"+kind, vt, nil, 200)
+	}
+	c := requireCall(t, a, "POST", "/api/posts/"+pid+"/comments", vt, object{"body": "hi"}, 201)
+	requireCall(t, a, "GET", "/api/posts/"+pid+"/comments", vt, nil, 200)
+	re := upload(t, a, "/api/posts/"+pid+"/realmojis", vt, map[string]string{"reactionType": "like"}, 201)
+	requireCall(t, a, "GET", "/api/posts/"+pid+"/realmojis", ut, nil, 200)
+	imageURL := re["imageUrl"].(string)
+	requireCall(t, a, "GET", imageURL, "", nil, 200)
+	upload(t, a, "/api/posts/"+pid+"/realmojis", vt, map[string]string{"reactionType": "smile"}, 201)
+	requireCall(t, a, "GET", imageURL, "", nil, 403)
+	requireCall(t, a, "DELETE", "/api/realmojis/"+re["id"].(string), vt, nil, 204)
+	requireCall(t, a, "DELETE", "/api/comments/"+c["id"].(string), ut, nil, 204)
+	requireCall(t, a, "PATCH", "/api/posts/"+pid, ut, object{"caption": "new", "visibility": "public"}, 200)
+	requireCall(t, a, "GET", "/api/memories?month=2026-11", ut, nil, 200)
+	requireCall(t, a, "GET", "/api/memories/2026-11-01", ut, nil, 200)
+	requireCall(t, a, "GET", "/api/me/export", ut, nil, 200)
+	requireCall(t, a, "PUT", "/api/blocks/"+uid, vt, nil, 204)
+	requireCall(t, a, "GET", "/api/posts/"+pid, vt, nil, 404)
+	requireCall(t, a, "DELETE", "/api/blocks/"+uid, vt, nil, 204)
+	requireCall(t, a, "POST", "/api/admin/posting-window", adm, object{"region": "asia", "localDate": "2026-11-02"}, 201)
+	requireCall(t, a, "PATCH", "/api/posts/"+pid, ut, object{"caption": "closed"}, 403)
+	requireCall(t, a, "GET", "/api/posts/"+pid, ut, nil, 200)
+	requireCall(t, a, "DELETE", "/api/posts/"+pid, ut, nil, 204)
+	requireCall(t, a, "GET", p["imageUrl"].(string), "", nil, 403)
+	p = upload(t, a, "/api/posts", ut, fields, 201)
+	requireCall(t, a, "DELETE", "/api/posts/"+p["id"].(string), ut, nil, 204)
+	p = upload(t, a, "/api/posts", ut, fields, 201)
+	requireCall(t, a, "DELETE", "/api/posts/"+p["id"].(string), ut, nil, 204)
+	upload(t, a, "/api/posts", ut, fields, 409)
+	a.commit()
+	restored, e := newApp(a.initial, a.durable)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer restored.journal.Close()
+	requireCall(t, restored, "GET", "/api/me", ut, nil, 200)
+	requireCall(t, restored, "GET", "/api/posting-window/current", ut, nil, 200)
+	requireCall(t, a, "POST", "/api/me/account-deletion", ut, nil, 204)
+	requireCall(t, a, "GET", "/api/me", ut, nil, 401)
+}
+func TestSSEContract(t *testing.T) {
+	a := fixtureApp(t)
+	_, token := register(t, a, "listener")
+	adm := requireCall(t, a, "POST", "/api/admin/auth/login", "", object{"username": "admin", "password": "password"}, 200)["token"].(string)
+	server := httptest.NewServer(a)
+	defer server.Close()
+	req, _ := http.NewRequest("GET", server.URL+"/api/notifications", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, e := client.Do(req)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer resp.Body.Close()
+	requireCall(t, a, "POST", "/api/admin/posting-window", adm, object{"region": "asia", "localDate": "2026-11-01"}, 201)
+	b, e := io.ReadAll(resp.Body)
+	if e != nil || !strings.Contains(string(b), "postingWindowId") {
+		t.Fatal(fmt.Sprintf("SSE %s: %v", b, e))
+	}
+}
