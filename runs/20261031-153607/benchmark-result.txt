@@ -1,0 +1,53 @@
+time=2026-10-31T06:36:15.612Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:36:18.591Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:36:21.590Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:36:24.623Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T06:36:27.593Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T06:36:30.678Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T06:36:33.631Z level=INFO msg="asia 3 日目: 146 人"
+time=2026-10-31T06:36:34.383Z level=INFO msg="user moved" user=orni5561 from=asia to=america
+time=2026-10-31T06:36:36.678Z level=INFO msg="europe 3 日目: 50 人"
+time=2026-10-31T06:36:36.790Z level=INFO msg="user moved" user=marteru.5986 from=asia to=europe
+time=2026-10-31T06:36:37.727Z level=INFO msg="user moved" user=memo5857 from=asia to=europe
+time=2026-10-31T06:36:39.718Z level=INFO msg="america 3 日目: 50 人"
+time=2026-10-31T06:36:42.747Z level=INFO msg="asia 4 日目: 424 人"
+time=2026-10-31T06:36:45.269Z level=INFO msg="user moved" user=hiivyis.6566 from=america to=asia
+time=2026-10-31T06:36:45.834Z level=INFO msg="europe 4 日目: 136 人"
+time=2026-10-31T06:36:46.031Z level=INFO msg="user moved" user=yoya7040 from=asia to=america
+time=2026-10-31T06:36:47.303Z level=INFO msg="user moved" user=hiivyis.6566 from=asia to=america
+time=2026-10-31T06:36:48.554Z level=INFO msg="user moved" user=yaha-6161 from=asia to=america
+time=2026-10-31T06:36:48.920Z level=INFO msg="america 4 日目: 122 人"
+time=2026-10-31T06:36:51.436Z level=INFO msg="user moved" user=funeben7367 from=asia to=america
+time=2026-10-31T06:36:51.872Z level=INFO msg="asia 5 日目: 1007 人"
+time=2026-10-31T06:36:54.933Z level=INFO msg="europe 5 日目: 154 人"
+time=2026-10-31T06:36:57.722Z level=INFO msg="america 5 日目: 123 人"
+time=2026-10-31T06:37:06.741Z level=INFO msg="europe 最終日（グランプリ）: 153 人"
+time=2026-10-31T06:37:06.857Z level=INFO msg="america 最終日（グランプリ）: 121 人"
+time=2026-10-31T06:37:07.379Z level=INFO msg="asia 最終日（グランプリ）: 1005 人"
+time=2026-10-31T06:37:15.550Z level=INFO msg="グランプリ: アジア 744 人, ヨーロッパ 124 人, アメリカ 86 人"
+{
+  "pass": true,
+  "score": 134068,
+  "messages": [
+    "kisori.5083: 友達申請を承認できません: POST /api/friend-requests/517f5272-8713-40e3-b3a4-bfd75d708184/accept: 応答がタイムアウトしました",
+    "munoni_7717: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "haivy.7406: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "noaya.7914: 投稿 9d071870-00ea-4137-92f5-e416612bfc86 に RealMoji を送れません: POST /api/posts/9d071870-00ea-4137-92f5-e416612bfc86/realmojis: 応答がタイムアウトしました",
+    "noaru_9289: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "nokoki-7501: 投稿 f17edf36-87d1-42d6-a847-84f4491f8a7b にコメントできません: POST /api/posts/f17edf36-87d1-42d6-a847-84f4491f8a7b/comments: 応答がタイムアウトしました",
+    "yumaha_5901: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "torhome_7297: 投稿 f17edf36-87d1-42d6-a847-84f4491f8a7b に RealMoji を送れません: POST /api/posts/f17edf36-87d1-42d6-a847-84f4491f8a7b/realmojis: 応答がタイムアウトしました",
+    "nomar.6464: 投稿の公開範囲を変えられません: PATCH /api/posts/5fee58e2-3de0-4536-9292-d118cc08ffaf: 応答がタイムアウトしました",
+    "kesolia_7699: 認定公開アカウントをフォローできません: PUT /api/follows/a6eeec67-93e1-4cca-a1df-ae1fff8c0e5c: 応答がタイムアウトしました",
+    "tesu5657: RealMoji 391605b8-4165-48b1-9d17-139f1d54cacd を取り消せません: DELETE /api/realmojis/391605b8-4165-48b1-9d17-139f1d54cacd: 応答がタイムアウトしました",
+    "benseivy_9746: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "temiafu-8807: 投稿 f17edf36-87d1-42d6-a847-84f4491f8a7b にコメントできません: POST /api/posts/f17edf36-87d1-42d6-a847-84f4491f8a7b/comments: 応答がタイムアウトしました",
+    "danwa_6459: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "romofu.7436: コメント 938d096c-0acb-40a8-bee3-64bc6175ebfe を消せません: DELETE /api/comments/938d096c-0acb-40a8-bee3-64bc6175ebfe: 応答がタイムアウトしました",
+    "toru-5149: 友達申請を承認できません: POST /api/friend-requests/8fb2d675-33c5-41af-8f16-12ff351c6956/accept: 応答がタイムアウトしました",
+    "miakevin9860: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "hina_nakamura_38: 友達申請を承認できません: POST /api/friend-requests/f4fef738-6b10-467c-8471-91c6993ba155/accept: 応答がタイムアウトしました",
+    "honoais10312: 認定公開アカウントをフォローできません: PUT /api/follows/adccaa99-09ef-470e-8f07-ec05660b9ec2: 応答がタイムアウトしました",
+    "ichiro_suzuki_1956: ログインできません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
