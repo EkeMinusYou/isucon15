@@ -42,6 +42,8 @@ vars:
       REGIONAL_STATE_DIR: /home/isucon/isureal-region-state
       REGION_EUROPE_URL: http://192.168.2.10
       REGION_AMERICA_URL: http://192.168.3.10
+      REGION_ASIA_URL: http://192.168.1.10
+      REGIONAL_READS: '1'
   TARGET_OS: linux
   TARGET_ARCH: amd64
   # Optional Go PGO profile path for build/build-pgo; unset uses -pgo=auto (default.pgo).
@@ -328,7 +330,8 @@ vars:
   # Additional Go services can declare their roles and deployment variables here.
   OWNER_HOSTS: asia1
   IMAGE_REPLICA_HOSTS: europe1 america1
-  DEPLOYCTL_FLAGS: '-role owner={{.OWNER_HOSTS}} -role image_replica={{splitList " " .IMAGE_REPLICA_HOSTS | join ","}}'
+  READ_REPLICA_HOSTS: europe1 america1
+  DEPLOYCTL_FLAGS: '-role owner={{.OWNER_HOSTS}} -role image_replica={{splitList " " .IMAGE_REPLICA_HOSTS | join ","}} -role read_replica={{splitList " " .READ_REPLICA_HOSTS | join ","}}'
   # Optional additional systemd unit:role pairs.
   CONTEST_SERVICE_ROLES: ''
   # Optional extra measurectl roles referenced by contest collectors/digesters.

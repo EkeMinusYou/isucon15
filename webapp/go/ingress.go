@@ -57,7 +57,9 @@ func serviceHandler() (http.Handler, *App, error) {
 	if e != nil {
 		return nil, nil, e
 	}
-	transportSecret = strings.TrimSpace(string(key))
+	if loaded := strings.TrimSpace(string(key)); transportSecret != loaded {
+		transportSecret = loaded
+	}
 	if transportSecret == "" {
 		return nil, nil, fmt.Errorf("empty transport key")
 	}
@@ -71,7 +73,16 @@ func serviceHandler() (http.Handler, *App, error) {
 		if e != nil {
 			return nil, nil, e
 		}
+		if os.Getenv("REGIONAL_READS") == "1" {
+			a.replication, e = newReplicationHub(a, []string{"europe", "america"})
+			if e != nil {
+				return nil, nil, e
+			}
+		}
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if a.replicationHTTP(w, r) || a.ownedOriginalHTTP(w, r) {
+				return
+			}
 			if !isInternal(r) {
 				r.Header.Del("X-ISU-Region")
 				r.Header.Del("X-ISU-Source")
@@ -89,13 +100,30 @@ func serviceHandler() (http.Handler, *App, error) {
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	edge := &App{appCore: &appCore{}}
+	if os.Getenv("REGIONAL_READS") == "1" {
+		edge, e = newApp(envOr("INITIAL_DIR", "/home/isucon/isureal-initial"), envOr("REPLICA_STATE_DIR", "/home/isucon/isureal-replica-state"))
+		if e != nil {
+			return nil, nil, e
+		}
+		edge.localCryptoSlots = make(chan struct{}, 2)
+	}
 	var uploads *regionalUploads
 	if root := os.Getenv("REGIONAL_STATE_DIR"); root != "" {
 		uploads, e = newRegionalUploads(root)
 		if e != nil {
 			return nil, nil, e
 		}
-		edge.durable = filepath.Join(root, "pending")
+		if os.Getenv("REGIONAL_READS") == "1" {
+			edge.localUploads = uploads
+		} else {
+			edge.durable = filepath.Join(root, "pending")
+		}
+	}
+	if os.Getenv("REGIONAL_READS") == "1" {
+		edge.replica, e = startReplica(edge, target.String(), region)
+		if e != nil {
+			return nil, nil, e
+		}
 	}
 	proxy.Transport = measurement.NewUpstreamTransport()
 	imageRoot := os.Getenv("IMAGE_CACHE_DIR")
@@ -128,7 +156,15 @@ func serviceHandler() (http.Handler, *App, error) {
 	}
 	proxy.FlushInterval = -1
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/internal/replication/") {
+			failure(w, 403, "forbidden")
+			return
+		}
 		if r.URL.Path == "/healthz" {
+			if edge.replica != nil && !edge.replica.ready.Load() {
+				failure(w, 503, "replica_starting")
+				return
+			}
 			w.Write([]byte("ok\n"))
 			return
 		}
@@ -139,6 +175,12 @@ func serviceHandler() (http.Handler, *App, error) {
 		r.Header.Del("X-ISU-Region")
 		r.Header.Del("X-ISU-Source")
 		r.Header.Del(regionalUploadHeader)
+		r.Header.Del(regionalImageRequest)
+		if edge.replica != nil && edge.replica.ready.Load() && r.Method == "GET" {
+			r.Header.Set("X-ISU-Region", region)
+			edge.ServeHTTP(w, r)
+			return
+		}
 		if profile, multipart := isImageUpload(r); uploads != nil && (profile || multipart) {
 			var p *preparedUpload
 			r, p = uploads.prepare(edge, w, r)

@@ -10,6 +10,20 @@
 version: '3'
 
 tasks:
+  deploy-replica-data:
+    desc: 地域内読取りの初期メタデータと画像参照を配布
+    preconditions:
+      - sh: test ! -f '{{.RUN_STATE_FILE}}'
+        msg: active benchmark exists
+    deps: [build-deployctl]
+    cmds:
+      - task: prepare-initial-data
+      - |
+        {{.OPERATION_LOCK}} bash <<'BASH'
+        set -eu
+        {{.DEPLOYCTL_DIR}}/deployctl apply replica-initial-data -config tools/contest/initial-deployments.yaml {{.DEPLOYCTL_COMMON}}
+        {{.DEPLOYCTL_DIR}}/deployctl apply replica-initial-version -config {{.DEPLOYCTL_CONFIG}} {{.DEPLOYCTL_COMMON}}
+        BASH
   deploy-maintenance:
     desc: 競技に不要なOS保守を全ホストで停止しSnap自動更新を保留
     preconditions:

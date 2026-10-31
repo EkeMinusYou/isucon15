@@ -36,7 +36,11 @@ func (a *App) stageImage(body io.Reader, maxDimension int) (p preparedUpload) {
 func (a *App) stageImageNamed(body io.Reader, maxDimension int, fileID string) (p preparedUpload) {
 	started := time.Now()
 	p.fileID = fileID
-	f, err := os.OpenFile(filepath.Join(a.durable, "images", p.fileID), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	directory := filepath.Join(a.durable, "images")
+	if a.localUploads != nil {
+		directory = a.localUploads.pendingDir()
+	}
+	f, err := os.OpenFile(filepath.Join(directory, p.fileID), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		p.fileID = ""
 	}

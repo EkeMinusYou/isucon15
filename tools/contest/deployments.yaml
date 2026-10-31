@@ -2,6 +2,13 @@ include:
   - ../deployctl/deployments.yaml
 
 deployments:
+  replica-initial-version:
+    uploads:
+      - label: installed regional metadata version
+        role: read_replica
+        local: data/initial/manifest.json
+        remote: /home/isucon/isureal-replica-initial.version.json
+        verify_required: true
   regional-images-version:
     uploads:
       - label: installed regional image data version

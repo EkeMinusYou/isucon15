@@ -56,6 +56,7 @@ func metricRoute(path string) int {
 }
 func (a *App) snapshot() measurement.Snapshot {
 	m := map[string]any{
+		"app_replication_wait_ns_total":  a.replicationWaitNS.Load(),
 		"app_snapshot_groups_total":      a.snapshots.cohorts.Load(),
 		"app_snapshot_reads_total":       a.snapshots.reads.Load(),
 		"app_image_local_total":          a.regionalImages.local.Load(),
@@ -83,6 +84,23 @@ func (a *App) snapshot() measurement.Snapshot {
 		"app_sig_evicted_total":          a.signatureEvictions.Load(),
 		"app_sig_rpc_failed_total":       a.signatureRPCFailures.Load(),
 		"app_remote_sig_total":           a.remoteSignatures.Load(),
+	}
+	if a.replica != nil {
+		p := a.replica.progress.Load()
+		m["app_replica_applied_seq"] = p.Seq
+		m["app_replica_ready"] = 0
+		if a.replica.ready.Load() {
+			m["app_replica_ready"] = 1
+		}
+		m["app_replica_transactions_total"] = a.replica.applied.Load()
+		m["app_replica_resets_total"] = a.replica.resets.Load()
+		m["app_replica_errors_total"] = a.replica.errors.Load()
+	}
+	if a.replication != nil {
+		a.replication.mu.Lock()
+		m["app_replication_head_seq"] = len(a.replication.entries)
+		m["app_replication_acked_seq"] = a.replication.acked
+		a.replication.mu.Unlock()
 	}
 	for i, name := range routeMetricNames {
 		p := "app_" + name + "_"

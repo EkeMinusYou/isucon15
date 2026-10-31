@@ -23,6 +23,8 @@ func main() {
 	}
 	if app != nil {
 		config.Snapshot = app.snapshot
+		defer app.stopReplication()
+		go func() { <-ctx.Done(); app.stopReplication() }()
 		if app.journal != nil {
 			defer app.journal.Close()
 		}

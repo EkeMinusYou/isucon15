@@ -116,7 +116,7 @@ func prefetchImageSignatures(ctx context.Context, value any) {
 		}
 	}
 	visit(value)
-	if len(refs) == 0 || os.Getenv("COMPUTE_URL") == "" {
+	if len(refs) == 0 || (os.Getenv("COMPUTE_URL") == "" && refs[0].app.replica == nil) {
 		return
 	}
 
@@ -154,21 +154,27 @@ func prefetchImageSignatures(ctx context.Context, value any) {
 		for i, p := range jobs[start:end] {
 			batch[i] = p.job
 		}
-		b, _ := json.Marshal(batch)
-		resp, err := requestSignatures(ctx, b)
 		var results []string
-		if err == nil {
-			err = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&results)
-			resp.Body.Close()
-			if resp.StatusCode != 200 {
-				results = nil
-			}
-		}
-		valid := err == nil && len(results) == len(batch)
-		if valid {
-			a.remoteSignatures.Add(uint64(len(batch)))
+		valid := false
+		if a.replica != nil {
+			results = a.localSignatures(batch)
+			valid = true
 		} else {
-			a.signatureRPCFailures.Add(1)
+			b, _ := json.Marshal(batch)
+			resp, err := requestSignatures(ctx, b)
+			if err == nil {
+				err = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&results)
+				resp.Body.Close()
+				if resp.StatusCode != 200 {
+					results = nil
+				}
+			}
+			valid = err == nil && len(results) == len(batch)
+			if valid {
+				a.remoteSignatures.Add(uint64(len(batch)))
+			} else {
+				a.signatureRPCFailures.Add(1)
+			}
 		}
 		for i, p := range jobs[start:end] {
 			value := ""
@@ -186,4 +192,27 @@ func prefetchImageSignatures(ctx context.Context, value any) {
 	for _, f := range waiting {
 		<-f.done
 	}
+}
+
+func (a *App) localSignatures(jobs []signatureJob) []string {
+	a.localCryptoSlots <- struct{}{}
+	defer func() { <-a.localCryptoSlots }()
+	started := time.Now()
+	var results []string
+	ok := false
+	if nativeSignatureBatch != nil && len(jobs) >= 8 {
+		results, ok = nativeSignatureBatch(jobs)
+	}
+	if ok {
+		nativeSignatureJobs.Add(uint64(len(jobs)))
+	} else {
+		results = make([]string, len(jobs))
+		for i, j := range jobs {
+			results[i] = computeImageSignature(j.ID, j.Secret, j.Exp)
+		}
+		scalarSignatureJobs.Add(uint64(len(jobs)))
+	}
+	a.signatureMisses.Add(uint64(len(jobs)))
+	a.signatureNS.Add(uint64(time.Since(started)))
+	return results
 }

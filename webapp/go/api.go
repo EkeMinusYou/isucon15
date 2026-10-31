@@ -366,12 +366,17 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		a.dispatch(rr, r)
 	}
+	var ticket replicationTicket
 	if !readOnly {
-		a.commit()
+		ticket = a.commit()
 	}
 	stats.holdNS.Add(uint64(time.Since(locked)))
 	unlock()
 	unlock = nil
+	if !a.waitReplication(r.Context(), ticket) {
+		failure(w, 503, "replication_unavailable")
+		return
+	}
 	if p, ok := r.Context().Value(uploadKey{}).(*preparedUpload); ok && p.origin != "" && p.committed {
 		rr.Header().Set(regionalUploadAccepted, p.fileID)
 	}
@@ -768,15 +773,26 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	secret := a.s.Accounts.Get(im.OwnerID).Secret
 	responseWork(w, func(w http.ResponseWriter) {
 		if !hmac.Equal([]byte(ss[0]), []byte(a.signImage(i, secret, exp))) {
-			a.mu.RLock()
-			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
-			stripe.Lock()
-			a.globalGate.RLock()
-			a.failIP(r, "signature", 3, 5*time.Second)
-			a.commit()
-			a.globalGate.RUnlock()
-			stripe.Unlock()
-			a.mu.RUnlock()
+			if a.replica != nil {
+				if !a.reportReplicaFailure(r) {
+					failure(w, 503, "replication_unavailable")
+					return
+				}
+			} else {
+				a.mu.RLock()
+				stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
+				stripe.Lock()
+				a.globalGate.RLock()
+				a.failIP(r, "signature", 3, 5*time.Second)
+				ticket := a.commit()
+				a.globalGate.RUnlock()
+				stripe.Unlock()
+				a.mu.RUnlock()
+				if !a.waitReplication(r.Context(), ticket) {
+					failure(w, 503, "replication_unavailable")
+					return
+				}
+			}
 			failure(w, 403, "image_forbidden")
 			return
 		}

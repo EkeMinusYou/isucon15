@@ -183,6 +183,27 @@ func (u *regionalUploads) open(id string) (*os.File, error) {
 	return f, err
 }
 
+func (u *regionalUploads) reset() error {
+	u.mu.Lock()
+	err := os.RemoveAll(u.acceptedDir())
+	if err == nil {
+		err = os.MkdirAll(u.acceptedDir(), 0700)
+	}
+	if err == nil {
+		var pending []os.DirEntry
+		pending, err = os.ReadDir(u.pendingDir())
+		for _, file := range pending {
+			if !u.active[file.Name()] && !file.IsDir() {
+				if removeErr := os.Remove(filepath.Join(u.pendingDir(), file.Name())); err == nil {
+					err = removeErr
+				}
+			}
+		}
+	}
+	u.mu.Unlock()
+	return err
+}
+
 func (u *regionalUploads) internal(w http.ResponseWriter, r *http.Request) bool {
 	if r.URL.Path != regionalResetPath && !strings.HasPrefix(r.URL.Path, regionalFilePrefix) {
 		return false
@@ -192,23 +213,7 @@ func (u *regionalUploads) internal(w http.ResponseWriter, r *http.Request) bool 
 		return true
 	}
 	if r.URL.Path == regionalResetPath && r.Method == "POST" {
-		u.mu.Lock()
-		err := os.RemoveAll(u.acceptedDir())
-		if err == nil {
-			err = os.MkdirAll(u.acceptedDir(), 0700)
-		}
-		if err == nil {
-			var pending []os.DirEntry
-			pending, err = os.ReadDir(u.pendingDir())
-			for _, file := range pending {
-				if !u.active[file.Name()] && !file.IsDir() {
-					if removeErr := os.Remove(filepath.Join(u.pendingDir(), file.Name())); err == nil {
-						err = removeErr
-					}
-				}
-			}
-		}
-		u.mu.Unlock()
+		err := u.reset()
 		if err != nil {
 			failure(w, 500, "regional_reset_failed")
 		} else {
@@ -272,7 +277,11 @@ func resetRegionalImages() error {
 // The authoritative process caches a remote original only when another region
 // or an export needs it. Registration itself sends metadata, not image bytes.
 func (a *App) fetchRegionalImage(im *Image) error {
-	address := regionalPeer(im.StorageRegion)
+	region := im.StorageRegion
+	if region == "" {
+		region = "asia"
+	}
+	address := regionalPeer(region)
 	if address == "" {
 		return fmt.Errorf("image storage region %q is unavailable", im.StorageRegion)
 	}

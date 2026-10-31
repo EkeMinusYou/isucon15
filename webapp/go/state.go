@@ -153,10 +153,16 @@ type State struct {
 }
 type App struct {
 	*appCore
-	pending []change // Owned by one request, never shared between handlers.
+	pending    []change // Owned by one request, never shared between handlers.
+	syncTicket replicationTicket
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics
+	replication          *replicationHub
+	replica              *replicaReader
+	localUploads         *regionalUploads
+	replicationWaitNS    atomic.Uint64
+	localCryptoSlots     chan struct{}
 	mu                   sync.RWMutex
 	globalGate           sync.RWMutex
 	snapshots            snapshotBatch
@@ -434,9 +440,9 @@ func (a *App) put(kind string, v any) {
 	}
 	a.pending = append(a.pending, change{kind, b})
 }
-func (a *App) commit() {
+func (a *App) commit() replicationTicket {
 	if len(a.pending) == 0 {
-		return
+		return a.syncTicket
 	}
 	b, e := json.Marshal(a.pending)
 	if e != nil {
@@ -453,6 +459,10 @@ func (a *App) commit() {
 	}
 	a.journalWriteNS.Add(uint64(time.Since(writing)))
 	a.pending = nil
+	if a.replication != nil {
+		return a.replication.append(b[:len(b)-1])
+	}
+	return replicationTicket{}
 }
 func loadLines(path string, fn func([]byte) error) error {
 	f, e := os.Open(path)
@@ -614,6 +624,23 @@ func newApp(initial, durable string) (*App, error) {
 	return a, nil
 }
 func (a *App) reset() error {
+	if a.replication != nil {
+		var err error
+		a.syncTicket, err = a.replication.beginReset()
+		if err != nil {
+			return err
+		}
+	}
+	if err := a.resetLocal(); err != nil {
+		return err
+	}
+	if a.replication != nil {
+		a.replication.finishReset()
+		return nil
+	}
+	return resetRegionalImages()
+}
+func (a *App) resetLocal() error {
 	if a.s != nil {
 		a.s.closeHistory()
 	}
@@ -644,7 +671,7 @@ func (a *App) reset() error {
 	a.signatureResets.Add(1)
 	a.signatureMu.Unlock()
 	a.notifier.reset()
-	return resetRegionalImages()
+	return nil
 }
 func (a *App) imageReader(im *Image) (*os.File, int64, error) {
 	p := filepath.Join(a.initial, "images", im.Part)
@@ -652,7 +679,12 @@ func (a *App) imageReader(im *Image) (*os.File, int64, error) {
 		p = filepath.Join(a.durable, "images", im.ID)
 	}
 	f, e := os.Open(p)
-	if os.IsNotExist(e) && im.Part == "" && im.StorageRegion != "" {
+	if os.IsNotExist(e) && im.Part == "" && a.localUploads != nil {
+		if local, err := a.localUploads.open(im.ID); err == nil {
+			return local, 0, nil
+		}
+	}
+	if os.IsNotExist(e) && im.Part == "" && (im.StorageRegion != "" || a.replica != nil) {
 		if e = a.fetchRegionalImage(im); e == nil {
 			f, e = os.Open(p)
 		}

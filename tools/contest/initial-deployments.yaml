@@ -3,6 +3,21 @@ include:
   - deployments.yaml
 
 deployments:
+  replica-initial-data:
+    uploads:
+      - label: initial metadata for regional readers
+        role: read_replica
+        local: data/initial/
+        remote: /home/isucon/isureal-initial/
+        delete: true
+        excludes: ['images/*.bin']
+    activations:
+      - label: reuse regional original image packs
+        role: read_replica
+        script: |
+          set -eu
+          sudo chown -R isucon:isucon /home/isucon/isureal-initial
+          cp -aln /home/isucon/isureal-regional-images/. /home/isucon/isureal-initial/images/
   regional-image-data:
     uploads:
       - label: immutable original images for regional delivery

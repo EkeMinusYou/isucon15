@@ -102,7 +102,7 @@ func register(t *testing.T, a *App, name string) (string, string) {
 	l := requireCall(t, a, "POST", "/api/auth/login", "", object{"username": name, "secretKey": v["secretKey"]}, 200)
 	return uid, l["token"].(string)
 }
-func upload(t *testing.T, a *App, path, token string, fields map[string]string, want int) map[string]any {
+func upload(t *testing.T, a http.Handler, path, token string, fields map[string]string, want int) map[string]any {
 	t.Helper()
 	var b bytes.Buffer
 	mw := multipart.NewWriter(&b)
