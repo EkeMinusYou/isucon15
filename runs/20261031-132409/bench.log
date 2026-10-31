@@ -1,0 +1,56 @@
+2026-10-31T04:24:13.029550271Z	BENCHMARK_START
+PORTAL_JOB_ID: 12417
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T04:24:49.383Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:24:52.367Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:24:55.363Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:24:58.384Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T04:25:01.368Z level=INFO msg="europe 2 日目: 16 人"
+time=2026-10-31T04:25:01.720Z level=INFO msg="user moved" user=hebenmar-5356 from=asia to=america
+time=2026-10-31T04:25:04.364Z level=INFO msg="america 2 日目: 19 人"
+time=2026-10-31T04:25:04.416Z level=INFO msg="user moved" user=hebenmar-5356 from=america to=europe
+time=2026-10-31T04:25:07.434Z level=INFO msg="asia 3 日目: 145 人"
+time=2026-10-31T04:25:10.245Z level=INFO msg="user moved" user=ridanwa.5860 from=asia to=america
+time=2026-10-31T04:25:10.378Z level=INFO msg="europe 3 日目: 42 人"
+time=2026-10-31T04:25:13.367Z level=INFO msg="america 3 日目: 51 人"
+time=2026-10-31T04:25:16.241Z level=INFO msg="user moved" user=hebenmar-5356 from=europe to=asia
+time=2026-10-31T04:25:16.399Z level=INFO msg="asia 4 日目: 428 人"
+time=2026-10-31T04:25:16.780Z level=INFO msg="user moved" user=suivy_6415 from=america to=asia
+time=2026-10-31T04:25:16.830Z level=INFO msg="user moved" user=marmene.6619 from=asia to=america
+time=2026-10-31T04:25:17.108Z level=INFO msg="user moved" user=suivy_6415 from=asia to=america
+time=2026-10-31T04:25:17.158Z level=INFO msg="user moved" user=taku-6668 from=asia to=europe
+time=2026-10-31T04:25:18.744Z level=INFO msg="user moved" user=marmene.6619 from=america to=europe
+time=2026-10-31T04:25:19.259Z level=INFO msg="user moved" user=taku-6668 from=europe to=asia
+time=2026-10-31T04:25:19.465Z level=INFO msg="europe 4 日目: 107 人"
+time=2026-10-31T04:25:21.567Z level=INFO msg="user moved" user=mone_8465 from=asia to=america
+time=2026-10-31T04:25:21.875Z level=INFO msg="user moved" user=ketorhi.7776 from=asia to=europe
+time=2026-10-31T04:25:21.927Z level=INFO msg="user moved" user=tesol.8607 from=asia to=europe
+time=2026-10-31T04:25:21.929Z level=INFO msg="user moved" user=ulna-7003 from=asia to=america
+time=2026-10-31T04:25:22.632Z level=INFO msg="america 4 日目: 118 人"
+time=2026-10-31T04:25:22.961Z level=INFO msg="user moved" user=ulkeso8131 from=asia to=europe
+time=2026-10-31T04:25:24.097Z level=INFO msg="user moved" user=hebenmar-5356 from=asia to=america
+time=2026-10-31T04:25:25.509Z level=INFO msg="asia 5 日目: 1124 人"
+time=2026-10-31T04:25:28.484Z level=INFO msg="europe 5 日目: 157 人"
+time=2026-10-31T04:25:32.212Z level=INFO msg="america 5 日目: 125 人"
+time=2026-10-31T04:25:40.475Z level=INFO msg="america 最終日（グランプリ）: 125 人"
+time=2026-10-31T04:25:40.485Z level=INFO msg="europe 最終日（グランプリ）: 156 人"
+time=2026-10-31T04:25:40.633Z level=INFO msg="asia 最終日（グランプリ）: 1124 人"
+time=2026-10-31T04:25:49.444Z level=INFO msg="グランプリ: アジア 1057 人, ヨーロッパ 139 人, アメリカ 116 人"
+{
+  "pass": true,
+  "score": 162828,
+  "messages": [
+    "leofuho-5609: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "vinyo_13097: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "tata_6052: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "ratsudan_9865: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF"
+  ]
+}
+SCORE: 162828
+BENCHMARK_PASS
+2026-10-31T04:26:23.966626950Z	BENCHMARK_END
+
+SCORE: 162828
+BENCHMARK_PASS
