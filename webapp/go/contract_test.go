@@ -70,6 +70,47 @@ func TestOversizedProfilePreservesDecodeFailureClassification(t *testing.T) {
 	}
 }
 
+func TestContentValidationExperimentKeepsImageAuthorization(t *testing.T) {
+	t.Setenv("VALIDATE_IMAGE_CONTENT", "false")
+	a := fixtureApp(t)
+	_, token := register(t, a, "image_experiment")
+	data := []byte("opaque uploaded bytes")
+	r := httptest.NewRequest("PUT", "/api/me/profile-image", bytes.NewReader(data))
+	r.Header.Set("Content-Type", "application/octet-stream")
+	r.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	a.ServeHTTP(w, r)
+	if w.Code != 204 {
+		t.Fatalf("profile upload: %d %s", w.Code, w.Body.String())
+	}
+	url := requireCall(t, a, "GET", "/api/me", token, nil, 200)["profileImageUrl"].(string)
+	status, _, image := call(t, a, "GET", url, "", nil)
+	if status != 200 || !bytes.Equal(image.Body.Bytes(), data) {
+		t.Fatal("original upload was not returned")
+	}
+	requireCall(t, a, "GET", url+"x", "", nil, 403)
+	requireCall(t, a, "DELETE", "/api/me/profile-image", token, nil, 204)
+	requireCall(t, a, "GET", url, "", nil, 403)
+
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	f, err := mw.CreateFormFile("image", "opaque.bin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Write(data)
+	mw.Close()
+	r = httptest.NewRequest("POST", "/api/posts", &body)
+	r.Header.Set("Content-Type", mw.FormDataContentType())
+	got, ok := multipartImage(r, 512)
+	if !ok || !bytes.Equal(got, data) {
+		t.Fatal("multipart image was content-validated")
+	}
+	if r.MultipartForm != nil {
+		r.MultipartForm.RemoveAll()
+	}
+}
+
 func BenchmarkSignedAlternatingExpiration(b *testing.B) {
 	a := &App{s: emptyState(), signatures: map[string]string{}}
 	a.s.Accounts["owner"] = &Account{Secret: secretHash("key")}

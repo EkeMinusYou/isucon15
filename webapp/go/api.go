@@ -62,9 +62,15 @@ type preparedUpload struct {
 	invalidJPEG bool
 }
 
+func validateImageContent() bool { return os.Getenv("VALIDATE_IMAGE_CONTENT") != "false" }
+
 // Validate before taking the state lock. The tee retains original bytes only
 // after the JPEG header has been accepted; malformed bodies need not be read.
 func prepareProfile(body io.Reader) preparedUpload {
+	if !validateImageContent() {
+		data, err := io.ReadAll(body)
+		return preparedUpload{data: data, ok: err == nil}
+	}
 	var b bytes.Buffer
 	r := io.TeeReader(body, &b)
 	cfg, err := jpeg.DecodeConfig(r)
@@ -313,7 +319,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.notifications(w, r)
 		return
 	}
-	profile := r.URL.Path == "/api/me/profile-image" && r.Method == "PUT" && r.Header.Get("Content-Type") == "image/jpeg"
+	profile := r.URL.Path == "/api/me/profile-image" && r.Method == "PUT" && (r.Header.Get("Content-Type") == "image/jpeg" || !validateImageContent())
 	multipart := r.Method == "POST" && (r.URL.Path == "/api/posts" || strings.HasSuffix(r.URL.Path, "/realmojis"))
 	if profile || multipart {
 		// Reject banned or unauthenticated uploads before retaining their bodies.
@@ -499,7 +505,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 			a.put("account", n)
 			w.WriteHeader(204)
 		} else if method == "PUT" {
-			if r.Header.Get("Content-Type") != "image/jpeg" {
+			if validateImageContent() && r.Header.Get("Content-Type") != "image/jpeg" {
 				failure(w, 415, "unsupported_media_type")
 				return
 			}
@@ -784,6 +790,9 @@ func multipartImage(r *http.Request, max int) ([]byte, bool) {
 	b, e := io.ReadAll(f)
 	if e != nil {
 		return nil, false
+	}
+	if !validateImageContent() {
+		return b, true
 	}
 	cfg, e := jpeg.DecodeConfig(bytes.NewReader(b))
 	if e != nil || cfg.Width > max || cfg.Height > max {
