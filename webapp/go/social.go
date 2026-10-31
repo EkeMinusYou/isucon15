@@ -57,7 +57,7 @@ func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, p
 			a.put("comment", c)
 			output(w, 201, a.comment(&c))
 		} else {
-			b, ok := multipartImage(r, 512)
+			_, ok := multipartImage(r, 512)
 			if r.MultipartForm != nil {
 				defer r.MultipartForm.RemoveAll()
 			}
@@ -70,7 +70,7 @@ func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, p
 				failure(w, 400, "invalid_realmoji")
 				return
 			}
-			im, e := a.addImage(u.ID, b)
+			im, e := a.addImage(r, u.ID)
 			if e != nil {
 				failure(w, 500, "image_storage_failed")
 				return

@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"image/jpeg"
 	"io"
 	"isuconapp/internal/jpegvalidate"
@@ -58,6 +59,10 @@ type preparedUpload struct {
 	data        []byte
 	ok          bool
 	invalidJPEG bool
+	fileID      string
+	size        int64
+	storageErr  error
+	committed   bool
 }
 
 func validateJPEGEntropy() bool { return os.Getenv("JPEG_VALIDATION") != "header" }
@@ -349,7 +354,22 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				defer r.MultipartForm.RemoveAll()
 			}
 		}
-		r = r.WithContext(context.WithValue(r.Context(), uploadKey{}, p))
+		if p.ok {
+			started := time.Now()
+			p.fileID, p.size = id(), int64(len(p.data))
+			p.storageErr = os.WriteFile(filepath.Join(a.durable, "images", p.fileID), p.data, 0600)
+			a.uploadStageNS.Add(uint64(time.Since(started)))
+			a.uploadStageBytes.Add(uint64(p.size))
+			defer func() {
+				if !p.committed {
+					os.Remove(filepath.Join(a.durable, "images", p.fileID))
+				}
+			}()
+		}
+		// Persistence is complete before waiting for state. Keep only metadata
+		// while the request waits for its acceptance decision and response.
+		p.data = nil
+		r = r.WithContext(context.WithValue(r.Context(), uploadKey{}, &p))
 	} else if r.Body != nil {
 		b, e := io.ReadAll(http.MaxBytesReader(w, r.Body, 32<<20))
 		if e != nil {
@@ -512,15 +532,15 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 				failure(w, 415, "unsupported_media_type")
 				return
 			}
-			p, _ := r.Context().Value(uploadKey{}).(preparedUpload)
-			if !p.ok {
-				if p.invalidJPEG {
+			p, _ := r.Context().Value(uploadKey{}).(*preparedUpload)
+			if p == nil || !p.ok {
+				if p != nil && p.invalidJPEG {
 					a.failIP(r, "jpeg", 2, 5*time.Second)
 				}
 				failure(w, 400, "invalid_profile_image")
 				return
 			}
-			im, e := a.addImage(u.ID, p.data)
+			im, e := a.addImage(r, u.ID)
 			if e != nil {
 				failure(w, 500, "image_storage_failed")
 				return
@@ -705,13 +725,17 @@ func (a *App) search(w http.ResponseWriter, r *http.Request, u *Account) {
 	}
 	page(w, items)
 }
-func (a *App) addImage(uid string, b []byte) (*Image, error) {
-	im := &Image{ID: id(), OwnerID: uid, MediaType: "image/jpeg", Size: int64(len(b))}
-	p := filepath.Join(a.durable, "images", im.ID)
-	if e := os.WriteFile(p, b, 0600); e != nil {
-		return nil, e
+func (a *App) addImage(r *http.Request, uid string) (*Image, error) {
+	p, ok := r.Context().Value(uploadKey{}).(*preparedUpload)
+	if !ok || p.fileID == "" {
+		return nil, errors.New("upload was not staged")
 	}
+	if p.storageErr != nil {
+		return nil, p.storageErr
+	}
+	im := &Image{ID: p.fileID, OwnerID: uid, MediaType: "image/jpeg", Size: p.size}
 	a.put("image", im)
+	p.committed = true
 	return im, nil
 }
 func (a *App) validImage(im *Image) bool {
@@ -779,7 +803,7 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	})
 }
 func multipartImage(r *http.Request, max int) ([]byte, bool) {
-	if p, ok := r.Context().Value(uploadKey{}).(preparedUpload); ok {
+	if p, ok := r.Context().Value(uploadKey{}).(*preparedUpload); ok {
 		return p.data, p.ok
 	}
 	b, ok := readMultipartImage(r)
@@ -849,7 +873,7 @@ func readMultipartImage(r *http.Request) ([]byte, bool) {
 	return image, found
 }
 func (a *App) createPost(w http.ResponseWriter, r *http.Request, u *Account) {
-	b, ok := multipartImage(r, 4096)
+	_, ok := multipartImage(r, 4096)
 	if r.MultipartForm != nil {
 		defer r.MultipartForm.RemoveAll()
 	}
@@ -880,7 +904,7 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request, u *Account) {
 		failure(w, 409, "post_slot_unavailable")
 		return
 	}
-	im, e := a.addImage(u.ID, b)
+	im, e := a.addImage(r, u.ID)
 	if e != nil {
 		failure(w, 500, "image_storage_failed")
 		return

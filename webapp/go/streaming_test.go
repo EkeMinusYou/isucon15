@@ -60,6 +60,19 @@ func TestStreamedExportPreservesArchiveAndErrors(t *testing.T) {
 	requireCall(t, a, "GET", "/api/me/export", token, nil, 500)
 }
 
+func TestRejectedUploadRemovesStagedFile(t *testing.T) {
+	a := fixtureApp(t)
+	_, token := register(t, a, "staged_upload")
+	upload(t, a, "/api/posts", token, map[string]string{"caption": "no window", "visibility": "public", "location_kind": "none"}, 409)
+	files, err := os.ReadDir(filepath.Join(a.durable, "images"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 0 {
+		t.Fatalf("rejected upload retained %d files", len(files))
+	}
+}
+
 type discardResponseWriter struct {
 	header       http.Header
 	status, size int

@@ -168,6 +168,8 @@ type App struct {
 	signatureNS          atomic.Uint64
 	remoteSignatures     atomic.Uint64
 	historyResidentBytes atomic.Uint64
+	uploadStageNS        atomic.Uint64
+	uploadStageBytes     atomic.Uint64
 	routeMetrics         [7]requestMetrics
 	requests             uint64
 	writes               uint64
