@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -82,12 +83,9 @@ func (p *ownerImagePermits) prune(now time.Time) {
 	}
 }
 
-func (p *ownerImagePermits) grant(region string, wire imagePermit, deps []string, allowed func() bool) (imagePermit, bool) {
+func (p *ownerImagePermits) grant(region string, wire imagePermit, deps []string) (imagePermit, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if allowed != nil && !allowed() {
-		return imagePermit{}, false
-	}
 	now := time.Now()
 	p.prune(now)
 	if len(p.byID) >= 65536 {
@@ -135,7 +133,6 @@ type permitResponseKey struct{}
 type permitResponse struct {
 	request *http.Request
 	writer  http.ResponseWriter
-	local   *regionalImagePermits
 }
 
 func issueImagePermits(ctx context.Context, refs []imageReference) {
@@ -145,58 +142,30 @@ func issueImagePermits(ctx context.Context, refs []imageReference) {
 	}
 	var grants []imagePermit
 	seen := map[string]bool{}
-	type candidate struct {
-		ref     imageReference
-		address string
-	}
-	var candidates []candidate
 	for _, ref := range refs {
-		if seen[ref.id] || len(candidates) == 128 {
+		if seen[ref.id] || len(grants) == 128 {
 			continue
 		}
 		seen[ref.id] = true
-		candidates = append(candidates, candidate{ref, ref.address()})
-	}
-	// Compute signatures before admission, then validate the entire response
-	// against one coherent snapshot instead of queuing once per image.
-	a := refs[0].app
-	r := response.request.WithContext(ctx)
-	a.mu.RLock()
-	a.snapshots.lock(&a.globalGate)
-	for _, candidate := range candidates {
-		ref := candidate.ref
-		if ref.app.appCore != a.appCore {
-			continue
-		}
-		grant, ok := a.issueImagePermit(r, candidate.address, ref.id, ref.secret, ref.exp)
+		address := ref.address()
+		r := response.request.Clone(ctx)
+		r.Method = "GET"
+		r.URL, _ = url.Parse(address)
+		unlock := ref.app.lockReadRequest(r)
+		grant, ok := ref.app.issueImagePermit(r, address, ref.id, ref.secret, ref.exp)
+		unlock()
 		if ok {
 			grants = append(grants, grant)
 		}
 	}
-	a.snapshots.unlock(&a.globalGate)
-	a.mu.RUnlock()
 	if len(grants) != 0 {
-		publishImagePermits(ctx, response.writer, grants)
+		b, _ := json.Marshal(grants)
+		response.writer.Header().Add(imagePermitHeader, base64.RawURLEncoding.EncodeToString(b))
 	}
-}
-
-func publishImagePermits(ctx context.Context, w http.ResponseWriter, grants []imagePermit) {
-	response, _ := ctx.Value(permitResponseKey{}).(*permitResponse)
-	if response == nil {
-		return
-	}
-	if response.local != nil {
-		response.local.installGrants(response.request, grants)
-		return
-	}
-	b, _ := json.Marshal(grants)
-	w.Header().Add(imagePermitHeader, base64.RawURLEncoding.EncodeToString(b))
 }
 
 func (a *App) issueImagePermit(r *http.Request, address, imageID, secret string, exp int64) (imagePermit, bool) {
-	response, _ := r.Context().Value(permitResponseKey{}).(*permitResponse)
-	local := response != nil && response.local != nil
-	if a.imagePermits == nil || (!isInternal(r) && !local) || exp <= time.Now().Unix() || time.Now().Before(a.s.Bans.Get(ipOf(r))) {
+	if a.imagePermits == nil || !isInternal(r) || exp <= time.Now().Unix() || time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 		return imagePermit{}, false
 	}
 	im := a.s.Images.get(imageID)
@@ -204,11 +173,7 @@ func (a *App) issueImagePermit(r *http.Request, address, imageID, secret string,
 		return imagePermit{}, false
 	}
 	region := requestRegion(r)
-	storageRegion := im.StorageRegion
-	if storageRegion == "" {
-		storageRegion = a.permitRegion
-	}
-	if im.Part == "" && storageRegion != region {
+	if im.Part == "" && im.StorageRegion != region {
 		return imagePermit{}, false
 	}
 	wire := imagePermit{URL: address, Part: im.Part, Offset: im.Offset, Size: im.Size, Exp: exp, MediaType: im.MediaType, Post: im.Kind == 'p'}
@@ -223,11 +188,7 @@ func (a *App) issueImagePermit(r *http.Request, address, imageID, secret string,
 		post := a.s.Posts.get(reaction.PostID)
 		deps = append(deps, "reaction:"+im.Ref, "post:"+post.ID, "account:"+post.AuthorID)
 	}
-	// BAN publication and registry revocation are ordered by this registry
-	// mutex, so image reads do not need the login/IP transaction stripe.
-	return a.imagePermits.grant(region, wire, deps, func() bool {
-		return !time.Now().Before(a.s.Bans.Get(ipOf(r)))
-	})
+	return a.imagePermits.grant(region, wire, deps)
 }
 
 func (a *App) retireImagePermits(kind string, value any) {
@@ -285,9 +246,6 @@ func (a *App) retireImagePermits(kind string, value any) {
 	}
 	if dep != "" {
 		a.revocations = append(a.revocations, a.imagePermits.revoke(dep)...)
-		if kind == "ban" {
-			a.strictImageRevocations = true
-		}
 	}
 }
 
@@ -297,42 +255,25 @@ func (a *App) sendImageRevocations() {
 	}
 	manager := a.imagePermits
 	secret := transportSecret
-	strict := a.strictImageRevocations
-	a.strictImageRevocations = false
 	byRegion := map[string][]*heldImagePermit{}
 	for _, grant := range a.revocations {
 		byRegion[grant.region] = append(byRegion[grant.region], grant)
 	}
 	a.revocations = nil
-	var completed sync.WaitGroup
 	for region, grants := range byRegion {
-		if region == a.permitRegion && a.regionalPermits != nil {
-			ids := make([]string, len(grants))
-			for i, grant := range grants {
-				ids[i] = grant.ID
-			}
-			a.regionalPermits.revokeIDs(ids)
+		address := regionalPeer(region) + imageRevokePath
+		select {
+		case manager.notifySlots <- struct{}{}:
+		default:
+			// Expiry still enforces the five-second invalidation bound if an
+			// overloaded or disconnected region cannot receive a notice.
+			manager.failures.Add(1)
 			continue
 		}
-		address := regionalPeer(region) + imageRevokePath
-		if !strict {
-			select {
-			case manager.notifySlots <- struct{}{}:
-			default:
-				// Expiry still enforces the five-second invalidation bound if an
-				// overloaded or disconnected region cannot receive a notice.
-				manager.failures.Add(1)
-				continue
-			}
-		}
-		completed.Add(1)
 		go func(region string, grants []*heldImagePermit) {
-			defer completed.Done()
 			started := time.Now()
 			defer func() {
-				if !strict {
-					<-manager.notifySlots
-				}
+				<-manager.notifySlots
 				manager.rpcNS.Add(uint64(time.Since(started)))
 			}()
 			deadline := grants[0].deadline
@@ -359,16 +300,6 @@ func (a *App) sendImageRevocations() {
 				}
 			}
 			manager.failures.Add(1)
-			if strict {
-				if remaining := time.Until(deadline); remaining > 0 {
-					time.Sleep(remaining)
-				}
-			}
 		}(region, grants)
-	}
-	// BAN is not part of the relaxed image-deletion contract. Its triggering
-	// response retains the original invalidation ordering, outside state locks.
-	if strict {
-		completed.Wait()
 	}
 }

@@ -195,7 +195,7 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	for range 3 {
 		request("GET", invalidURL, "", "", nil, 403)
 	}
-	request("GET", validURL, "", "", nil, 403)
+	eventuallyRevoked(validURL)
 	// Reset also retires an unconfirmed upload whose response was lost.
 	waitingID := id()
 	if err := os.WriteFile(filepath.Join(files.pendingDir(), waitingID), original.Bytes(), 0600); err != nil {

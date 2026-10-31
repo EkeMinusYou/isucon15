@@ -20,8 +20,8 @@ func TestImagePermitRevocationRejectsDelayedGenerations(t *testing.T) {
 	owner := newOwnerImagePermits()
 	wire := imagePermit{URL: "/api/images/example?exp=9999999999&sig=valid", Part: "0000.bin", Size: 3, Exp: 9999999999, MediaType: "image/jpeg", Post: true}
 	ip := "192.0.2.1"
-	first, _ := owner.grant("europe", wire, []string{"ip:" + ip}, nil)
-	second, _ := owner.grant("europe", wire, []string{"ip:" + ip}, nil)
+	first, _ := owner.grant("europe", wire, []string{"ip:" + ip})
+	second, _ := owner.grant("europe", wire, []string{"ip:" + ip})
 	retired := owner.revoke("ip:" + ip)
 	if len(retired) != 2 || first.ID == second.ID {
 		t.Fatal("revocation did not retain every live grant generation")
@@ -48,12 +48,11 @@ func TestImagePermitRevocationRejectsDelayedGenerations(t *testing.T) {
 	localKey := localPermitKey{ip, wire.URL}
 	grant := region.entries[localKey]
 	grant.deadline = time.Now().Add(1500 * time.Millisecond)
-	grant.checkedAt = time.Now().Add(-3500 * time.Millisecond)
 	region.entries[localKey] = grant
 	w := httptest.NewRecorder()
 	region.serve(w, request, root, nil, &regionalImageMetrics{})
-	if !strings.Contains(w.Header().Get("Cache-Control"), "max-age=5,") || w.Header().Get("Age") != "4" {
-		t.Fatal("leased response restarted its client cache lifetime")
+	if !strings.Contains(w.Header().Get("Cache-Control"), "max-age=1,") {
+		t.Fatal("client cache lifetime extended beyond the serving permission")
 	}
 	ids, _ := json.Marshal([]string{first.ID, second.ID})
 	revoke := httptest.NewRequest("POST", imageRevokePath, bytes.NewReader(ids))
@@ -67,7 +66,7 @@ func TestImagePermitRevocationRejectsDelayedGenerations(t *testing.T) {
 	if region.serve(httptest.NewRecorder(), request, root, nil, &regionalImageMetrics{}) {
 		t.Fatal("a delayed old generation revived a revoked permission")
 	}
-	third, _ := owner.grant("europe", wire, []string{"ip:" + ip}, nil)
+	third, _ := owner.grant("europe", wire, []string{"ip:" + ip})
 	install(third)
 	region.reset()
 	install(third)

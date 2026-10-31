@@ -19,8 +19,7 @@ type regionRequestStart struct{}
 type localPermitKey struct{ ip, url string }
 type localImagePermit struct {
 	imagePermit
-	deadline  time.Time
-	checkedAt time.Time
+	deadline time.Time
 }
 
 type regionalImagePermits struct {
@@ -59,22 +58,8 @@ func (p *regionalImagePermits) sweep(now time.Time) {
 func (p *regionalImagePermits) install(resp *http.Response) {
 	headers := resp.Header.Values(imagePermitHeader)
 	resp.Header.Del(imagePermitHeader)
-	for _, header := range headers {
-		if len(header) > 256<<10 {
-			continue
-		}
-		data, err := base64.RawURLEncoding.DecodeString(header)
-		var grants []imagePermit
-		if err != nil || json.Unmarshal(data, &grants) != nil || len(grants) > 128 {
-			continue
-		}
-		p.installGrants(resp.Request, grants)
-	}
-}
-
-func (p *regionalImagePermits) installGrants(r *http.Request, grants []imagePermit) {
-	start, ok := r.Context().Value(regionRequestStart{}).(time.Time)
-	if !ok || !time.Now().Before(start.Add(imagePermitLifetime)) {
+	start, ok := resp.Request.Context().Value(regionRequestStart{}).(time.Time)
+	if !ok || len(headers) == 0 || !time.Now().Before(start.Add(imagePermitLifetime)) {
 		return
 	}
 	p.mu.Lock()
@@ -84,25 +69,35 @@ func (p *regionalImagePermits) installGrants(r *http.Request, grants []imagePerm
 	}
 	now := time.Now()
 	p.sweep(now)
-	for _, grant := range grants {
-		deadline := start.Add(imagePermitLifetime)
-		if expiry := time.Unix(grant.Exp, 0); expiry.Before(deadline) {
-			deadline = expiry
-		}
-		if grant.ID == "" || grant.Part == "" || grant.Part != filepath.Base(grant.Part) || grant.Offset < 0 || grant.Size < 0 || !strings.HasPrefix(grant.URL, "/api/images/") || !now.Before(deadline) || now.Before(p.revoked[grant.ID]) {
+	for _, header := range headers {
+		if len(header) > 256<<10 {
 			continue
 		}
-		key := localPermitKey{ipOf(r), grant.URL}
-		if previous, ok := p.entries[key]; ok {
-			if previous.deadline.After(deadline) {
+		data, err := base64.RawURLEncoding.DecodeString(header)
+		var grants []imagePermit
+		if err != nil || json.Unmarshal(data, &grants) != nil || len(grants) > 128 {
+			continue
+		}
+		for _, grant := range grants {
+			deadline := start.Add(imagePermitLifetime)
+			if expiry := time.Unix(grant.Exp, 0); expiry.Before(deadline) {
+				deadline = expiry
+			}
+			if grant.ID == "" || grant.Part == "" || grant.Part != filepath.Base(grant.Part) || grant.Offset < 0 || grant.Size < 0 || !strings.HasPrefix(grant.URL, "/api/images/") || !now.Before(deadline) || now.Before(p.revoked[grant.ID]) {
 				continue
 			}
-			delete(p.byID, previous.ID)
-		} else if len(p.entries) >= 32768 {
-			continue
+			key := localPermitKey{ipOf(resp.Request), grant.URL}
+			if previous, ok := p.entries[key]; ok {
+				if previous.deadline.After(deadline) {
+					continue
+				}
+				delete(p.byID, previous.ID)
+			} else if len(p.entries) >= 32768 {
+				continue
+			}
+			p.entries[key] = localImagePermit{grant, deadline}
+			p.byID[grant.ID] = key
 		}
-		p.entries[key] = localImagePermit{grant, deadline, start}
-		p.byID[grant.ID] = key
 	}
 }
 
@@ -120,11 +115,6 @@ func (p *regionalImagePermits) revoke(w http.ResponseWriter, r *http.Request) {
 		failure(w, 400, "invalid_revocation")
 		return
 	}
-	p.revokeIDs(ids)
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (p *regionalImagePermits) revokeIDs(ids []string) {
 	p.mu.Lock()
 	now := time.Now()
 	p.sweep(now)
@@ -138,6 +128,7 @@ func (p *regionalImagePermits) revokeIDs(ids []string) {
 		}
 	}
 	p.mu.Unlock()
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (p *regionalImagePermits) reset() {
@@ -201,12 +192,8 @@ func (p *regionalImagePermits) serve(w http.ResponseWriter, r *http.Request, roo
 	now := time.Now()
 	w.Header().Set("Date", now.UTC().Format(http.TimeFormat))
 	if grant.Post {
-		// Preserve max-age=5, but account for time since the authoritative
-		// validation. Serving a leased response must not restart its freshness.
-		age := max(int64(0), int64((time.Since(grant.checkedAt)+time.Second-1)/time.Second))
-		w.Header().Set("Date", grant.checkedAt.UTC().Format(http.TimeFormat))
-		w.Header().Set("Age", strconv.FormatInt(age, 10))
-		w.Header().Set("Cache-Control", "private, max-age="+strconv.FormatInt(min(int64(5), grant.Exp-now.Unix()), 10)+", must-revalidate")
+		remaining := max(int64(0), int64(time.Until(grant.deadline)/time.Second))
+		w.Header().Set("Cache-Control", "private, max-age="+strconv.FormatInt(min(int64(5), grant.Exp-now.Unix(), remaining), 10)+", must-revalidate")
 	} else {
 		etag := strconv.Quote("image-" + strings.TrimPrefix(r.URL.Path, "/api/images/"))
 		w.Header().Set("Cache-Control", "private, no-cache")

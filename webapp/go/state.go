@@ -151,15 +151,13 @@ type State struct {
 }
 type App struct {
 	*appCore
-	pending                []change // Owned by one request, never shared between handlers.
-	revocations            []*heldImagePermit
-	strictImageRevocations bool
+	pending     []change // Owned by one request, never shared between handlers.
+	revocations []*heldImagePermit
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics
 	imagePermits         *ownerImagePermits
 	regionalPermits      *regionalImagePermits
-	permitRegion         string
 	mu                   sync.RWMutex
 	globalGate           sync.RWMutex
 	snapshots            snapshotBatch
@@ -421,18 +419,13 @@ func (s *State) apply(kind string, data []byte) error {
 	return nil
 }
 func (a *App) put(kind string, v any) {
-	if kind != "ban" {
-		a.retireImagePermits(kind, v)
-	}
+	a.retireImagePermits(kind, v)
 	b, e := json.Marshal(v)
 	if e != nil {
 		panic(e)
 	}
 	if e = a.s.apply(kind, b); e != nil {
 		panic(e)
-	}
-	if kind == "ban" {
-		a.retireImagePermits(kind, v)
 	}
 	a.pending = append(a.pending, change{kind, b})
 }
@@ -616,9 +609,6 @@ func newApp(initial, durable string) (*App, error) {
 	return a, nil
 }
 func (a *App) reset() error {
-	if a.regionalPermits != nil {
-		a.regionalPermits.reset()
-	}
 	if a.imagePermits != nil {
 		a.revocations = append(a.revocations, a.imagePermits.revoke("")...)
 	}
