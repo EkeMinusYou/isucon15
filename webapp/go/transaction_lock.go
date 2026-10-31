@@ -66,7 +66,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 	if r.URL.Path == "/api/initialize" {
 		a.mu.Lock()
 		a.s = a.appCore.s
-		return a.mu.Unlock
+		return func() { a.forgetView(); a.mu.Unlock() }
 	}
 	if r.Method == "GET" {
 		return a.lockReadRequest(r)
@@ -84,6 +84,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 			a.transactionGlobal.Add(1)
 			return func() {
 				a.globalGate.Unlock()
+				a.forgetView()
 				a.mu.RUnlock()
 			}
 		}
@@ -113,6 +114,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 					a.transactions[indices[i]].RUnlock()
 				}
 			}
+			a.forgetView()
 			a.mu.RUnlock()
 		}
 		if r.URL.Path == "/api/auth/login" {

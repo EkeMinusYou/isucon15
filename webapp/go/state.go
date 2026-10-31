@@ -158,6 +158,7 @@ type App struct {
 	s                 *State
 	prepared          bool
 	preparationLocked bool
+	requestScoped     bool
 	signals           []stateSignal
 }
 type appCore struct {
@@ -649,6 +650,7 @@ func (a *App) reset() error {
 		a.s.closeHistory()
 	}
 	a.s = nil
+	a.appCore.s = nil
 	runtime.GC()
 	if e := a.loadInitial(); e != nil {
 		return e

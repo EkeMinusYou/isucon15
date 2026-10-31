@@ -8,7 +8,7 @@ func (a *App) lockReadView() func() {
 	a.mu.RLock()
 	a.viewMu.RLock()
 	a.s = a.appCore.s
-	return func() { a.viewMu.RUnlock(); a.mu.RUnlock() }
+	return func() { a.forgetView(); a.viewMu.RUnlock(); a.mu.RUnlock() }
 }
 func (a *App) lockReadRequest(_ *http.Request) func() { return a.lockReadView() }
 func (a *App) lockUserRead(_ string) func()           { return a.lockReadView() }
