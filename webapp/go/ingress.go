@@ -88,7 +88,7 @@ func serviceHandler() (http.Handler, *App, error) {
 		return nil, nil, fmt.Errorf("OWNER_URL must name the owner through the provided network route")
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
-	edge := &App{appCore: &appCore{localSignatureSlots: make(chan struct{}, 2)}}
+	edge := &App{appCore: &appCore{}}
 	var uploads *regionalUploads
 	if root := os.Getenv("REGIONAL_STATE_DIR"); root != "" {
 		uploads, e = newRegionalUploads(root)
@@ -108,10 +108,6 @@ func serviceHandler() (http.Handler, *App, error) {
 		r.Header.Set("X-ISU-Source", region)
 		r.Header.Set("X-ISU-Transport", transportSecret)
 		r.Header.Del(regionalImageRequest)
-		r.Header.Del(regionalSignRequest)
-		if regionalSigningRequest(r) {
-			r.Header.Set(regionalSignRequest, "1")
-		}
 		if imageRoot != "" && r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/api/images/") {
 			r.Header.Set(regionalImageRequest, "1")
 		}
@@ -122,9 +118,6 @@ func serviceHandler() (http.Handler, *App, error) {
 		}
 		resp.Header.Del(regionalUploadAccepted)
 		if err := serveRegionalImage(resp, imageRoot, uploads, proxy.Transport, &edge.regionalImages); err != nil {
-			return err
-		}
-		if err := signRegionalResponse(resp, edge); err != nil {
 			return err
 		}
 		if identity := resp.Header.Get("X-ISU-Identity"); identity != "" {
@@ -140,9 +133,6 @@ func serviceHandler() (http.Handler, *App, error) {
 			return
 		}
 		if uploads != nil && uploads.internal(w, r) {
-			if r.URL.Path == regionalResetPath && r.Method == http.MethodPost && isInternal(r) {
-				edge.resetSignatureCache()
-			}
 			return
 		}
 		r.Header.Del("X-ISU-Transport")

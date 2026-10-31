@@ -197,9 +197,6 @@ type imageReference struct {
 }
 
 func (v imageReference) MarshalJSON() ([]byte, error) {
-	if v.app.unsignedImages {
-		return json.Marshal(map[string]any{unsignedImageMarker: []any{v.id, v.secret, v.exp}})
-	}
 	s := "/api/images/" + v.id + "?exp=" + strconv.FormatInt(v.exp, 10) + "&sig=" + v.app.signImage(v.id, v.secret, v.exp)
 	return json.Marshal(s)
 }
@@ -295,10 +292,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok\n"))
 		return
 	}
-	a = &App{appCore: a.appCore, unsignedImages: isInternal(r) && r.Header.Get(regionalSignRequest) == "1" && regionalSigningRequest(r)}
-	if a.unsignedImages {
-		w.Header().Set(regionalSignResponse, "1")
-	}
+	a = &App{appCore: a.appCore}
 	if r.URL.Path == "/api/notifications" && r.Method == "GET" {
 		a.notifications(w, r)
 		return

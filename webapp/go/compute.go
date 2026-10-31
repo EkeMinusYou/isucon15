@@ -27,24 +27,6 @@ type signatureJob struct {
 	Exp        int64
 }
 
-func computeSignatureBatch(jobs []signatureJob) []string {
-	var results []string
-	ok := false
-	if nativeSignatureBatch != nil && len(jobs) >= 8 {
-		results, ok = nativeSignatureBatch(jobs)
-	}
-	if ok {
-		nativeSignatureJobs.Add(uint64(len(jobs)))
-	} else {
-		results = make([]string, len(jobs))
-		for i, j := range jobs {
-			results[i] = computeImageSignature(j.ID, j.Secret, j.Exp)
-		}
-		scalarSignatureJobs.Add(uint64(len(jobs)))
-	}
-	return results
-}
-
 // The compute host has no application state. Only authenticated peers may
 // delegate signatures; request bytes and signature rules stay
 // identical to local execution.
@@ -74,7 +56,7 @@ func computeHandler(a *App) http.Handler {
 		}
 		defer func() { <-slots }()
 		r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
-		// Keep the worker stateless; callers own their resettable signature caches.
+		// Keep the worker stateless; only the owner's resettable cache holds results.
 		var jobs []signatureJob
 		if !decode(r, &jobs) || len(jobs) > 256 {
 			failure(w, 400, "invalid_jobs")
@@ -82,7 +64,20 @@ func computeHandler(a *App) http.Handler {
 		}
 
 		started := time.Now()
-		results := computeSignatureBatch(jobs)
+		var results []string
+		ok := false
+		if nativeSignatureBatch != nil && len(jobs) >= 8 {
+			results, ok = nativeSignatureBatch(jobs)
+		}
+		if ok {
+			nativeSignatureJobs.Add(uint64(len(jobs)))
+		} else {
+			results = make([]string, len(jobs))
+			for i, j := range jobs {
+				results[i] = computeImageSignature(j.ID, j.Secret, j.Exp)
+			}
+			scalarSignatureJobs.Add(uint64(len(jobs)))
+		}
 		a.signatureMisses.Add(uint64(len(jobs)))
 		a.signatureNS.Add(uint64(time.Since(started)))
 		output(w, 200, results)
@@ -121,13 +116,11 @@ func prefetchImageSignatures(ctx context.Context, value any) {
 		}
 	}
 	visit(value)
-	if len(refs) == 0 {
+	if len(refs) == 0 || os.Getenv("COMPUTE_URL") == "" {
 		return
 	}
+
 	a := refs[0].app
-	if a.unsignedImages || os.Getenv("COMPUTE_URL") == "" && a.localSignatureSlots == nil {
-		return
-	}
 	type pending struct {
 		job    signatureJob
 		key    string
@@ -161,32 +154,19 @@ func prefetchImageSignatures(ctx context.Context, value any) {
 		for i, p := range jobs[start:end] {
 			batch[i] = p.job
 		}
+		b, _ := json.Marshal(batch)
+		resp, err := requestSignatures(ctx, b)
 		var results []string
-		valid := false
-		if a.localSignatureSlots != nil {
-			a.localSignatureSlots <- struct{}{}
-			before := time.Now()
-			results = computeSignatureBatch(batch)
-			a.signatureMisses.Add(uint64(len(batch)))
-			a.signatureNS.Add(uint64(time.Since(before)))
-			<-a.localSignatureSlots
-			valid = true
-		} else {
-			b, _ := json.Marshal(batch)
-			resp, err := requestSignatures(ctx, b)
-			if err == nil {
-				err = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&results)
-				resp.Body.Close()
-				if resp.StatusCode != 200 {
-					results = nil
-				}
+		if err == nil {
+			err = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&results)
+			resp.Body.Close()
+			if resp.StatusCode != 200 {
+				results = nil
 			}
-			valid = err == nil && len(results) == len(batch)
 		}
+		valid := err == nil && len(results) == len(batch)
 		if valid {
-			if a.localSignatureSlots == nil {
-				a.remoteSignatures.Add(uint64(len(batch)))
-			}
+			a.remoteSignatures.Add(uint64(len(batch)))
 		} else {
 			a.signatureRPCFailures.Add(1)
 		}
