@@ -154,6 +154,7 @@ type App struct {
 	pending []change // Owned by one request, never shared between handlers.
 }
 type appCore struct {
+	regionalImages       regionalImageMetrics
 	mu                   sync.RWMutex
 	globalGate           sync.RWMutex
 	journalMu            sync.Mutex

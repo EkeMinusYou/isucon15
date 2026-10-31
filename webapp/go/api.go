@@ -824,12 +824,18 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			failure(w, 403, "image_forbidden")
 			return
 		}
-		f, off, e := a.imageReader(&copyImage)
-		if e != nil {
-			failure(w, 500, "image_unavailable")
-			return
+		localDelivery := isInternal(r) && r.Header.Get(regionalImageRequest) == "1" && copyImage.Part != ""
+		var f *os.File
+		var off int64
+		if !localDelivery {
+			var err error
+			f, off, err = a.imageReader(&copyImage)
+			if err != nil {
+				failure(w, 500, "image_unavailable")
+				return
+			}
+			defer f.Close()
 		}
-		defer f.Close()
 		// Signature work and opening storage can wait. Recheck immediately
 		// before publishing a cacheable response or evaluating its validator.
 		unlockImage := a.lockReadRequest(r)
@@ -856,6 +862,14 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			}
 		}
 		w.Header().Set("Content-Type", copyImage.MediaType)
+		if localDelivery {
+			w.Header().Set(regionalImagePart, copyImage.Part)
+			w.Header().Set(regionalImageOffset, strconv.FormatInt(copyImage.Offset, 10))
+			w.Header().Set(regionalImageSize, strconv.FormatInt(copyImage.Size, 10))
+			w.Header().Set("Content-Length", "0")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		w.Header().Set("Content-Length", strconv.FormatInt(copyImage.Size, 10))
 		copyStream(w, io.NewSectionReader(f, off, copyImage.Size))
 	})

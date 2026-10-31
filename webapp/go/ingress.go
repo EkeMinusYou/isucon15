@@ -87,7 +87,9 @@ func serviceHandler() (http.Handler, *App, error) {
 		return nil, nil, fmt.Errorf("OWNER_URL must name the owner through the provided network route")
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
+	edge := &App{appCore: &appCore{}}
 	proxy.Transport = measurement.NewUpstreamTransport()
+	imageRoot := os.Getenv("IMAGE_CACHE_DIR")
 	base := proxy.Director
 	proxy.Director = func(r *http.Request) {
 		base(r)
@@ -96,8 +98,15 @@ func serviceHandler() (http.Handler, *App, error) {
 		r.Header.Set("X-ISU-Region", region)
 		r.Header.Set("X-ISU-Source", region)
 		r.Header.Set("X-ISU-Transport", transportSecret)
+		r.Header.Del(regionalImageRequest)
+		if imageRoot != "" && r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/api/images/") {
+			r.Header.Set(regionalImageRequest, "1")
+		}
 	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
+		if err := serveRegionalImage(resp, imageRoot, proxy.Transport, &edge.regionalImages); err != nil {
+			return err
+		}
 		if identity := resp.Header.Get("X-ISU-Identity"); identity != "" {
 			setMeasurementIdentity(resp.Request, identity)
 		}
@@ -114,5 +123,5 @@ func serviceHandler() (http.Handler, *App, error) {
 		r.Header.Del("X-ISU-Region")
 		r.Header.Del("X-ISU-Source")
 		proxy.ServeHTTP(w, r)
-	}), nil, nil
+	}), edge, nil
 }

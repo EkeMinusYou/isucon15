@@ -3,6 +3,17 @@ include:
   - deployments.yaml
 
 deployments:
+  regional-image-data:
+    uploads:
+      - label: immutable original images for regional delivery
+        role: image_replica
+        local: data/initial/images/
+        remote: /home/isucon/isureal-regional-images/
+        delete: true
+    activations:
+      - label: regional image ownership
+        role: image_replica
+        script: sudo chown -R isucon:isucon /home/isucon/isureal-regional-images
   initial-data:
     uploads:
       - label: independent initial data and original image bytes

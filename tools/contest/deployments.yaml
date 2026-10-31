@@ -2,6 +2,13 @@ include:
   - ../deployctl/deployments.yaml
 
 deployments:
+  regional-images-version:
+    uploads:
+      - label: installed regional image data version
+        role: image_replica
+        local: data/initial/manifest.json
+        remote: /home/isucon/isureal-regional-images.version.json
+        verify_required: true
   maintenance-off:
     uploads:
       - label: contest OS maintenance policy
