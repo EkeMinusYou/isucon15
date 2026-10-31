@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func masterChange(t *testing.T, kind string, value any) change {
@@ -58,6 +61,29 @@ func TestRegionalMasterDurabilityAndEpoch(t *testing.T) {
 	defer m.close()
 	if m.s.Accounts.Get(uid).HomeRegion != "asia" || m.s.Accounts.Get(uid).Region != "europe" || m.s.Sessions.Get(token) != uid || m.s.Images.get(imageID) == nil {
 		t.Fatal("master records or fixed home were lost after restart")
+	}
+	exp := time.Now().Unix() + 3600
+	path := fmt.Sprintf("/api/images/%s?exp=%d&sig=%s", imageID, exp, computeImageSignature(imageID, u.Secret, exp))
+	response := httptest.NewRecorder()
+	m.getImage(response, httptest.NewRequest("GET", path, nil), imageID)
+	if response.Code != 200 || response.Body.String() != "original" || response.Header().Get("ETag") == "" {
+		t.Fatal("master did not serve its current original")
+	}
+	conditional := httptest.NewRequest("GET", path, nil)
+	conditional.Header.Set("If-None-Match", response.Header().Get("ETag"))
+	response = httptest.NewRecorder()
+	m.getImage(response, conditional, imageID)
+	if response.Code != 304 || response.Body.Len() != 0 {
+		t.Fatal("master image validator changed")
+	}
+	u.Status = "deleted"
+	if err := m.commit([]masterTransaction{{ID: id(), Changes: []change{masterChange(t, "account", u)}}}); err != nil {
+		t.Fatal(err)
+	}
+	response = httptest.NewRecorder()
+	m.getImage(response, httptest.NewRequest("GET", path, nil), imageID)
+	if response.Code != 403 {
+		t.Fatal("master served an image after account deletion")
 	}
 	if err := m.reset("next-epoch"); err != nil {
 		t.Fatal(err)

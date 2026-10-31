@@ -283,7 +283,7 @@ func (m *regionalMaster) reset(epoch string) error {
 	if same {
 		return nil
 	}
-	s, homes, err := loadMasterInitial(m.initial, m.region)
+	s, _, err := loadMasterInitial(m.initial, m.region)
 	if err != nil {
 		return err
 	}
@@ -294,7 +294,7 @@ func (m *regionalMaster) reset(epoch string) error {
 		return err
 	}
 	m.s.closeHistory()
-	m.s, m.homes, m.seen = s, homes, map[string]bool{}
+	m.s, m.seen = s, map[string]bool{}
 	// Truncate metadata before removing originals, so a restart never replays
 	// an old reference after its original has been removed by initialization.
 	m.files.mu.Lock()
