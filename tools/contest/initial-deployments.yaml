@@ -1,0 +1,16 @@
+# Used only when the immutable initial dataset is first installed or replaced.
+include:
+  - deployments.yaml
+
+deployments:
+  initial-data:
+    uploads:
+      - label: independent initial data and original image bytes
+        role: owner
+        local: data/initial/
+        remote: /home/isucon/isureal-initial/
+        delete: true
+    activations:
+      - label: initial input ownership
+        role: owner
+        script: sudo chown -R isucon:isucon /home/isucon/isureal-initial

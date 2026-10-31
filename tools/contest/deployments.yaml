@@ -2,17 +2,13 @@ include:
   - ../deployctl/deployments.yaml
 
 deployments:
-  initial-data:
+  initial-data-version:
     uploads:
-      - label: independent initial data and original image bytes
+      - label: installed initial data version
         role: owner
-        local: data/initial/
-        remote: /home/isucon/isureal-initial/
-        delete: true
-    activations:
-      - label: initial input ownership
-        role: owner
-        script: sudo chown -R isucon:isucon /home/isucon/isureal-initial
+        local: data/initial/manifest.json
+        remote: /home/isucon/isureal-initial.version.json
+        verify_required: true
   transport-key:
     uploads:
       - label: authenticated router transport key
@@ -59,12 +55,14 @@ plans:
     deployments:
       roles-off: {}
       sysctl: {needs: [roles-off]}
-      initial-data: {needs: [roles-off]}
       transport-key: {needs: [roles-off]}
       static: {needs: [roles-off]}
       tls: {needs: [roles-off]}
-      app: {needs: [initial-data, transport-key, static, tls]}
+      app: {needs: [transport-key, static, tls]}
       roles-on: {needs: [app]}
   initialize:
     deployments:
       app-initialize: {}
+  initial-version:
+    deployments:
+      initial-data-version: {}

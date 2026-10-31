@@ -51,3 +51,24 @@ tasks:
     desc: 通常再起動後の公開APIから受理済み状態を検証
     cmds:
       - '{{.OPERATION_LOCK}} python3 tools/contest/public-contract.py verify'
+
+  deploy-initial-data:
+    desc: 初回・初期データ変更時だけ転送（配置済みmanifestが同じなら省略）
+    preconditions:
+      - sh: test ! -f '{{.RUN_STATE_FILE}}'
+        msg: active benchmark exists
+    deps: [build-deployctl]
+    cmds:
+      - task: prepare-initial-data
+      - |
+        {{.OPERATION_LOCK}} bash <<'BASH'
+        set -eu
+        expected=$(shasum -a 256 data/initial/manifest.json | cut -d ' ' -f 1)
+        actual=$({{.SSH}} {{.SSH_USER}}@{{.OWNER_HOSTS}} 'sha256sum /home/isucon/isureal-initial.version.json 2>/dev/null' | cut -d ' ' -f 1) || actual=''
+        if [ "$actual" = "$expected" ]; then
+          echo 'Initial dataset version already installed; transfer skipped.'
+          exit 0
+        fi
+        {{.DEPLOYCTL_DIR}}/deployctl apply initial-data -config tools/contest/initial-deployments.yaml {{.DEPLOYCTL_COMMON}}
+        {{.DEPLOYCTL_DIR}}/deployctl apply initial-data-version -config {{.DEPLOYCTL_CONFIG}} {{.DEPLOYCTL_COMMON}}
+        BASH

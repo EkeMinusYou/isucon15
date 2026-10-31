@@ -111,6 +111,60 @@
           "Cache-Control": "no-store"
         }
       }
+    },
+    {
+      "id": "static-conditional",
+      "url": "http://13.192.72.111:8080/assets/index-DVx2k2rA.js",
+      "headers": {
+        "If-None-Match": "\"e7f03bef3f20b4348d771b6f886fc62f32c3ba558e471251899dffb1105a7965\""
+      },
+      "expect": {
+        "status": 304
+      }
+    },
+    {
+      "id": "static-head",
+      "url": "http://13.192.72.111:8080/assets/index-DVx2k2rA.js",
+      "method": "HEAD",
+      "expect": {
+        "status": 200,
+        "headers": {
+          "Content-Length": "290101"
+        }
+      }
+    },
+    {
+      "id": "static-range",
+      "url": "http://13.192.72.111:8080/assets/index-DVx2k2rA.js",
+      "headers": {
+        "Range": "bytes=0-9"
+      },
+      "expect": {
+        "status": 206,
+        "headers": {
+          "Content-Range": "bytes 0-9/290101",
+          "Content-Length": "10"
+        }
+      }
+    },
+    {
+      "id": "static-gzip-disabled",
+      "url": "http://13.192.72.111:8080/assets/index-DVx2k2rA.js",
+      "headers": {
+        "Accept-Encoding": "gzip;q=0"
+      },
+      "expect": {
+        "status": 200,
+        "headers": {
+          "Content-Encoding": {
+            "absent": true
+          }
+        }
+      }
+    },
+    {
+      "id": "router-tls-trust",
+      "skip_reason": "The managed router presents a self-signed certificate and no trusted CA was provided; participant Go services terminate plain HTTP as specified."
     }
   ],
   "commands": [
@@ -127,6 +181,15 @@
         "./..."
       ],
       "timeout_seconds": 60
+    },
+    {
+      "id": "initial-history-original-image",
+      "argv": [
+        "python3",
+        "tools/contest/public-contract.py",
+        "history"
+      ],
+      "timeout_seconds": 120
     }
   ]
 }

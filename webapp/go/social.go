@@ -438,6 +438,10 @@ func (a *App) relationshipAPI(w http.ResponseWriter, r *http.Request, u *Account
 			failure(w, 404, "relationship_not_found")
 			return
 		}
+		if !s.active(v.RequesterID) || !s.active(v.RecipientID) {
+			failure(w, 404, "relationship_not_found")
+			return
+		}
 		if v.Status != "pending" || !((action == "accept" || action == "reject") && v.RecipientID == u.ID || action == "cancel" && v.RequesterID == u.ID) {
 			failure(w, 403, "relationship_action_forbidden")
 			return

@@ -77,6 +77,10 @@ func (a *App) failIP(r *http.Request, kind string, limit int, period time.Durati
 	a.failures[key] = xs
 }
 func (a *App) auth(w http.ResponseWriter, r *http.Request, region bool) *Account {
+	if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+		failure(w, 401, "invalid_session")
+		return nil
+	}
 	t := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	u := a.s.Accounts[a.s.Sessions[t]]
 	if u == nil || u.Status != "active" {
@@ -94,6 +98,10 @@ func (a *App) auth(w http.ResponseWriter, r *http.Request, region bool) *Account
 	return u
 }
 func (a *App) admin(w http.ResponseWriter, r *http.Request) bool {
+	if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+		failure(w, 401, "invalid_administrator_session")
+		return false
+	}
 	t := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	if a.s.AdminSessions[t] == "" {
 		failure(w, 401, "invalid_administrator_session")
@@ -470,6 +478,10 @@ func (a *App) adminAPI(w http.ResponseWriter, r *http.Request) {
 		u := s.Accounts[uid]
 		if r.Method == "DELETE" {
 			failure(w, 409, "certification_irreversible")
+			return
+		}
+		if r.Method != "PUT" {
+			failure(w, 405, "method_not_allowed")
 			return
 		}
 		if u == nil || u.Status != "active" || u.AccountType != "regular" {

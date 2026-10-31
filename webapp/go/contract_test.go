@@ -96,6 +96,27 @@ func upload(t *testing.T, a *App, path, token string, fields map[string]string, 
 func TestPublicContract(t *testing.T) {
 	a := fixtureApp(t)
 	uid, ut := register(t, a, "alice")
+	bare := httptest.NewRequest("GET", "/api/me", nil)
+	bare.Header.Set("Authorization", ut)
+	bw := httptest.NewRecorder()
+	a.ServeHTTP(bw, bare)
+	if bw.Code != 401 {
+		t.Fatal("accepted a token without Bearer scheme")
+	}
+	var jpegBody bytes.Buffer
+	jpeg.Encode(&jpegBody, image.NewRGBA(image.Rect(0, 0, 2, 2)), nil)
+	pr := httptest.NewRequest("PUT", "/api/me/profile-image", &jpegBody)
+	pr.Header.Set("Content-Type", "image/jpeg")
+	pr.Header.Set("Authorization", "Bearer "+ut)
+	pw := httptest.NewRecorder()
+	a.ServeHTTP(pw, pr)
+	if pw.Code != 204 {
+		t.Fatalf("profile image %d", pw.Code)
+	}
+	profileURL := requireCall(t, a, "GET", "/api/me", ut, nil, 200)["profileImageUrl"].(string)
+	requireCall(t, a, "GET", profileURL, "", nil, 200)
+	requireCall(t, a, "DELETE", "/api/me/profile-image", ut, nil, 204)
+	requireCall(t, a, "GET", profileURL, "", nil, 403)
 	vid, vt := register(t, a, "bob")
 	_, wt := register(t, a, "carol")
 	adm := requireCall(t, a, "POST", "/api/admin/auth/login", "", object{"username": "admin", "password": "password"}, 200)["token"].(string)
