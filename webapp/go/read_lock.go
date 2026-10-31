@@ -10,6 +10,28 @@ import (
 // capture coherent state together, excluding executing mutations as a cohort.
 func (a *App) readKeys(r *http.Request) ([]string, bool) {
 	s, path := a.s, r.URL.Path
+	if strings.HasPrefix(path, "/api/images/") {
+		im := s.Images.get(strings.TrimPrefix(path, "/api/images/"))
+		if im == nil {
+			return nil, true
+		}
+		keys := []string{"user:" + im.OwnerID}
+		switch im.Kind {
+		case 'p':
+			keys = append(keys, "post:"+im.Ref)
+		case 'r':
+			reaction := s.Reactions.get(im.Ref)
+			if reaction == nil {
+				return nil, true
+			}
+			post := s.Posts.get(reaction.PostID)
+			if post == nil {
+				return nil, true
+			}
+			keys = append(keys, "post:"+post.ID, "user:"+post.AuthorID)
+		}
+		return keys, false
+	}
 	actor := s.Sessions.Get(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 	if actor == "" {
 		return nil, true
@@ -34,12 +56,6 @@ func (a *App) readKeys(r *http.Request) ([]string, bool) {
 }
 
 func (a *App) lockReadRequest(r *http.Request) func() {
-	if strings.HasPrefix(r.URL.Path, "/api/images/") {
-		// Image validity uses immutable records in concurrent stores, and is
-		// checked again after signing. Only reset can retire their backing data.
-		a.mu.RLock()
-		return a.mu.RUnlock
-	}
 	for {
 		a.mu.RLock()
 		keys, all := a.readKeys(r)
