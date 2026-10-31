@@ -46,6 +46,30 @@ func TestProfileStreamValidation(t *testing.T) {
 	}
 }
 
+func TestOversizedProfilePreservesDecodeFailureClassification(t *testing.T) {
+	var original bytes.Buffer
+	if err := jpeg.Encode(&original, image.NewRGBA(image.Rect(0, 0, 513, 32)), nil); err != nil {
+		t.Fatal(err)
+	}
+	valid := original.Bytes()
+	invalid := valid[:len(valid)-20]
+	if _, err := jpeg.Decode(bytes.NewReader(invalid)); err == nil {
+		t.Fatal("fixture must have invalid entropy data")
+	}
+	for _, tc := range []struct {
+		name    string
+		data    []byte
+		invalid bool
+	}{{"valid", valid, false}, {"truncated", invalid, true}} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := prepareProfile(bytes.NewReader(tc.data))
+			if p.ok || p.invalidJPEG != tc.invalid {
+				t.Fatalf("ok=%v invalidJPEG=%v, want rejection with invalidJPEG=%v", p.ok, p.invalidJPEG, tc.invalid)
+			}
+		})
+	}
+}
+
 func BenchmarkSignedAlternatingExpiration(b *testing.B) {
 	a := &App{s: emptyState(), signatures: map[string]string{}}
 	a.s.Accounts["owner"] = &Account{Secret: secretHash("key")}

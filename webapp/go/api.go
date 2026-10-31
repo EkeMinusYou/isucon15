@@ -71,12 +71,14 @@ func prepareProfile(body io.Reader) preparedUpload {
 	if err != nil {
 		return preparedUpload{invalidJPEG: true}
 	}
-	if cfg.Width > 512 || cfg.Height > 512 {
-		return preparedUpload{}
-	}
 	header := append([]byte(nil), b.Bytes()...)
 	if err = jpegvalidate.Validate(io.MultiReader(bytes.NewReader(header), r)); err != nil {
 		return preparedUpload{invalidJPEG: true}
+	}
+	// Decode failures count toward the abuse limit even when dimensions also
+	// exceed the profile limit. A valid oversized JPEG does not.
+	if cfg.Width > 512 || cfg.Height > 512 {
+		return preparedUpload{}
 	}
 	if _, err = io.Copy(&b, body); err != nil {
 		return preparedUpload{invalidJPEG: true}
