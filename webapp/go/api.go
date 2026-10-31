@@ -292,7 +292,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok\n"))
 		return
 	}
-	a = &App{appCore: a.appCore, requestScoped: true}
+	a = &App{appCore: a.appCore}
 	if r.URL.Path == "/api/notifications" && r.Method == "GET" {
 		a.notifications(w, r)
 		return
@@ -310,7 +310,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			a.auth(check, r, !profile)
 		}
 		a.viewMu.RUnlock()
-		a.forgetView()
 		a.mu.RUnlock()
 		if check.Code != 200 {
 			for k, vs := range check.Header() {
@@ -778,7 +777,6 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			func() {
 				a.mu.RLock()
 				defer a.mu.RUnlock()
-				defer a.forgetView()
 				stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
 				stripe.Lock()
 				defer stripe.Unlock()

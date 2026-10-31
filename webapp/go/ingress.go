@@ -71,7 +71,6 @@ func serviceHandler() (http.Handler, *App, error) {
 		if e != nil {
 			return nil, nil, e
 		}
-		a.s = nil // The service handle retains state only through appCore.
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !isInternal(r) {
 				r.Header.Del("X-ISU-Region")

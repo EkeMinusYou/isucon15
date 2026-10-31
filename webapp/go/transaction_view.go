@@ -93,9 +93,3 @@ func (a *App) endPreparation() {
 		a.viewMu.RUnlock()
 	}
 }
-
-func (a *App) forgetView() {
-	if a.requestScoped {
-		a.s = nil
-	}
-}
