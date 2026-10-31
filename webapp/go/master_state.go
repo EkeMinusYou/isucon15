@@ -30,6 +30,7 @@ type regionalMaster struct {
 	seen                        map[string]bool
 	epoch                       string
 	signer                      *App
+	stats                       *regionalImageMetrics
 }
 
 func loadMasterInitial(initial, region string) (*State, *masterHomes, error) {

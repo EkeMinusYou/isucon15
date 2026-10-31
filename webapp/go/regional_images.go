@@ -22,9 +22,10 @@ type regionalImageBody struct {
 }
 
 type regionalImageMetrics struct {
-	local    atomic.Uint64
-	fallback atomic.Uint64
-	bytes    atomic.Uint64
+	local     atomic.Uint64
+	fallback  atomic.Uint64
+	bytes     atomic.Uint64
+	forwarded atomic.Uint64
 }
 
 func (b *regionalImageBody) Read(p []byte) (int, error) {

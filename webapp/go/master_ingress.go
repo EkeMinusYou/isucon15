@@ -67,6 +67,9 @@ func (m *regionalMaster) route(next http.Handler) (http.Handler, error) {
 			if home == "" || home == m.region {
 				m.getImage(w, r, id)
 			} else {
+				if m.stats != nil {
+					m.stats.forwarded.Add(1)
+				}
 				proxies[home].ServeHTTP(w, r)
 			}
 			return

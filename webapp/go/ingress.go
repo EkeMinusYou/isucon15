@@ -174,6 +174,7 @@ func serviceHandler() (http.Handler, *App, error) {
 			return nil, nil, err
 		}
 		edge.master = master
+		master.stats = &edge.regionalImages
 		h, err := master.route(handler)
 		return h, edge, err
 	}

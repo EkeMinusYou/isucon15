@@ -59,6 +59,7 @@ func (a *App) snapshot() measurement.Snapshot {
 		"app_image_local_total":          a.regionalImages.local.Load(),
 		"app_image_fallback_total":       a.regionalImages.fallback.Load(),
 		"app_image_local_bytes_total":    a.regionalImages.bytes.Load(),
+		"app_image_forward_total":        a.regionalImages.forwarded.Load(),
 		"app_notification_wakeups_total": a.notifier.wakeups.Load(),
 		"app_notification_targets_total": a.notifier.targeted.Load(),
 		"app_transaction_requests_total": a.transactionRequests.Load(),

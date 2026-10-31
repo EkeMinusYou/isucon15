@@ -176,6 +176,7 @@ func coordinatorJournalPath(root, epoch string) string {
 
 func (a *App) enableRegionalMasters(master *regionalMaster) error {
 	a.master, a.mastersEnabled = master, true
+	master.stats = &a.regionalImages
 	epochPath := filepath.Join(a.durable, "coordinator-epoch")
 	b, err := os.ReadFile(epochPath)
 	if os.IsNotExist(err) {

@@ -267,5 +267,9 @@ func (m *regionalMaster) getImage(w http.ResponseWriter, r *http.Request, id str
 	}
 	w.Header().Set("Content-Type", copyImage.MediaType)
 	w.Header().Set("Content-Length", strconv.FormatInt(copyImage.Size, 10))
-	copyStream(w, io.NewSectionReader(file, copyImage.Offset, copyImage.Size))
+	n, _ := copyStream(w, io.NewSectionReader(file, copyImage.Offset, copyImage.Size))
+	if m.stats != nil {
+		m.stats.local.Add(1)
+		m.stats.bytes.Add(uint64(n))
+	}
 }
