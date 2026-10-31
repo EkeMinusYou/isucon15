@@ -159,6 +159,7 @@ type appCore struct {
 	globalGate           sync.RWMutex
 	snapshots            snapshotBatch
 	journalMu            sync.Mutex
+	mutationMu           sync.Mutex
 	notifier             notificationHub
 	transactions         transactionLocks
 	transactionRequests  atomic.Uint64

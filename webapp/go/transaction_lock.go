@@ -138,19 +138,25 @@ func (a *App) lockRequest(r *http.Request) func() {
 		a.mu.RLock()
 		keys, all := a.mutationKeys(r)
 		if all {
+			a.mutationMu.Lock()
 			a.globalGate.Lock()
 			a.transactionRequests.Add(1)
 			a.transactionGlobal.Add(1)
 			return func() {
 				a.globalGate.Unlock()
+				a.mutationMu.Unlock()
 				a.mu.RUnlock()
 			}
 		}
 		uses := a.transactions.reference(keys, interactionReadsUsers(r))
 		a.acquireResources(uses)
+		// Queue mutations before entering the snapshot gate. A journal waiter
+		// must not count as an executing mutation and delay every collection.
+		a.mutationMu.Lock()
 		a.globalGate.RLock()
 		unlock := func() {
 			a.globalGate.RUnlock()
+			a.mutationMu.Unlock()
 			a.releaseResources(uses)
 			a.mu.RUnlock()
 		}
