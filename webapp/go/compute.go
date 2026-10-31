@@ -116,7 +116,6 @@ func prefetchImageSignatures(ctx context.Context, value any) {
 		}
 	}
 	visit(value)
-	defer issueImagePermits(ctx, refs)
 	if len(refs) == 0 || os.Getenv("COMPUTE_URL") == "" {
 		return
 	}

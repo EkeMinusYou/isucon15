@@ -92,15 +92,5 @@ func (a *App) snapshot() measurement.Snapshot {
 		m[p+"hold_ns_total"] = s.holdNS.Load()
 		m[p+"response_ns_total"] = s.responseNS.Load()
 	}
-	if p := a.imagePermits; p != nil {
-		m["app_permit_issued_total"] = p.issued.Load()
-		m["app_permit_revoked_total"] = p.revoked.Load()
-		m["app_permit_rpc_ns_total"] = p.rpcNS.Load()
-		m["app_permit_rpc_failed_total"] = p.failures.Load()
-	}
-	if p := a.regionalPermits; p != nil {
-		m["app_image_permit_hit_total"] = p.hits.Load()
-		m["app_image_permit_miss_total"] = p.misses.Load()
-	}
 	return measurement.Snapshot{Metrics: m}
 }

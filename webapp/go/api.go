@@ -197,11 +197,8 @@ type imageReference struct {
 }
 
 func (v imageReference) MarshalJSON() ([]byte, error) {
-	return json.Marshal(v.address())
-}
-
-func (v imageReference) address() string {
-	return "/api/images/" + v.id + "?exp=" + strconv.FormatInt(v.exp, 10) + "&sig=" + v.app.signImage(v.id, v.secret, v.exp)
+	s := "/api/images/" + v.id + "?exp=" + strconv.FormatInt(v.exp, 10) + "&sig=" + v.app.signImage(v.id, v.secret, v.exp)
+	return json.Marshal(s)
 }
 
 // Hourly expiry boundaries reuse signatures across responses. Every issued
@@ -296,9 +293,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a = &App{appCore: a.appCore}
-	if a.imagePermits != nil && isInternal(r) {
-		r = r.WithContext(context.WithValue(r.Context(), permitResponseKey{}, &permitResponse{r, w}))
-	}
 	if r.URL.Path == "/api/notifications" && r.Method == "GET" {
 		a.notifications(w, r)
 		return
@@ -378,7 +372,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	stats.holdNS.Add(uint64(time.Since(locked)))
 	unlock()
 	unlock = nil
-	a.sendImageRevocations()
 	if p, ok := r.Context().Value(uploadKey{}).(*preparedUpload); ok && p.origin != "" && p.committed {
 		rr.Header().Set(regionalUploadAccepted, p.fileID)
 	}
@@ -775,7 +768,6 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			a.globalGate.RUnlock()
 			stripe.Unlock()
 			a.mu.RUnlock()
-			a.sendImageRevocations()
 			failure(w, 403, "image_forbidden")
 			return
 		}
@@ -801,21 +793,12 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 		current := a.s.Images.get(i)
 		cacheable := a.validImage(current)
 		checkedAt := time.Now()
-		var grant imagePermit
-		var permitted bool
-		if cacheable {
-			grant, permitted = a.issueImagePermit(r, r.URL.RequestURI(), i, secret, exp)
-		}
 		unlockImage()
 		if !cacheable || exp <= checkedAt.Unix() {
 			failure(w, 403, "image_forbidden")
 			return
 		}
 		w.Header().Set("Date", checkedAt.UTC().Format(http.TimeFormat))
-		if permitted {
-			b, _ := json.Marshal([]imagePermit{grant})
-			w.Header().Add(imagePermitHeader, base64.RawURLEncoding.EncodeToString(b))
-		}
 		if copyImage.Kind == 'p' {
 			maxAge := min(int64(5), exp-checkedAt.Unix())
 			w.Header().Set("Cache-Control", "private, max-age="+strconv.FormatInt(maxAge, 10)+", must-revalidate")

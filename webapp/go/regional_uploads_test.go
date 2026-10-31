@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
@@ -21,7 +20,6 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	transportSecret, fixedRegion = "regional-upload-test", "asia"
 	t.Cleanup(func() { transportSecret, fixedRegion = oldSecret, oldRegion })
 	owner := fixtureApp(t)
-	owner.imagePermits = newOwnerImagePermits()
 	uid, token := register(t, owner, "regional_upload_owner")
 	requireCall(t, owner, "PATCH", "/api/me", token, object{"region": "europe"}, 200)
 	admin := openWindow(t, owner, "2026-11-01")
@@ -71,25 +69,6 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 		}
 		return b
 	}
-	eventuallyRevoked := func(path string) {
-		t.Helper()
-		deadline := time.Now().Add(5 * time.Second)
-		for {
-			response, err := http.Get(regional.URL + path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			io.Copy(io.Discard, response.Body)
-			response.Body.Close()
-			if response.StatusCode == 403 {
-				return
-			}
-			if response.StatusCode != 200 || time.Now().After(deadline) {
-				t.Fatalf("image was not revoked within five seconds: status %d", response.StatusCode)
-			}
-			time.Sleep(time.Millisecond)
-		}
-	}
 	var original bytes.Buffer
 	if err := jpeg.Encode(&original, image.NewRGBA(image.Rect(0, 0, 2, 2)), nil); err != nil {
 		t.Fatal(err)
@@ -109,18 +88,10 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	imageURL := me["profileImageUrl"].(string)
-	ownerImageRequests := owner.routeMetrics[metricRoute("/api/images/")].requests.Load()
 	got := request("GET", imageURL, "", "", nil, 200)
 	if !bytes.Equal(got, original.Bytes()) || edge.regionalImages.local.Load() != 1 {
 		t.Fatal("regional original was not served locally")
 	}
-	if edge.regionalPermits.hits.Load() != 1 {
-		t.Fatal("API response did not preauthorize local image delivery")
-	}
-	if owner.routeMetrics[metricRoute("/api/images/")].requests.Load() != ownerImageRequests {
-		t.Fatal("valid regional permission still consulted the owner")
-	}
-	request("GET", imageURL+"x", "", "", nil, 403)
 	if _, err := os.Stat(filepath.Join(owner.durable, "images", profileID)); !os.IsNotExist(err) {
 		t.Fatal("local delivery fetched the original through the owner")
 	}
@@ -128,8 +99,6 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	if response.Code != 200 || !bytes.Equal(response.Body.Bytes(), original.Bytes()) {
 		t.Fatal("another region could not fetch the original from its origin")
 	}
-	request("PUT", "/api/me/profile-image", token, "image/jpeg", original.Bytes(), 204)
-	eventuallyRevoked(imageURL)
 	q := imageRequest("/api/posts", token, map[string]string{"caption": "body", "visibility": "public", "location_kind": "none"})
 	var post object
 	if err := json.Unmarshal(request("POST", "/api/posts?caption=query", token, q.contentType, q.body, 201), &post); err != nil {
@@ -158,8 +127,6 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 		t.Fatal("RealMoji original was not placed in its upload region")
 	}
 	request("GET", reaction["imageUrl"].(string), "", "", nil, 200)
-	request("POST", "/api/posts/"+peerPost["id"].(string)+"/realmojis", token, reactionUpload.contentType, reactionUpload.body, 201)
-	eventuallyRevoked(reaction["imageUrl"].(string))
 	restored, err := newApp(owner.initial, owner.durable)
 	if err != nil {
 		t.Fatal(err)
@@ -179,23 +146,10 @@ func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	}
 	f.Close()
 	request("DELETE", "/api/posts/"+stored.ID, token, "", nil, 204)
-	eventuallyRevoked(post["imageUrl"].(string))
+	request("GET", post["imageUrl"].(string), "", "", nil, 403)
 	request("PUT", "/api/me/profile-image", "", "image/jpeg", original.Bytes(), 401)
 	request("PUT", "/api/me/profile-image", token, "image/jpeg", []byte("not jpeg"), 400)
 	request("GET", regionalFilePrefix+profileID, "", "", nil, 403)
-	request("GET", "/api/posts/"+peerPost["id"].(string), peerToken, "", nil, 200)
-	validURL := peerPost["imageUrl"].(string)
-	request("GET", validURL, "", "", nil, 200)
-	parts := strings.Split(validURL, "sig=")
-	first := "A"
-	if parts[1][0] == 'A' {
-		first = "B"
-	}
-	invalidURL := parts[0] + "sig=" + first + parts[1][1:]
-	for range 3 {
-		request("GET", invalidURL, "", "", nil, 403)
-	}
-	eventuallyRevoked(validURL)
 	// Reset also retires an unconfirmed upload whose response was lost.
 	waitingID := id()
 	if err := os.WriteFile(filepath.Join(files.pendingDir(), waitingID), original.Bytes(), 0600); err != nil {
