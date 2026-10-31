@@ -323,3 +323,36 @@ func TestInteractionAllowsConcurrentAuthorReads(t *testing.T) {
 		t.Fatal("interaction exclusively locked an unchanged author")
 	}
 }
+
+func TestSignatureReportDoesNotDrainUnrelatedUpdates(t *testing.T) {
+	a := fixtureApp(t)
+	oldSecret := transportSecret
+	transportSecret = "signature-lock-test"
+	defer func() { transportSecret = oldSecret }()
+	a.globalGate.RLock()
+	held := true
+	defer func() {
+		if held {
+			a.globalGate.RUnlock()
+		}
+	}()
+	done := make(chan int, 1)
+	go func() {
+		r := httptest.NewRequest("POST", masterPrefix+"failure", bytes.NewBufferString(`{"ip":"192.0.2.19","region":"europe","kind":"signature"}`))
+		r.Header.Set("X-ISU-Transport", transportSecret)
+		w := httptest.NewRecorder()
+		a.ServeHTTP(w, r)
+		done <- w.Code
+	}()
+	select {
+	case status := <-done:
+		if status != 204 {
+			t.Fatalf("signature report returned %d", status)
+		}
+	case <-time.After(time.Second):
+		a.globalGate.RUnlock()
+		held = false
+		<-done
+		t.Fatal("signature report waited for an unrelated update")
+	}
+}

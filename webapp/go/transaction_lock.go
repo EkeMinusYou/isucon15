@@ -154,13 +154,17 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	actor := s.Sessions.Get(token)
 	keys := []string{"user:" + actor}
-	var input struct{ Username, RecipientID, Region string }
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") || strings.HasPrefix(path, "/api/auth/") || strings.HasPrefix(path, "/api/admin/auth/") || path == "/api/friend-requests" || path == "/api/me" {
+	var input struct{ Username, RecipientID, Region, IP string }
+	signatureReport := path == masterPrefix+"failure" && isInternal(r)
+	if signatureReport || strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") || strings.HasPrefix(path, "/api/auth/") || strings.HasPrefix(path, "/api/admin/auth/") || path == "/api/friend-requests" || path == "/api/me" {
 		if r.Body != nil {
 			b, _ := io.ReadAll(r.Body)
 			r.Body = io.NopCloser(bytes.NewReader(b))
 			json.Unmarshal(b, &input)
 		}
+	}
+	if signatureReport && input.IP != "" {
+		return []string{"ip:" + input.IP}, false
 	}
 	if path == "/api/auth/register" {
 		return []string{"name:" + input.Username}, false
