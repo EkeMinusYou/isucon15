@@ -416,7 +416,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		secret := id()
-		u := &Account{ID: id(), Username: v.Username, Secret: secretHash(secret), DisplayName: v.DisplayName, Region: v.Region, AccountType: "regular", Status: "active"}
+		u := &Account{ID: idInRegion(v.Region), Username: v.Username, Secret: secretHash(secret), DisplayName: v.DisplayName, Region: v.Region, HomeRegion: v.Region, AccountType: "regular", Status: "active"}
 		a.put("account", u)
 		output(w, 201, object{"secretKey": secret, "user": sessionUser(u)})
 		return
@@ -433,7 +433,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		for t := range s.UserTokens.Get(u.ID) {
 			a.put("session", tokenChange{t, ""})
 		}
-		token := id()
+		token := idInRegion(u.HomeRegion)
 		a.put("session", tokenChange{token, u.ID})
 		setMeasurementIdentity(r, u.ID)
 		if isInternal(r) {
@@ -928,7 +928,7 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request, u *Account) {
 		failure(w, 500, "image_storage_failed")
 		return
 	}
-	p := Post{ID: id(), AuthorID: u.ID, WindowID: a.s.window(u).ID, ImageID: im.ID, Caption: caption, Visibility: vis, Location: loc, PostedAt: time.Now().UTC()}
+	p := Post{ID: idInRegion(u.HomeRegion), AuthorID: u.ID, WindowID: a.s.window(u).ID, ImageID: im.ID, Caption: caption, Visibility: vis, Location: loc, PostedAt: time.Now().UTC()}
 	a.put("post", p)
 	output(w, 201, a.post(&p))
 }

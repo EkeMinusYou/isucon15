@@ -27,6 +27,7 @@ type Account struct {
 	Bio            string  `json:"bio"`
 	ProfileImageID *string `json:"profileImageId"`
 	Region         string  `json:"region"`
+	HomeRegion     string  `json:"homeRegion,omitempty"`
 	AccountType    string  `json:"accountType"`
 	Status         string  `json:"status"`
 }
@@ -263,6 +264,12 @@ func (s *State) apply(kind string, data []byte) error {
 	case "account":
 		var v Account
 		decode(&v)
+		if v.HomeRegion == "" {
+			v.HomeRegion = v.Region
+			if old := s.Accounts.Get(v.ID); old != nil && old.HomeRegion != "" {
+				v.HomeRegion = old.HomeRegion
+			}
+		}
 		v.searchUsername = foldSearch(v.Username)
 		v.searchDisplay = foldSearch(v.DisplayName)
 		s.Accounts.Set(v.ID, &v)

@@ -84,7 +84,7 @@ func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, p
 					a.put("reaction", v)
 				}
 			}
-			v := Reaction{ID: id(), PostID: pid, ReactorID: u.ID, ImageID: im.ID, Type: t, CreatedAt: now}
+			v := Reaction{ID: idInRegion(u.HomeRegion), PostID: pid, ReactorID: u.ID, ImageID: im.ID, Type: t, CreatedAt: now}
 			a.put("reaction", v)
 			output(w, 201, a.reaction(&v))
 		}
