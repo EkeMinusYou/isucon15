@@ -1,0 +1,26 @@
+time=2026-10-31T02:49:43.429Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:49:46.416Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:49:49.415Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:49:52.460Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T02:49:55.414Z level=INFO msg="europe 2 日目: 20 人"
+time=2026-10-31T02:49:55.744Z level=INFO msg="user moved" user=kusolchi_5328 from=asia to=europe
+time=2026-10-31T02:49:58.481Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T02:50:01.564Z level=INFO msg="asia 3 日目: 145 人"
+time=2026-10-31T02:50:04.564Z level=INFO msg="europe 3 日目: 54 人"
+time=2026-10-31T02:50:07.458Z level=INFO msg="america 3 日目: 39 人"
+time=2026-10-31T02:50:09.188Z level=INFO msg="user moved" user=suni-5672 from=asia to=europe
+time=2026-10-31T02:50:10.608Z level=INFO msg="asia 4 日目: 401 人"
+time=2026-10-31T02:50:13.994Z level=INFO msg="europe 4 日目: 96 人"
+time=2026-10-31T02:50:17.073Z level=INFO msg="america 4 日目: 49 人"
+time=2026-10-31T02:50:20.218Z level=INFO msg="asia 5 日目: 401 人"
+time=2026-10-31T02:50:23.285Z level=INFO msg="europe 5 日目: 96 人"
+time=2026-10-31T02:50:26.054Z level=INFO msg="america 5 日目: 49 人"
+time=2026-10-31T02:50:34.974Z level=INFO msg="asia 最終日（グランプリ）: 401 人"
+time=2026-10-31T02:50:34.974Z level=INFO msg="europe 最終日（グランプリ）: 95 人"
+time=2026-10-31T02:50:34.975Z level=INFO msg="america 最終日（グランプリ）: 48 人"
+time=2026-10-31T02:50:43.428Z level=INFO msg="グランプリ: アジア 386 人, ヨーロッパ 93 人, アメリカ 42 人"
+{
+  "pass": true,
+  "score": 77596,
+  "messages": []
+}
