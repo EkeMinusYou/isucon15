@@ -171,7 +171,12 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 	}
 	if path == "/api/auth/login" {
 		uid := s.Names.Get(input.Username)
-		return []string{"name:" + input.Username, "user:" + uid, "ip:" + ipOf(r)}, false
+		keys := []string{"name:" + input.Username, "user:" + uid}
+		result, _ := r.Context().Value(masterLoginKey{}).(masterLoginResult)
+		if !a.mastersEnabled || !usernameRE.MatchString(input.Username) || !s.active(uid) || !result.valid || result.err != nil || result.user != uid {
+			keys = append(keys, "ip:"+ipOf(r))
+		}
+		return keys, false
 	}
 	if strings.HasPrefix(path, "/api/admin/") {
 		return nil, true

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -59,7 +60,49 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	registered := requireCall(t, a, "POST", "/api/auth/register", "", object{"username": "master_editor", "displayName": "before", "region": "europe"}, 201)
 	user := registered["user"].(map[string]any)
 	uid := user["id"].(string)
-	login := requireCall(t, a, "POST", "/api/auth/login", "", object{"username": "master_editor", "secretKey": registered["secretKey"]}, 200)
+	ip := ""
+	for n := 1; ; n++ {
+		ip = fmt.Sprintf("192.0.2.%d", n)
+		index := stateHash("ip:"+ip) % stateShardCount
+		if index != stateHash("name:master_editor")%stateShardCount && index != stateHash("user:"+uid)%stateShardCount {
+			break
+		}
+	}
+	ipLock := &a.transactions[stateHash("ip:"+ip)%stateShardCount]
+	ipLock.Lock()
+	ipHeld := true
+	defer func() {
+		if ipHeld {
+			ipLock.Unlock()
+		}
+	}()
+	loggedIn := make(chan *httptest.ResponseRecorder, 1)
+	go func() {
+		b, _ := json.Marshal(object{"username": "master_editor", "secretKey": registered["secretKey"]})
+		r := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(b))
+		r.Header.Set("X-Client-IP", ip)
+		w := httptest.NewRecorder()
+		a.ServeHTTP(w, r)
+		loggedIn <- w
+	}()
+	var response *httptest.ResponseRecorder
+	select {
+	case response = <-loggedIn:
+	case <-time.After(time.Second):
+		ipLock.Unlock()
+		ipHeld = false
+		<-loggedIn
+		t.Fatal("validated login waited for an IP failure counter")
+	}
+	ipLock.Unlock()
+	ipHeld = false
+	if response.Code != 200 {
+		t.Fatalf("login returned %d: %s", response.Code, response.Body.String())
+	}
+	var login object
+	if err := json.Unmarshal(response.Body.Bytes(), &login); err != nil {
+		t.Fatal(err)
+	}
 	token := login["token"].(string)
 	delayed.Store(true)
 	finished := make(chan int, 1)
