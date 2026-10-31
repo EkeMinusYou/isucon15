@@ -9,13 +9,6 @@ import (
 	"strings"
 )
 
-var allStateStripes = func() (indices [stateShardCount]int) {
-	for i := range indices {
-		indices[i] = i
-	}
-	return
-}()
-
 // Never wait for one resource while retaining locks on unrelated resources.
 // After waking, retain that resource and try the rest without blocking.
 func (a *App) acquireStripeModes(indices []int, writes *[stateShardCount]bool) {

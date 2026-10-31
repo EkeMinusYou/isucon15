@@ -25,7 +25,7 @@ func TestResourceReadsDoNotWaitForUnrelatedStripe(t *testing.T) {
 			stripe.Unlock()
 		}
 	}()
-	for _, path := range []string{"/api/me", "/api/posting-window/current", "/api/posts/me/current", "/api/me/export", "/api/users/" + uid, "/api/posts/" + post["id"].(string), post["imageUrl"].(string)} {
+	for _, path := range []string{"/api/me", "/api/posting-window/current", "/api/posts/me/current", "/api/me/export", "/api/feeds/public", "/api/memories?month=2026-11", "/api/users/" + uid, "/api/posts/" + post["id"].(string), post["imageUrl"].(string)} {
 		done := make(chan int, 1)
 		go func(path string) { status, _, _ := call(t, a, "GET", path, token, nil); done <- status }(path)
 		select {

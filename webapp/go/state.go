@@ -156,6 +156,7 @@ type appCore struct {
 	regionalImages       regionalImageMetrics
 	mu                   sync.RWMutex
 	globalGate           sync.RWMutex
+	snapshots            snapshotBatch
 	journalMu            sync.Mutex
 	notifier             notificationHub
 	transactions         [stateShardCount]sync.RWMutex

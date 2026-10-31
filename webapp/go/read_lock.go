@@ -7,7 +7,7 @@ import (
 )
 
 // Reads of one resource need only its user/post stripes. Collection responses
-// retain the full coherent snapshot until their records have been captured.
+// capture coherent state together, excluding executing mutations as a cohort.
 func (a *App) readKeys(r *http.Request) ([]string, bool) {
 	s, path := a.s, r.URL.Path
 	if strings.HasPrefix(path, "/api/images/") {
@@ -59,19 +59,23 @@ func (a *App) lockReadRequest(r *http.Request) func() {
 	for {
 		a.mu.RLock()
 		keys, all := a.readKeys(r)
-		indices := allStateStripes[:]
-		var seen [stateShardCount]bool
-		if !all {
-			indices = nil
-			for _, key := range keys {
-				index := int(stateHash(key) % stateShardCount)
-				if !seen[index] {
-					seen[index] = true
-					indices = append(indices, index)
-				}
+		if all {
+			a.snapshots.lock(&a.globalGate)
+			return func() {
+				a.snapshots.unlock(&a.globalGate)
+				a.mu.RUnlock()
 			}
-			sort.Ints(indices)
 		}
+		var indices []int
+		var seen [stateShardCount]bool
+		for _, key := range keys {
+			index := int(stateHash(key) % stateShardCount)
+			if !seen[index] {
+				seen[index] = true
+				indices = append(indices, index)
+			}
+		}
+		sort.Ints(indices)
 		a.acquireStripeModes(indices, nil)
 		a.globalGate.RLock()
 		unlock := func() {
@@ -81,20 +85,18 @@ func (a *App) lockReadRequest(r *http.Request) func() {
 			}
 			a.mu.RUnlock()
 		}
-		if !all {
-			// A newly linked image or changed session can require more resources than
-			// the optimistic lookup observed. Resolve again before reading its state.
-			current, needAll := a.readKeys(r)
-			retry := needAll
-			for _, key := range current {
-				if !seen[stateHash(key)%stateShardCount] {
-					retry = true
-				}
+		// A newly linked image or changed session can require more resources than
+		// the optimistic lookup observed. Resolve again before reading its state.
+		current, needAll := a.readKeys(r)
+		retry := needAll
+		for _, key := range current {
+			if !seen[stateHash(key)%stateShardCount] {
+				retry = true
 			}
-			if retry {
-				unlock()
-				continue
-			}
+		}
+		if retry {
+			unlock()
+			continue
 		}
 		return unlock
 	}
