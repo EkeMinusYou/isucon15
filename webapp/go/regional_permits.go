@@ -19,7 +19,8 @@ type regionRequestStart struct{}
 type localPermitKey struct{ ip, url string }
 type localImagePermit struct {
 	imagePermit
-	deadline time.Time
+	deadline  time.Time
+	checkedAt time.Time
 }
 
 type regionalImagePermits struct {
@@ -95,7 +96,7 @@ func (p *regionalImagePermits) install(resp *http.Response) {
 			} else if len(p.entries) >= 32768 {
 				continue
 			}
-			p.entries[key] = localImagePermit{grant, deadline}
+			p.entries[key] = localImagePermit{grant, deadline, start}
 			p.byID[grant.ID] = key
 		}
 	}
@@ -192,8 +193,12 @@ func (p *regionalImagePermits) serve(w http.ResponseWriter, r *http.Request, roo
 	now := time.Now()
 	w.Header().Set("Date", now.UTC().Format(http.TimeFormat))
 	if grant.Post {
-		remaining := max(int64(0), int64(time.Until(grant.deadline)/time.Second))
-		w.Header().Set("Cache-Control", "private, max-age="+strconv.FormatInt(min(int64(5), grant.Exp-now.Unix(), remaining), 10)+", must-revalidate")
+		// Preserve max-age=5, but account for time since the authoritative
+		// validation. Serving a leased response must not restart its freshness.
+		age := max(int64(0), int64((time.Since(grant.checkedAt)+time.Second-1)/time.Second))
+		w.Header().Set("Date", grant.checkedAt.UTC().Format(http.TimeFormat))
+		w.Header().Set("Age", strconv.FormatInt(age, 10))
+		w.Header().Set("Cache-Control", "private, max-age="+strconv.FormatInt(min(int64(5), grant.Exp-now.Unix()), 10)+", must-revalidate")
 	} else {
 		etag := strconv.Quote("image-" + strings.TrimPrefix(r.URL.Path, "/api/images/"))
 		w.Header().Set("Cache-Control", "private, no-cache")

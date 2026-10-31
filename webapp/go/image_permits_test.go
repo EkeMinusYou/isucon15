@@ -48,11 +48,12 @@ func TestImagePermitRevocationRejectsDelayedGenerations(t *testing.T) {
 	localKey := localPermitKey{ip, wire.URL}
 	grant := region.entries[localKey]
 	grant.deadline = time.Now().Add(1500 * time.Millisecond)
+	grant.checkedAt = time.Now().Add(-3500 * time.Millisecond)
 	region.entries[localKey] = grant
 	w := httptest.NewRecorder()
 	region.serve(w, request, root, nil, &regionalImageMetrics{})
-	if !strings.Contains(w.Header().Get("Cache-Control"), "max-age=1,") {
-		t.Fatal("client cache lifetime extended beyond the serving permission")
+	if !strings.Contains(w.Header().Get("Cache-Control"), "max-age=5,") || w.Header().Get("Age") != "4" {
+		t.Fatal("leased response restarted its client cache lifetime")
 	}
 	ids, _ := json.Marshal([]string{first.ID, second.ID})
 	revoke := httptest.NewRequest("POST", imageRevokePath, bytes.NewReader(ids))

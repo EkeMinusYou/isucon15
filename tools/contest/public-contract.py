@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import os
+import time
 from pathlib import Path
 import urllib.error
 import urllib.request
@@ -65,6 +66,21 @@ def initial_history():
     print(f'initial history: {len(memories["items"])} monthly posts; {len(posts)} exported posts; original image bytes match')
 
 
+def wait_image_revoked(path, region):
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        request = urllib.request.Request(BASE + path, headers={'X-Country-Code': COUNTRY[region]})
+        try:
+            with urllib.request.urlopen(request, timeout=2) as response:
+                response.read()
+        except urllib.error.HTTPError as e:
+            if e.code == 403:
+                return
+            raise
+        time.sleep(0.02)
+    raise AssertionError('image remained available five seconds after update success')
+
+
 def capture():
     initial_history()
     saved = []
@@ -77,6 +93,17 @@ def capture():
         api('PUT', '/api/me/profile-image', token, region=region, expected=204, raw_body=PROFILE_JPEG)
         me = api('GET', '/api/me', token, region=region)
         assert me['bio'] == 'durable-' + region
+        for _ in range(2):
+            assert api('GET', me['profileImageUrl'], region=region) == PROFILE_JPEG
+        old_url = me['profileImageUrl']
+        api('PUT', '/api/me/profile-image', token, region=region, expected=204, raw_body=PROFILE_JPEG)
+        wait_image_revoked(old_url, region)
+        me = api('GET', '/api/me', token, region=region)
+        old_url = me['profileImageUrl']
+        api('DELETE', '/api/me/profile-image', token, region=region, expected=204)
+        wait_image_revoked(old_url, region)
+        api('PUT', '/api/me/profile-image', token, region=region, expected=204, raw_body=PROFILE_JPEG)
+        me = api('GET', '/api/me', token, region=region)
         for other in COUNTRY:
             if other != region:
                 api('GET', '/api/me', token, region=other, expected=403)
@@ -92,7 +119,7 @@ def capture():
     STATE.parent.mkdir(exist_ok=True, parents=True)
     STATE.write_text(json.dumps(saved))
     STATE.chmod(0o600)
-    print('cross-region authentication, original profile images, and reciprocal friendship passed; restart state captured')
+    print('cross-region authentication, original images, replacement/deletion expiry, and friendship passed; restart state captured')
 
 
 def verify():
