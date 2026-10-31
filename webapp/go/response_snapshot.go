@@ -13,7 +13,7 @@ func (a *App) snapshotImage(id, secret string) any {
 	if !a.s.Images.has(id) {
 		return nil
 	}
-	return imageReference{a, id, secret, time.Now().Unix() + 86400}
+	return imageReference{a, id, secret, imageExpiry(time.Now())}
 }
 
 func (a *App) snapshotUser(u *Account, full bool) userSnapshot {

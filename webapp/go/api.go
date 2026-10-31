@@ -231,12 +231,19 @@ func (v imageReference) MarshalJSON() ([]byte, error) {
 	s := "/api/images/" + v.id + "?exp=" + strconv.FormatInt(v.exp, 10) + "&sig=" + v.app.signImage(v.id, v.secret, v.exp)
 	return json.Marshal(s)
 }
+
+// Hourly expiry boundaries reuse signatures across responses. Every issued
+// URL remains valid for at least 24 hours and at most 25 hours.
+func imageExpiry(now time.Time) int64 {
+	return (now.Unix()/3600+1)*3600 + 86400
+}
+
 func (a *App) imageURL(i string) any {
 	im := a.s.Images.get(i)
 	if im == nil {
 		return nil
 	}
-	exp := time.Now().Unix() + 86400
+	exp := imageExpiry(time.Now())
 	return imageReference{a, i, a.s.Accounts.Get(im.OwnerID).Secret, exp}
 }
 func (a *App) user(u *Account, bio bool) object {
@@ -807,6 +814,22 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			return
 		}
 		defer f.Close()
+		if copyImage.Kind == 'p' {
+			// Signature work and opening storage can wait. Recheck immediately
+			// before publishing a cacheable response, with a matching Date.
+			a.lockSnapshot()
+			current := a.s.Images.get(i)
+			cacheable := a.validImage(current)
+			checkedAt := time.Now()
+			a.unlockSnapshot()
+			if !cacheable || exp <= checkedAt.Unix() {
+				failure(w, 403, "image_forbidden")
+				return
+			}
+			maxAge := min(int64(5), exp-checkedAt.Unix())
+			w.Header().Set("Date", checkedAt.UTC().Format(http.TimeFormat))
+			w.Header().Set("Cache-Control", "private, max-age="+strconv.FormatInt(maxAge, 10)+", must-revalidate")
+		}
 		w.Header().Set("Content-Type", copyImage.MediaType)
 		w.Header().Set("Content-Length", strconv.FormatInt(copyImage.Size, 10))
 		io.Copy(w, io.NewSectionReader(f, off, copyImage.Size))
