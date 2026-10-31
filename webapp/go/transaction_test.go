@@ -204,12 +204,12 @@ func TestPostingWindowDoesNotDrainQueuedUpdates(t *testing.T) {
 	a := fixtureApp(t)
 	uid, token := register(t, a, "queued_update")
 	admin := openWindow(t, a, "2026-11-01")
-	uses := a.transactions.reference([]string{"user:" + uid}, false)
-	a.acquireResources(uses)
+	stripe := &a.transactions[stateHash("user:"+uid)%stateShardCount]
+	stripe.Lock()
 	held := true
 	defer func() {
 		if held {
-			a.releaseResources(uses)
+			stripe.Unlock()
 		}
 	}()
 	updated := make(chan int, 1)
@@ -236,67 +236,76 @@ func TestPostingWindowDoesNotDrainQueuedUpdates(t *testing.T) {
 			t.Fatalf("window returned %d", status)
 		}
 	case <-time.After(time.Second):
-		a.releaseResources(uses)
+		stripe.Unlock()
 		held = false
 		<-updated
 		<-opened
 		t.Fatal("posting window waited for a queued update")
 	}
-	a.releaseResources(uses)
+	stripe.Unlock()
 	held = false
 	if status := <-updated; status != 200 {
 		t.Fatalf("update returned %d", status)
 	}
 }
 
-func TestWaitingForOneResourceReleasesOthers(t *testing.T) {
+func TestWaitingForOneStripeReleasesOtherStripes(t *testing.T) {
 	for _, exclusive := range []bool{false, true} {
 		t.Run(fmt.Sprintf("exclusive=%v", exclusive), func(t *testing.T) {
 			a := &App{appCore: &appCore{}}
-			held := a.transactions.reference([]string{"user:b"}, false)
-			a.acquireResources(held)
-			uses := a.transactions.reference([]string{"user:a", "user:b"}, false)
-			for i := range uses {
-				uses[i].write = exclusive
-			}
+			a.transactions[1].Lock()
 			acquired, release, finished := make(chan struct{}), make(chan struct{}), make(chan struct{})
 			go func() {
-				a.acquireResources(uses)
+				var writes *[stateShardCount]bool
+				if exclusive {
+					writes = new([stateShardCount]bool)
+					writes[0], writes[1] = true, true
+				}
+				a.acquireStripeModes([]int{0, 1}, writes)
 				close(acquired)
 				<-release
-				a.releaseResources(uses)
+				if exclusive {
+					a.transactions[1].Unlock()
+					a.transactions[0].Unlock()
+				} else {
+					a.transactions[1].RUnlock()
+					a.transactions[0].RUnlock()
+				}
 				close(finished)
 			}()
 			deadline := time.Now().Add(time.Second)
-			for a.lockRetries.Load() == 0 && time.Now().Before(deadline) {
+			for a.stripeRetries.Load() == 0 && time.Now().Before(deadline) {
 				runtime.Gosched()
 			}
-			if a.lockRetries.Load() == 0 {
-				t.Error("request did not wait for the busy resource")
+			if a.stripeRetries.Load() == 0 {
+				t.Error("request did not wait for the busy stripe")
 			}
-			if uses[0].entry.TryLock() {
-				uses[0].entry.Unlock()
+			if a.transactions[0].TryLock() {
+				a.transactions[0].Unlock()
 			} else {
-				t.Error("waiting request retained an unrelated resource")
+				t.Error("waiting request retained an unrelated stripe")
 			}
-			a.releaseResources(held)
+			a.transactions[1].Unlock()
 			<-acquired
 			close(release)
 			<-finished
-			if len(a.transactions.entries) != 0 {
-				t.Fatal("idle resource entries retained")
-			}
 		})
 	}
 }
 
 func TestInteractionAllowsConcurrentAuthorReads(t *testing.T) {
 	a := fixtureApp(t)
-	_, ownerToken := register(t, a, "readable_author")
+	owner, ownerToken := register(t, a, "readable_author")
 	_, actorToken := register(t, a, "commenting_actor")
 	openWindow(t, a, "2026-11-01")
 	created := upload(t, a, "/api/posts", ownerToken, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
 	post := *a.s.Posts.get(created["id"].(string))
+	// Keep the post stripe distinct so a collision does not intentionally
+	// promote the author's shared lock to exclusive mode.
+	for stateHash("post:"+post.ID)%stateShardCount == stateHash("user:"+owner)%stateShardCount {
+		post.ID = id()
+	}
+	a.s.Posts.set(post.ID, &post)
 	req := httptest.NewRequest("POST", "/api/posts/"+post.ID+"/comments", bytes.NewBufferString(`{"body":"hello"}`))
 	req.Header.Set("Authorization", "Bearer "+actorToken)
 	unlock := a.lockRequest(req)

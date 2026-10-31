@@ -760,13 +760,13 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	responseWork(w, func(w http.ResponseWriter) {
 		if !hmac.Equal([]byte(ss[0]), []byte(a.signImage(i, secret, exp))) {
 			a.mu.RLock()
-			uses := a.transactions.reference([]string{"ip:" + ipOf(r)}, false)
-			a.acquireResources(uses)
+			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
+			stripe.Lock()
 			a.globalGate.RLock()
 			a.failIP(r, "signature", 3, 5*time.Second)
 			a.commit()
 			a.globalGate.RUnlock()
-			a.releaseResources(uses)
+			stripe.Unlock()
 			a.mu.RUnlock()
 			failure(w, 403, "image_forbidden")
 			return

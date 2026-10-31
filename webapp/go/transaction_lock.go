@@ -7,90 +7,29 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	"sync"
 )
 
-type transactionEntry struct {
-	sync.RWMutex
-	refs int
-}
-
-type transactionLocks struct {
-	mu      sync.Mutex
-	entries map[string]*transactionEntry
-}
-
-type resourceUse struct {
-	key   string
-	entry *transactionEntry
-	write bool
-}
-
-// References include waiters, so an entry cannot disappear while any request
-// still uses it. Idle entries are removed rather than retaining every user ID.
-func (r *transactionLocks) reference(keys []string, sharedUsers bool) []resourceUse {
-	sort.Strings(keys)
-	uses := make([]resourceUse, 0, len(keys))
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.entries == nil {
-		r.entries = map[string]*transactionEntry{}
-	}
-	for _, key := range keys {
-		if len(uses) > 0 && uses[len(uses)-1].key == key {
-			continue
-		}
-		entry := r.entries[key]
-		if entry == nil {
-			entry = &transactionEntry{}
-			r.entries[key] = entry
-		}
-		entry.refs++
-		uses = append(uses, resourceUse{key, entry, !sharedUsers || !strings.HasPrefix(key, "user:")})
-	}
-	return uses
-}
-
-func (r *transactionLocks) unreference(uses []resourceUse) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, use := range uses {
-		use.entry.refs--
-		if use.entry.refs == 0 {
-			delete(r.entries, use.key)
-		}
-	}
-}
-
-func (use resourceUse) unlock() {
-	if use.write {
-		use.entry.Unlock()
-	} else {
-		use.entry.RUnlock()
-	}
-}
-
-// Never retain an unrelated resource while waiting for a busy one. The
-// resource key, rather than a fixed hash bucket, determines mutual exclusion.
-func (a *App) acquireResources(uses []resourceUse) {
+// Never wait for one resource while retaining locks on unrelated resources.
+// After waking, retain that resource and try the rest without blocking.
+func (a *App) acquireStripeModes(indices []int, writes *[stateShardCount]bool) {
 	held := -1
-	acquired := make([]int, len(uses))
 	for {
+		var acquired [stateShardCount]int
 		n := 0
 		if held >= 0 {
 			acquired[n] = held
 			n++
 		}
 		blocked := -1
-		for i, use := range uses {
+		for _, i := range indices {
 			if i == held {
 				continue
 			}
 			ok := false
-			if use.write {
-				ok = use.entry.TryLock()
+			if writes != nil && writes[i] {
+				ok = a.transactions[i].TryLock()
 			} else {
-				ok = use.entry.TryRLock()
+				ok = a.transactions[i].TryRLock()
 			}
 			if !ok {
 				blocked = i
@@ -104,26 +43,23 @@ func (a *App) acquireResources(uses []resourceUse) {
 		}
 		for n > 0 {
 			n--
-			uses[acquired[n]].unlock()
+			if writes != nil && writes[acquired[n]] {
+				a.transactions[acquired[n]].Unlock()
+			} else {
+				a.transactions[acquired[n]].RUnlock()
+			}
 		}
-		a.lockRetries.Add(1)
-		if uses[blocked].write {
-			uses[blocked].entry.Lock()
+		a.stripeRetries.Add(1)
+		if writes != nil && writes[blocked] {
+			a.transactions[blocked].Lock()
 		} else {
-			uses[blocked].entry.RLock()
+			a.transactions[blocked].RLock()
 		}
 		held = blocked
 	}
 }
 
-func (a *App) releaseResources(uses []resourceUse) {
-	for i := len(uses) - 1; i >= 0; i-- {
-		uses[i].unlock()
-	}
-	a.transactions.unreference(uses)
-}
-
-// Transactions acquire exact logical resources before using state.
+// All transactions acquire logical resource stripes before using state.
 // The lifecycle lock excludes initialize. The global gate is acquired after
 // stripes, so global updates wait only for executing operations, not queues.
 func (a *App) lockRequest(r *http.Request) func() {
@@ -140,27 +76,48 @@ func (a *App) lockRequest(r *http.Request) func() {
 		if all {
 			a.globalGate.Lock()
 			a.transactionRequests.Add(1)
+			a.transactionShards.Add(stateShardCount)
 			a.transactionGlobal.Add(1)
 			return func() {
 				a.globalGate.Unlock()
 				a.mu.RUnlock()
 			}
 		}
-		uses := a.transactions.reference(keys, interactionReadsUsers(r))
-		a.acquireResources(uses)
+		indices := []int{}
+		seen := [stateShardCount]bool{}
+		writes := [stateShardCount]bool{}
+		sharedUsers := interactionReadsUsers(r)
+		for _, key := range keys {
+			i := int(stateHash(key) % stateShardCount)
+			if !sharedUsers || !strings.HasPrefix(key, "user:") {
+				writes[i] = true
+			}
+			if !seen[i] {
+				seen[i] = true
+				indices = append(indices, i)
+			}
+		}
+		sort.Ints(indices)
+		a.acquireStripeModes(indices, &writes)
 		a.globalGate.RLock()
 		unlock := func() {
 			a.globalGate.RUnlock()
-			a.releaseResources(uses)
+			for i := len(indices) - 1; i >= 0; i-- {
+				if writes[indices[i]] {
+					a.transactions[indices[i]].Unlock()
+				} else {
+					a.transactions[indices[i]].RUnlock()
+				}
+			}
 			a.mu.RUnlock()
 		}
 		if r.URL.Path == "/api/auth/login" {
 			// A registration may have published the name while locks were being
-			// acquired. Retry if its actual user requires an additional resource.
+			// acquired. Retry if its actual user requires an additional stripe.
 			current, _ := a.mutationKeys(r)
 			retry := false
 			for _, key := range current {
-				if !hasResource(uses, key) {
+				if !seen[stateHash(key)%stateShardCount] {
 					retry = true
 				}
 			}
@@ -170,18 +127,9 @@ func (a *App) lockRequest(r *http.Request) func() {
 			}
 		}
 		a.transactionRequests.Add(1)
-		a.transactionResources.Add(uint64(len(uses)))
+		a.transactionShards.Add(uint64(len(indices)))
 		return unlock
 	}
-}
-
-func hasResource(uses []resourceUse, key string) bool {
-	for _, use := range uses {
-		if use.key == key {
-			return true
-		}
-	}
-	return false
 }
 
 // Interaction mutations change the post and its image records, while user

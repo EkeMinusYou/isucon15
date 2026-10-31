@@ -6,25 +6,23 @@ import (
 	"time"
 )
 
-func TestResourceReadsDoNotWaitForHashCollision(t *testing.T) {
+func TestResourceReadsDoNotWaitForUnrelatedStripe(t *testing.T) {
 	a := fixtureApp(t)
 	uid, token := register(t, a, "independent_reader")
 	openWindow(t, a, "2026-11-01")
 	post := upload(t, a, "/api/posts", token, map[string]string{"visibility": "public", "location_kind": "none"}, 201)
 	ownerStripe := int(stateHash("user:"+uid) % stateShardCount)
-	key := ""
-	for i := 0; ; i++ {
-		key = fmt.Sprintf("user:unrelated_%d", i)
-		if int(stateHash(key)%stateShardCount) == ownerStripe {
-			break
-		}
+	postStripe := int(stateHash("post:"+post["id"].(string)) % stateShardCount)
+	blocked := 0
+	for blocked == ownerStripe || blocked == postStripe {
+		blocked++
 	}
-	uses := a.transactions.reference([]string{key}, false)
-	a.acquireResources(uses)
+	stripe := &a.transactions[blocked]
+	stripe.Lock()
 	held := true
 	defer func() {
 		if held {
-			a.releaseResources(uses)
+			stripe.Unlock()
 		}
 	}()
 	for _, path := range []string{"/api/me", "/api/posting-window/current", "/api/posts/me/current", "/api/me/export", "/api/feeds/public", "/api/memories?month=2026-11", "/api/users/" + uid, "/api/posts/" + post["id"].(string), post["imageUrl"].(string)} {
@@ -36,10 +34,10 @@ func TestResourceReadsDoNotWaitForHashCollision(t *testing.T) {
 				t.Fatalf("%s: status=%d", path, status)
 			}
 		case <-time.After(time.Second):
-			a.releaseResources(uses)
+			stripe.Unlock()
 			held = false
 			<-done
-			t.Fatalf("%s waited for unrelated resource with the same hash", path)
+			t.Fatal(fmt.Sprintf("%s waited for unrelated stripe", path))
 		}
 	}
 }

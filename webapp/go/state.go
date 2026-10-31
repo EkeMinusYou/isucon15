@@ -160,11 +160,11 @@ type appCore struct {
 	snapshots            snapshotBatch
 	journalMu            sync.Mutex
 	notifier             notificationHub
-	transactions         transactionLocks
+	transactions         [stateShardCount]sync.RWMutex
 	transactionRequests  atomic.Uint64
-	transactionResources atomic.Uint64
+	transactionShards    atomic.Uint64
 	transactionGlobal    atomic.Uint64
-	lockRetries          atomic.Uint64
+	stripeRetries        atomic.Uint64
 	journalWaitNS        atomic.Uint64
 	journalWriteNS       atomic.Uint64
 	s                    *State
