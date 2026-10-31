@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -27,6 +28,35 @@ import (
 )
 
 type object = map[string]any
+
+type uploadKey struct{}
+type preparedUpload struct {
+	data        []byte
+	ok          bool
+	invalidJPEG bool
+}
+
+// Validate before taking the state lock. The tee retains original bytes only
+// after the JPEG header has been accepted; malformed bodies need not be read.
+func prepareProfile(body io.Reader) preparedUpload {
+	var b bytes.Buffer
+	r := io.TeeReader(body, &b)
+	cfg, err := jpeg.DecodeConfig(r)
+	if err != nil {
+		return preparedUpload{invalidJPEG: true}
+	}
+	if cfg.Width > 512 || cfg.Height > 512 {
+		return preparedUpload{}
+	}
+	header := append([]byte(nil), b.Bytes()...)
+	if _, err = jpeg.Decode(io.MultiReader(bytes.NewReader(header), r)); err != nil {
+		return preparedUpload{invalidJPEG: true}
+	}
+	if _, err = io.Copy(&b, body); err != nil {
+		return preparedUpload{invalidJPEG: true}
+	}
+	return preparedUpload{data: b.Bytes(), ok: true}
+}
 
 func output(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -227,7 +257,42 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.notifications(w, r)
 		return
 	}
-	if r.Body != nil {
+	profile := r.URL.Path == "/api/me/profile-image" && r.Method == "PUT" && r.Header.Get("Content-Type") == "image/jpeg"
+	multipart := r.Method == "POST" && (r.URL.Path == "/api/posts" || strings.HasSuffix(r.URL.Path, "/realmojis"))
+	if profile || multipart {
+		// Reject banned or unauthenticated uploads before retaining their bodies.
+		a.mu.Lock()
+		check := httptest.NewRecorder()
+		if time.Now().Before(a.s.Bans[ipOf(r)]) {
+			failure(check, 403, "ip_banned")
+		} else {
+			a.auth(check, r, !profile)
+		}
+		a.mu.Unlock()
+		if check.Code != 200 {
+			for k, vs := range check.Header() {
+				w.Header()[k] = vs
+			}
+			w.WriteHeader(check.Code)
+			w.Write(check.Body.Bytes())
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
+		var p preparedUpload
+		if profile {
+			p = prepareProfile(r.Body)
+		} else {
+			max := 512
+			if r.URL.Path == "/api/posts" {
+				max = 4096
+			}
+			p.data, p.ok = multipartImage(r, max)
+			if r.MultipartForm != nil {
+				defer r.MultipartForm.RemoveAll()
+			}
+		}
+		r = r.WithContext(context.WithValue(r.Context(), uploadKey{}, p))
+	} else if r.Body != nil {
 		b, e := io.ReadAll(http.MaxBytesReader(w, r.Body, 32<<20))
 		if e != nil {
 			failure(w, 413, "body_too_large")
@@ -373,23 +438,15 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 				failure(w, 415, "unsupported_media_type")
 				return
 			}
-			b, _ := io.ReadAll(r.Body)
-			cfg, e := jpeg.DecodeConfig(bytes.NewReader(b))
-			if e != nil {
-				a.failIP(r, "jpeg", 2, 5*time.Second)
+			p, _ := r.Context().Value(uploadKey{}).(preparedUpload)
+			if !p.ok {
+				if p.invalidJPEG {
+					a.failIP(r, "jpeg", 2, 5*time.Second)
+				}
 				failure(w, 400, "invalid_profile_image")
 				return
 			}
-			if cfg.Width > 512 || cfg.Height > 512 {
-				failure(w, 400, "invalid_profile_image")
-				return
-			}
-			if _, e = jpeg.Decode(bytes.NewReader(b)); e != nil {
-				a.failIP(r, "jpeg", 2, 5*time.Second)
-				failure(w, 400, "invalid_profile_image")
-				return
-			}
-			im, e := a.addImage(u.ID, b)
+			im, e := a.addImage(u.ID, p.data)
 			if e != nil {
 				failure(w, 500, "image_storage_failed")
 				return
@@ -642,6 +699,9 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	io.Copy(w, io.NewSectionReader(f, off, im.Size))
 }
 func multipartImage(r *http.Request, max int) ([]byte, bool) {
+	if p, ok := r.Context().Value(uploadKey{}).(preparedUpload); ok {
+		return p.data, p.ok
+	}
 	if e := r.ParseMultipartForm(32 << 20); e != nil {
 		return nil, false
 	}

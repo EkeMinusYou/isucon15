@@ -18,6 +18,33 @@ import (
 	"time"
 )
 
+type rejectTailReader struct{ reads int }
+
+func (r *rejectTailReader) Read(p []byte) (int, error) {
+	r.reads++
+	if r.reads > 1 {
+		panic("invalid JPEG tail must not be consumed")
+	}
+	copy(p, "not a jpeg")
+	return len("not a jpeg"), nil
+}
+
+func TestProfileStreamValidation(t *testing.T) {
+	bad := &rejectTailReader{}
+	if p := prepareProfile(bad); p.ok || !p.invalidJPEG {
+		t.Fatal("invalid JPEG accepted")
+	}
+	var original bytes.Buffer
+	if err := jpeg.Encode(&original, image.NewRGBA(image.Rect(0, 0, 2, 2)), nil); err != nil {
+		t.Fatal(err)
+	}
+	original.WriteString("preserved trailer")
+	p := prepareProfile(bytes.NewReader(original.Bytes()))
+	if !p.ok || !bytes.Equal(p.data, original.Bytes()) {
+		t.Fatal("original JPEG bytes were not preserved")
+	}
+}
+
 func fixtureApp(t *testing.T) *App {
 	t.Helper()
 	dir := t.TempDir()
