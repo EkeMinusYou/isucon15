@@ -1,0 +1,35 @@
+time=2026-10-31T06:15:41.309Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:15:44.284Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:15:47.283Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:15:50.313Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T06:15:53.307Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T06:15:56.341Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T06:15:59.336Z level=INFO msg="asia 3 日目: 154 人"
+time=2026-10-31T06:16:02.368Z level=INFO msg="europe 3 日目: 54 人"
+time=2026-10-31T06:16:05.366Z level=INFO msg="america 3 日目: 45 人"
+time=2026-10-31T06:16:08.441Z level=INFO msg="asia 4 日目: 447 人"
+time=2026-10-31T06:16:11.746Z level=INFO msg="europe 4 日目: 151 人"
+time=2026-10-31T06:16:13.210Z level=INFO msg="user moved" user=mareva7079 from=asia to=america
+time=2026-10-31T06:16:14.289Z level=INFO msg="user moved" user=leoha.7098 from=asia to=america
+time=2026-10-31T06:16:14.450Z level=INFO msg="america 4 日目: 112 人"
+time=2026-10-31T06:16:15.165Z level=INFO msg="user moved" user=razoe-8091 from=asia to=europe
+time=2026-10-31T06:16:17.623Z level=INFO msg="asia 5 日目: 1059 人"
+time=2026-10-31T06:16:20.662Z level=INFO msg="europe 5 日目: 190 人"
+time=2026-10-31T06:16:24.174Z level=INFO msg="america 5 日目: 113 人"
+time=2026-10-31T06:16:33.277Z level=INFO msg="america 最終日（グランプリ）: 113 人"
+time=2026-10-31T06:16:33.714Z level=INFO msg="europe 最終日（グランプリ）: 189 人"
+time=2026-10-31T06:16:34.882Z level=INFO msg="asia 最終日（グランプリ）: 1058 人"
+time=2026-10-31T06:16:41.256Z level=INFO msg="グランプリ: アジア 375 人, ヨーロッパ 156 人, アメリカ 86 人"
+{
+  "pass": true,
+  "score": 126299,
+  "messages": [
+    "issera-9875: 認定公開アカウントをフォローできません: PUT /api/follows/a04eb764-bd72-40db-a222-2f1ddba37c34: 応答がタイムアウトしました",
+    "nochi.10304: 認定公開アカウントをフォローできません: PUT /api/follows/186c68c3-5d32-4a98-889e-e454380f1a4c: 応答がタイムアウトしました",
+    "kuis13832: 認定公開アカウントをフォローできません: PUT /api/follows/186c68c3-5d32-4a98-889e-e454380f1a4c: 応答がタイムアウトしました",
+    "leohayo.5596: 友達申請を承認できません: POST /api/friend-requests/5e74b57c-b843-401e-ad06-b4636cd79eac/accept: 応答がタイムアウトしました",
+    "tene12779: 認定公開アカウントをフォローできません: PUT /api/follows/186c68c3-5d32-4a98-889e-e454380f1a4c: 応答がタイムアウトしました",
+    "sodanro_5670: 友達申請を承認できません: POST /api/friend-requests/7c6088a0-0930-48f2-98cf-1aa782b4b3e4/accept: 応答がタイムアウトしました",
+    "yamayu10039: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました"
+  ]
+}
