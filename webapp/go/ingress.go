@@ -76,9 +76,9 @@ func serviceHandler() (http.Handler, *App, error) {
 		})
 		return h, a, nil
 	}
-	target, e := url.Parse(envOr("OWNER_URL", "http://13.192.72.111:8080"))
-	if e != nil {
-		return nil, nil, e
+	target, e := url.Parse(os.Getenv("OWNER_URL"))
+	if e != nil || target.Scheme != "http" || target.Host == "" {
+		return nil, nil, fmt.Errorf("OWNER_URL must name the owner through the provided network route")
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.Transport = measurement.NewUpstreamTransport()

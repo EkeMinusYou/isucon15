@@ -64,7 +64,7 @@ tasks:
         {{.OPERATION_LOCK}} bash <<'BASH'
         set -eu
         expected=$(shasum -a 256 data/initial/manifest.json | cut -d ' ' -f 1)
-        actual=$({{.SSH}} {{.SSH_USER}}@{{.OWNER_HOSTS}} 'sha256sum /home/isucon/isureal-initial.version.json 2>/dev/null' | cut -d ' ' -f 1) || actual=''
+        actual=$({{.SSH}} {{.SSH_USER}}@{{.OWNER_HOSTS}} 'sha256sum /home/isucon/isureal-initial.version.json 2>/dev/null' </dev/null | cut -d ' ' -f 1) || actual=''
         if [ "$actual" = "$expected" ]; then
           echo 'Initial dataset version already installed; transfer skipped.'
           exit 0
