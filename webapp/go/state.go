@@ -119,7 +119,7 @@ type banChange struct {
 	Until time.Time
 }
 type State struct {
-	dayPostCache  map[string]dayPostState
+	dayPostCache  sync.Map
 	imageLinks    map[[16]byte]imageLink
 	LivePosts     map[string][]string
 	Accounts      map[string]*Account
@@ -147,7 +147,7 @@ type State struct {
 	Notifications map[string][]Notification
 }
 type App struct {
-	mu                   sync.Mutex
+	mu                   sync.RWMutex
 	s                    *State
 	initial, durable     string
 	journal              *os.File
@@ -171,7 +171,6 @@ type App struct {
 	uploadStageNS        atomic.Uint64
 	uploadStageBytes     atomic.Uint64
 	routeMetrics         [7]requestMetrics
-	requests             uint64
 	writes               uint64
 }
 
@@ -255,7 +254,7 @@ func (s *State) apply(kind string, data []byte) error {
 	case "post":
 		var v Post
 		decode(&v)
-		delete(s.dayPostCache, v.AuthorID)
+		s.dayPostCache.Delete(v.AuthorID)
 		if s.Posts.get(v.ID) == nil {
 			s.UserPosts[v.AuthorID] = append(s.UserPosts[v.AuthorID], v.ID)
 			if win := s.Windows[v.WindowID]; win != nil && win.EndedAt == nil {
@@ -595,8 +594,11 @@ func (s *State) dayPosts(u *Account) (*Post, int) {
 	if w == nil {
 		return nil, 0
 	}
-	if cached, ok := s.dayPostCache[u.ID]; ok && cached.date == w.LocalDate {
-		return cached.post, cached.deleted
+	if value, ok := s.dayPostCache.Load(u.ID); ok {
+		cached := value.(dayPostState)
+		if cached.date == w.LocalDate {
+			return cached.post, cached.deleted
+		}
 	}
 	var p *Post
 	deleted := 0
@@ -610,10 +612,7 @@ func (s *State) dayPosts(u *Account) (*Post, int) {
 			}
 		}
 	}
-	if s.dayPostCache == nil {
-		s.dayPostCache = make(map[string]dayPostState)
-	}
-	s.dayPostCache[u.ID] = dayPostState{date: w.LocalDate, post: p, deleted: deleted}
+	s.dayPostCache.Store(u.ID, dayPostState{date: w.LocalDate, post: p, deleted: deleted})
 	return p, deleted
 }
 func (s *State) canPost(u *Account) bool {

@@ -636,20 +636,20 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 }
 func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
-	a.mu.Lock()
+	a.mu.RLock()
 	if started.Before(a.s.Bans[ipOf(r)]) {
-		a.mu.Unlock()
+		a.mu.RUnlock()
 		failure(w, 403, "ip_banned")
 		return
 	}
 	u := a.auth(w, r, true)
 	if u == nil {
-		a.mu.Unlock()
+		a.mu.RUnlock()
 		return
 	}
 	uid, region := u.ID, u.Region
 	signal := a.signal
-	a.mu.Unlock()
+	a.mu.RUnlock()
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(200)
@@ -657,11 +657,11 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 	for {
-		a.mu.Lock()
+		a.mu.RLock()
 		s := a.s
 		u = s.Accounts[uid]
 		if u == nil || u.Status != "active" || u.Region != region {
-			a.mu.Unlock()
+			a.mu.RUnlock()
 			return
 		}
 		var selected *Notification
@@ -676,14 +676,14 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		if selected != nil {
 			v := object{"id": selected.ID, "postingWindowId": selected.WindowID, "region": s.Windows[selected.WindowID].Region, "createdAt": selected.CreatedAt}
 			b, _ := json.Marshal(v)
-			a.mu.Unlock()
+			a.mu.RUnlock()
 			fmt.Fprintf(w, "data: %s\n\n", b)
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
 			}
 			return
 		}
-		a.mu.Unlock()
+		a.mu.RUnlock()
 		select {
 		case <-signal:
 		case <-r.Context().Done():

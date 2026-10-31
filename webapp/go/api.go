@@ -324,14 +324,14 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	multipart := r.Method == "POST" && (r.URL.Path == "/api/posts" || strings.HasSuffix(r.URL.Path, "/realmojis"))
 	if profile || multipart {
 		// Reject banned or unauthenticated uploads before retaining their bodies.
-		a.mu.Lock()
+		a.mu.RLock()
 		check := httptest.NewRecorder()
 		if time.Now().Before(a.s.Bans[ipOf(r)]) {
 			failure(check, 403, "ip_banned")
 		} else {
 			a.auth(check, r, !profile)
 		}
-		a.mu.Unlock()
+		a.mu.RUnlock()
 		if check.Code != 200 {
 			for k, vs := range check.Header() {
 				w.Header()[k] = vs
@@ -381,19 +381,29 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rr := &deferredResponse{ResponseRecorder: httptest.NewRecorder(), ctx: r.Context()}
 	stats := &a.routeMetrics[metricRoute(r.URL.Path)]
 	started := time.Now()
-	a.mu.Lock()
+	readOnly := r.Method == "GET"
+	if readOnly {
+		a.mu.RLock()
+	} else {
+		a.mu.Lock()
+	}
 	locked := time.Now()
 	stats.waitNS.Add(uint64(locked.Sub(started)))
 	stats.requests.Add(1)
-	a.requests++
 	if time.Now().Before(a.s.Bans[ipOf(r)]) {
 		failure(rr, 403, "ip_banned")
 	} else {
 		a.dispatch(rr, r)
 	}
-	a.commit()
+	if !readOnly {
+		a.commit()
+	}
 	stats.holdNS.Add(uint64(time.Since(locked)))
-	a.mu.Unlock()
+	if readOnly {
+		a.mu.RUnlock()
+	} else {
+		a.mu.Unlock()
+	}
 	started = time.Now()
 	for k, vs := range rr.Header() {
 		for _, v := range vs {
