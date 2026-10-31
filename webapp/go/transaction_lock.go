@@ -84,7 +84,13 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 		return []string{"name:" + input.Username}, false
 	}
 	if path == "/api/auth/login" {
-		return []string{"name:" + input.Username, "user:" + s.Names.Get(input.Username), "ip:" + ipOf(r)}, false
+		uid := s.Names.Get(input.Username)
+		// Registration may publish this name before its stripe is acquired.
+		// Without a known user, exclude all updates until login resolves it.
+		if uid == "" {
+			return nil, true
+		}
+		return []string{"name:" + input.Username, "user:" + uid, "ip:" + ipOf(r)}, false
 	}
 	if strings.HasPrefix(path, "/api/admin/") {
 		return nil, true
