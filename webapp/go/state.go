@@ -155,6 +155,7 @@ type App struct {
 	signatureMisses  atomic.Uint64
 	signatureResets  atomic.Uint64
 	signatureNS      atomic.Uint64
+	remoteSignatures atomic.Uint64
 	routeMetrics     [7]requestMetrics
 	requests         uint64
 	writes           uint64

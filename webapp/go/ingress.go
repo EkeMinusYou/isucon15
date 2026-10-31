@@ -40,6 +40,8 @@ func detectRole() (string, bool, error) {
 			return "europe", false, nil
 		case "192.168.3.10":
 			return "america", false, nil
+		case "192.168.4.10":
+			return "compute", false, nil
 		}
 	}
 	return "", false, fmt.Errorf("host has no configured contest interface")
@@ -59,6 +61,10 @@ func serviceHandler() (http.Handler, *App, error) {
 		return nil, nil, fmt.Errorf("empty transport key")
 	}
 	log.Printf("region=%s state_owner=%v", region, owner)
+	if region == "compute" {
+		a := &App{signatures: map[string]string{}}
+		return computeHandler(a), a, nil
+	}
 	if owner {
 		a, e := newApp(envOr("INITIAL_DIR", "/home/isucon/isureal-initial"), envOr("STATE_DIR", "/home/isucon/isureal-state"))
 		if e != nil {

@@ -23,7 +23,9 @@ func main() {
 	}
 	if app != nil {
 		config.Snapshot = app.snapshot
-		defer app.journal.Close()
+		if app.journal != nil {
+			defer app.journal.Close()
+		}
 	}
 	if err := serve(ctx, config, handler); err != nil {
 		log.Print(err)

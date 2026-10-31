@@ -32,6 +32,7 @@ type object = map[string]any
 
 type deferredResponse struct {
 	*httptest.ResponseRecorder
+	ctx   context.Context
 	value any
 	json  bool
 	work  func(http.ResponseWriter)
@@ -42,6 +43,7 @@ func (d *deferredResponse) finish() {
 		d.work(d)
 	}
 	if d.json && d.value != nil {
+		prefetchImageSignatures(d.ctx, d.value)
 		json.NewEncoder(d.Body).Encode(d.value)
 	}
 }
@@ -352,7 +354,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		r.Body = io.NopCloser(bytes.NewReader(b))
 	}
-	rr := &deferredResponse{ResponseRecorder: httptest.NewRecorder()}
+	rr := &deferredResponse{ResponseRecorder: httptest.NewRecorder(), ctx: r.Context()}
 	stats := &a.routeMetrics[metricRoute(r.URL.Path)]
 	started := time.Now()
 	a.mu.Lock()
@@ -786,7 +788,7 @@ func multipartImage(r *http.Request, max int) ([]byte, bool) {
 	if e != nil || cfg.Width > max || cfg.Height > max {
 		return nil, false
 	}
-	if e = jpegvalidate.Validate(bytes.NewReader(b)); e != nil {
+	if !validateJPEG(r.Context(), b) {
 		return nil, false
 	}
 	return b, true

@@ -341,6 +341,7 @@ func (a *App) export(w http.ResponseWriter, r *http.Request, u *Account) {
 		images = append(images, *im)
 	}
 	responseWork(w, func(w http.ResponseWriter) {
+		prefetchImageSignatures(r.Context(), items)
 		var buf bytes.Buffer
 		zw := zip.NewWriter(&buf)
 		for n, im := range images {
