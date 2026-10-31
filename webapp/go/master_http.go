@@ -54,18 +54,6 @@ func (m *regionalMaster) internal(w http.ResponseWriter, r *http.Request) bool {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
 	switch strings.TrimPrefix(r.URL.Path, masterPrefix) {
-	case "pull":
-		after, err := strconv.ParseUint(r.URL.Query().Get("after"), 10, 64)
-		if r.Method != "GET" || err != nil {
-			failure(w, 400, "invalid_cursor")
-			break
-		}
-		batch, err := m.pull(r.URL.Query().Get("epoch"), after)
-		if err != nil {
-			failure(w, 409, "master_epoch_mismatch")
-			break
-		}
-		output(w, 200, batch)
 	case "commit":
 		var txns []masterTransaction
 		if r.Method != "POST" || !decode(r, &txns) || len(txns) > 256 {
@@ -93,17 +81,6 @@ func (m *regionalMaster) internal(w http.ResponseWriter, r *http.Request) bool {
 		epoch := m.epoch
 		m.mu.RUnlock()
 		output(w, 200, object{"epoch": epoch})
-	case "auth":
-		var v struct{ UserID, SecretKey string }
-		if r.Method != "POST" || !decode(r, &v) {
-			failure(w, 400, "invalid_credentials")
-			break
-		}
-		m.mu.RLock()
-		u := m.s.Accounts.Get(v.UserID)
-		valid := u != nil && u.Status == "active" && hmac.Equal([]byte(u.Secret), []byte(secretHash(v.SecretKey)))
-		m.mu.RUnlock()
-		output(w, 200, object{"valid": valid})
 	default:
 		if r.Method == "GET" && strings.HasPrefix(r.URL.Path, masterPrefix+"post/") {
 			m.mu.RLock()

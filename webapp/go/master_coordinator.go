@@ -2,9 +2,7 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"context"
-	"crypto/hmac"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,33 +18,6 @@ import (
 
 func (a *App) masterHome(uid string) string {
 	return a.master.homes.user(uid)
-}
-
-type masterLoginKey struct{}
-type masterLoginResult struct {
-	user  string
-	valid bool
-	err   error
-}
-
-func (a *App) prepareMasterLogin(r *http.Request) *http.Request {
-	b, err := io.ReadAll(r.Body)
-	r.Body = io.NopCloser(bytes.NewReader(b))
-	var input struct{ Username, SecretKey string }
-	if err != nil || json.Unmarshal(b, &input) != nil {
-		return r
-	}
-	a.mu.RLock()
-	a.viewMu.RLock()
-	uid := a.appCore.s.Names.Get(input.Username)
-	banned := time.Now().Before(a.appCore.s.Bans.Get(ipOf(r)))
-	a.viewMu.RUnlock()
-	a.mu.RUnlock()
-	result := masterLoginResult{user: uid}
-	if uid != "" && !banned {
-		result.valid, result.err = a.verifyMasterCredentials(uid, input.SecretKey)
-	}
-	return r.WithContext(context.WithValue(r.Context(), masterLoginKey{}, result))
 }
 
 func (a *App) masterGroups(txn masterTransaction) map[string]masterTransaction {
@@ -70,14 +41,6 @@ func (a *App) masterGroups(txn masterTransaction) map[string]masterTransaction {
 			var v Reaction
 			json.Unmarshal(c.Data, &v)
 			home = a.masterHome(v.ReactorID)
-		case "session":
-			var v tokenChange
-			json.Unmarshal(c.Data, &v)
-			if v.User != "" {
-				home = a.masterHome(v.User)
-			} else {
-				home = homeOfNewID(v.Token)
-			}
 		case "ban", "window":
 			for _, region := range masterRegions {
 				part := groups[region]
@@ -226,9 +189,6 @@ func (a *App) enableRegionalMasters(master *regionalMaster) error {
 		if txn.Epoch != a.masterEpoch {
 			return fmt.Errorf("coordinator journal epoch mismatch")
 		}
-		if txn.Source != "" && !validRegion(txn.Source) {
-			return fmt.Errorf("invalid source in coordinator journal")
-		}
 		entries = append(entries, txn)
 	}
 	if err := scan.Err(); err != nil {
@@ -236,9 +196,6 @@ func (a *App) enableRegionalMasters(master *regionalMaster) error {
 	}
 	byRegion := map[string][]masterTransaction{}
 	for _, txn := range entries {
-		if txn.Source != "" {
-			continue
-		}
 		for region, part := range a.masterGroups(txn) {
 			byRegion[region] = append(byRegion[region], part)
 		}
@@ -260,9 +217,6 @@ func (a *App) enableRegionalMasters(master *regionalMaster) error {
 				return err
 			}
 		}
-		if txn.Source != "" {
-			a.mirrored[int(masterRegionCode(txn.Source))-1] = txn.Sequence
-		}
 	}
 	return nil
 }
@@ -273,7 +227,6 @@ func (a *App) resetRegionalMasters() error {
 		return err
 	}
 	a.masterEpoch = epoch
-	a.mirrored = [3]uint64{}
 	a.journal.Close()
 	var err error
 	a.journal, err = os.OpenFile(coordinatorJournalPath(a.durable, epoch), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
@@ -303,27 +256,4 @@ func (a *App) resetRegionalMasters() error {
 		}
 	}
 	return nil
-}
-
-func (a *App) verifyMasterCredentials(uid, secret string) (bool, error) {
-	home := a.masterHome(uid)
-	if home == "asia" {
-		a.master.mu.RLock()
-		defer a.master.mu.RUnlock()
-		u := a.master.s.Accounts.Get(uid)
-		return u != nil && u.Status == "active" && hmac.Equal([]byte(u.Secret), []byte(secretHash(secret))), nil
-	}
-	resp, err := masterRequest(context.Background(), home, "auth", object{"userID": uid, "secretKey": secret})
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-	var result struct{ Valid bool }
-	if resp.StatusCode != 200 {
-		return false, fmt.Errorf("authentication master: HTTP %d", resp.StatusCode)
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return false, err
-	}
-	return result.Valid, nil
 }

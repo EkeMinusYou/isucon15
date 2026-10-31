@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -76,42 +73,6 @@ func (m *regionalMaster) route(next http.Handler) (http.Handler, error) {
 		}
 		if internal && r.Header.Get(coordinatorHeader) == "1" {
 			next.ServeHTTP(w, r)
-			return
-		}
-		if r.Method == "POST" && r.URL.Path == "/api/auth/login" {
-			body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 32<<20))
-			if err != nil {
-				failure(w, 413, "body_too_large")
-				return
-			}
-			r.Body = io.NopCloser(bytes.NewReader(body))
-			var input struct{ Username string }
-			json.NewDecoder(bytes.NewReader(body)).Decode(&input)
-			home, err := m.loginHome(r.Context(), input.Username)
-			if err != nil {
-				failure(w, 503, "home_unavailable")
-				return
-			}
-			if home != "" && home != m.region {
-				proxies[home].ServeHTTP(w, r)
-			} else {
-				m.localHTTP(w, r)
-			}
-			return
-		}
-		if ownedLocalRequest(r) {
-			token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-			home := homeOfNewID(token)
-			if home != "" && home != m.region {
-				proxies[home].ServeHTTP(w, r)
-				return
-			}
-			if (r.Method == "PATCH" || r.Method == "DELETE") && indexedHome(m.homes.posts, strings.TrimPrefix(r.URL.Path, "/api/posts/")) != m.region {
-				r.Header.Set(coordinatorHeader, "1")
-				next.ServeHTTP(w, r)
-			} else {
-				m.localHTTP(w, r)
-			}
 			return
 		}
 		if r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/api/images/") {

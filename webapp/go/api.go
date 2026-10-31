@@ -102,10 +102,6 @@ func ipOf(r *http.Request) string {
 	return h
 }
 func (a *App) failIP(r *http.Request, kind string, limit int, period time.Duration) {
-	if a.deferFailures {
-		a.failureEvents = append(a.failureEvents, kind)
-		return
-	}
 	key := r.Header.Get("X-ISU-Source") + "/" + kind + "/" + ipOf(r)
 	now := time.Now()
 	xs := a.failures.Get(key)[:0]
@@ -297,14 +293,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a = &App{appCore: a.appCore}
-	var mirroredMask uint8
-	if a.mastersEnabled && needsMirror(r) {
-		mirroredMask = a.mirrorRegions(r)
-		if err := a.ensureFresh(r.Context(), mirroredMask); err != nil {
-			failure(w, 503, "state_unavailable")
-			return
-		}
-	}
 	if r.URL.Path == "/api/notifications" && r.Method == "GET" {
 		a.notifications(w, r)
 		return
@@ -365,9 +353,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		r.Body = io.NopCloser(bytes.NewReader(b))
 	}
-	if a.mastersEnabled && r.URL.Path == "/api/auth/login" && r.Method == "POST" {
-		r = a.prepareMasterLogin(r)
-	}
 	rr := &deferredResponse{ResponseRecorder: httptest.NewRecorder(), ctx: r.Context()}
 	stats := &a.routeMetrics[metricRoute(r.URL.Path)]
 	started := time.Now()
@@ -378,23 +363,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			unlock()
 		}
 	}()
-	if a.mastersEnabled && readOnly && strings.HasPrefix(r.URL.Path, "/api/feeds/") {
-		for {
-			needed := a.feedRegions(r) &^ mirroredMask
-			if needed == 0 {
-				break
-			}
-			unlock()
-			unlock = nil
-			if err := a.ensureFresh(r.Context(), needed); err != nil {
-				failure(w, 503, "state_unavailable")
-				return
-			}
-			mirroredMask |= needed
-			unlock = a.lockRequest(r)
-			// Recheck the graph under the same lock used to build the response.
-		}
-	}
 	locked := time.Now()
 	stats.waitNS.Add(uint64(locked.Sub(started)))
 	stats.requests.Add(1)
@@ -469,15 +437,6 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(204)
 		return
 	}
-	if path == masterPrefix+"home" && method == "GET" && isInternal(r) {
-		uid := s.Names.Get(r.URL.Query().Get("username"))
-		home := ""
-		if uid != "" {
-			home = a.masterHome(uid)
-		}
-		output(w, 200, object{"home": home})
-		return
-	}
 	if path == "/api/auth/register" && method == "POST" {
 		var v struct{ Username, DisplayName, Region string }
 		if !decode(r, &v) || !usernameRE.MatchString(v.Username) || !validText(v.DisplayName, 1, 100) || !validRegion(v.Region) {
@@ -499,14 +458,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		decode(r, &v)
 		u := s.Accounts.Get(s.Names.Get(v.Username))
 		valid := usernameRE.MatchString(v.Username) && u != nil && u.Status == "active"
-		if valid && a.mastersEnabled {
-			result, _ := r.Context().Value(masterLoginKey{}).(masterLoginResult)
-			valid = result.user == u.ID && result.valid
-			if result.err != nil {
-				failure(w, 503, "authentication_unavailable")
-				return
-			}
-		} else if valid {
+		if valid {
 			valid = hmac.Equal([]byte(u.Secret), []byte(secretHash(v.SecretKey)))
 		}
 		if !valid {

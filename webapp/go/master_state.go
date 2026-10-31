@@ -12,21 +12,13 @@ import (
 )
 
 type masterTransaction struct {
-	Epoch    string   `json:"epoch"`
-	ID       string   `json:"id"`
-	Changes  []change `json:"changes"`
-	Source   string   `json:"source,omitempty"`
-	Sequence uint64   `json:"sequence,omitempty"`
+	Epoch   string   `json:"epoch"`
+	ID      string   `json:"id"`
+	Changes []change `json:"changes"`
 }
 
-type masterPull struct {
-	Epoch         string
-	Through, Head uint64
-	Transactions  []masterTransaction
-}
-
-// A regional master owns durable account/image state for its fixed users.
-// The coordinator's State is only an aggregated read view of these records.
+// Regional image servers retain the records needed to validate their fixed
+// users' images. The coordinator publishes mutations after this copy is durable.
 type regionalMaster struct {
 	mu                 sync.RWMutex
 	region             string
@@ -40,12 +32,7 @@ type regionalMaster struct {
 	seen               map[string]bool
 	epoch              string
 	signer             *App
-	stager             *App
 	stats              *regionalImageMetrics
-	sequence           uint64
-	events             []masterTransaction
-	nameCache          *shardedMap[string, string]
-	localMetrics       [3]requestMetrics
 }
 
 func loadMasterInitial(initial, region, backingDir string, base *State) (*State, *masterHomes, error) {
@@ -53,7 +40,7 @@ func loadMasterInitial(initial, region, backingDir string, base *State) (*State,
 	if s == nil {
 		s = emptyState()
 	}
-	homes := &masterHomes{users: map[string]string{}, names: map[string]string{}, images: map[[16]byte]uint8{}, posts: map[[16]byte]uint8{}}
+	homes := &masterHomes{users: map[string]string{}, images: map[[16]byte]uint8{}, posts: map[[16]byte]uint8{}}
 	complete := false
 	defer func() {
 		if !complete && base == nil {
@@ -79,7 +66,6 @@ func loadMasterInitial(initial, region, backingDir string, base *State) (*State,
 			return fmt.Errorf("invalid account home")
 		}
 		homes.users[v.ID] = v.HomeRegion
-		homes.names[v.Username] = v.HomeRegion
 		if base == nil && v.HomeRegion == region {
 			return s.apply("account", b)
 		}
@@ -183,8 +169,7 @@ func openRegionalMaster(initial, durable, imageRoot, region string, files *regio
 	if err != nil {
 		return nil, err
 	}
-	m := &regionalMaster{region: region, durable: durable, imageRoot: imageRoot, files: files, s: s.fork(), initialState: s, sharedInitial: base != nil, homes: homes, seen: map[string]bool{}, signer: &App{appCore: &appCore{failures: new(shardedMap[string, []time.Time]), signatures: map[string]string{}}}, nameCache: new(shardedMap[string, string])}
-	m.stager = &App{appCore: &appCore{durable: filepath.Join(files.root, "pending")}}
+	m := &regionalMaster{region: region, durable: durable, imageRoot: imageRoot, files: files, s: s.fork(), initialState: s, sharedInitial: base != nil, homes: homes, seen: map[string]bool{}, signer: &App{appCore: &appCore{failures: new(shardedMap[string, []time.Time]), signatures: map[string]string{}}}}
 	if b, readErr := os.ReadFile(filepath.Join(durable, "epoch")); readErr == nil {
 		m.epoch = strings.TrimSpace(string(b))
 	} else if !os.IsNotExist(readErr) {
@@ -219,14 +204,6 @@ func openRegionalMaster(initial, durable, imageRoot, region string, files *regio
 			}
 		}
 		m.seen[txn.ID] = true
-		if txn.Source != "" {
-			if txn.Source != region || txn.Sequence != m.sequence+1 {
-				m.close()
-				return nil, fmt.Errorf("invalid local transaction sequence")
-			}
-			m.sequence = txn.Sequence
-			m.events = append(m.events, txn)
-		}
 	}
 	if err := scan.Err(); err != nil {
 		m.close()
@@ -296,18 +273,6 @@ func (m *regionalMaster) validate(c change) error {
 				return fmt.Errorf("original size differs at its master")
 			}
 		}
-	case "session":
-		var v tokenChange
-		if err := json.Unmarshal(c.Data, &v); err != nil {
-			return err
-		}
-		if v.User == "" {
-			if homeOfNewID(v.Token) != m.region {
-				return fmt.Errorf("session belongs to another master")
-			}
-			return nil
-		}
-		uid = v.User
 	case "ban", "window":
 		return nil
 	default:
@@ -336,13 +301,7 @@ func (m *regionalMaster) commitLocked(txns []masterTransaction) error {
 		if txn.ID == "" {
 			return fmt.Errorf("missing transaction identifier")
 		}
-		if txn.Source != "" && (txn.Source != m.region || txn.Sequence != m.sequence+1) {
-			return fmt.Errorf("invalid local transaction sequence")
-		}
 		for _, c := range txn.Changes {
-			if txn.Source != "" && c.Kind != "session" && c.Kind != "post" && c.Kind != "image" {
-				return fmt.Errorf("invalid regional event kind %q", c.Kind)
-			}
 			if err := m.validate(c); err != nil {
 				return err
 			}
@@ -360,10 +319,6 @@ func (m *regionalMaster) commitLocked(txns []masterTransaction) error {
 			}
 		}
 		m.seen[txn.ID] = true
-		if txn.Source != "" {
-			m.sequence = txn.Sequence
-			m.events = append(m.events, txn)
-		}
 	}
 	return nil
 }
@@ -378,8 +333,6 @@ func (m *regionalMaster) reset(epoch string) error {
 		return err
 	}
 	m.s, m.seen = m.initialState.fork(), map[string]bool{}
-	m.sequence, m.events = 0, nil
-	m.nameCache = new(shardedMap[string, string])
 	// Truncate metadata before removing originals, so a restart never replays
 	// an old reference after its original has been removed by initialization.
 	if err := m.files.reset(); err != nil {
@@ -390,16 +343,6 @@ func (m *regionalMaster) reset(epoch string) error {
 	}
 	m.epoch = epoch
 	return nil
-}
-
-func (m *regionalMaster) pull(epoch string, after uint64) (masterPull, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	if epoch != m.epoch || after > m.sequence {
-		return masterPull{}, fmt.Errorf("invalid mirror cursor")
-	}
-	through := min(after+128, m.sequence)
-	return masterPull{Epoch: m.epoch, Through: through, Head: m.sequence, Transactions: append([]masterTransaction(nil), m.events[after:through]...)}, nil
 }
 
 func writeTextAtomic(path, value string) error {

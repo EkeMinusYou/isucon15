@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -159,7 +160,7 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	actor := s.Sessions.Get(token)
 	keys := []string{"user:" + actor}
-	var input struct{ Username, RecipientID, Region, IP string }
+	var input struct{ Username, SecretKey, RecipientID, Region, IP string }
 	signatureReport := path == masterPrefix+"failure" && isInternal(r)
 	if signatureReport || strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") || strings.HasPrefix(path, "/api/auth/") || strings.HasPrefix(path, "/api/admin/auth/") || path == "/api/friend-requests" || path == "/api/me" {
 		if r.Body != nil {
@@ -177,8 +178,8 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 	if path == "/api/auth/login" {
 		uid := s.Names.Get(input.Username)
 		keys := []string{"name:" + input.Username, "user:" + uid}
-		result, _ := r.Context().Value(masterLoginKey{}).(masterLoginResult)
-		if !a.mastersEnabled || !usernameRE.MatchString(input.Username) || !s.active(uid) || !result.valid || result.err != nil || result.user != uid {
+		user := s.Accounts.Get(uid)
+		if !usernameRE.MatchString(input.Username) || user == nil || user.Status != "active" || !hmac.Equal([]byte(user.Secret), []byte(secretHash(input.SecretKey))) {
 			keys = append(keys, "ip:"+ipOf(r))
 		}
 		return keys, false

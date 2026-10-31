@@ -87,19 +87,6 @@ func (a *App) snapshot() measurement.Snapshot {
 		"app_sig_evicted_total":          a.signatureEvictions.Load(),
 		"app_sig_rpc_failed_total":       a.signatureRPCFailures.Load(),
 		"app_remote_sig_total":           a.remoteSignatures.Load(),
-		"app_mirror_pulls_total":         a.mirrorPulls.Load(),
-		"app_mirror_records_total":       a.mirrorRecords.Load(),
-		"app_mirror_wait_ns_total":       a.mirrorWaitNS.Load(),
-	}
-	if a.master != nil {
-		m["app_local_upload_bytes_total"] = a.master.stager.uploadStageBytes.Load()
-		m["app_local_upload_ns_total"] = a.master.stager.uploadStageNS.Load()
-		for i, name := range []string{"login", "post", "read"} {
-			s := &a.master.localMetrics[i]
-			m["app_local_"+name+"_total"] = s.requests.Load()
-			m["app_local_"+name+"_wait_ns_total"] = s.waitNS.Load()
-			m["app_local_"+name+"_hold_ns_total"] = s.holdNS.Load()
-		}
 	}
 	for i, name := range routeMetricNames {
 		p := "app_" + name + "_"

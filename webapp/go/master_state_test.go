@@ -43,13 +43,12 @@ func testRegionalMasterDurability(t *testing.T, shared bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	uid, imageID, token := idInRegion("asia"), idInRegion("asia"), idInRegion("asia")
+	uid, imageID := idInRegion("asia"), idInRegion("asia")
 	os.WriteFile(filepath.Join(files.acceptedDir(), imageID), []byte("original"), 0600)
 	u := Account{ID: uid, Username: "master_user", Secret: secretHash("secret"), Region: "asia", HomeRegion: "asia", Status: "active", ProfileImageID: &imageID}
 	txn := masterTransaction{ID: id(), Changes: []change{
 		masterChange(t, "account", u),
 		masterChange(t, "image", Image{ID: imageID, OwnerID: uid, Size: 8, MediaType: "image/jpeg", StorageRegion: "asia"}),
-		masterChange(t, "session", tokenChange{token, uid}),
 	}}
 	if err := m.commit([]masterTransaction{txn}); err != nil {
 		t.Fatal(err)
@@ -66,9 +65,6 @@ func testRegionalMasterDurability(t *testing.T, shared bool) {
 	if err := m.commit([]masterTransaction{{ID: id(), Changes: []change{masterChange(t, "account", u)}}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := m.commit([]masterTransaction{{ID: id(), Source: "asia", Sequence: 1, Changes: []change{masterChange(t, "session", tokenChange{token, uid})}}}); err != nil {
-		t.Fatal(err)
-	}
 	if shared && (m.initialState != base || base.Accounts.Get(uid) != nil) {
 		t.Fatal("master failed to isolate updates from shared initial state")
 	}
@@ -78,10 +74,7 @@ func testRegionalMasterDurability(t *testing.T, shared bool) {
 		t.Fatal(err)
 	}
 	defer m.close()
-	if batch, err := m.pull("", 0); err != nil || batch.Head != 1 || len(batch.Transactions) != 1 {
-		t.Fatal("regional journal lost its unmirrored sequence", err)
-	}
-	if m.s.Accounts.Get(uid).HomeRegion != "asia" || m.s.Accounts.Get(uid).Region != "europe" || m.s.Sessions.Get(token) != uid || m.s.Images.get(imageID) == nil {
+	if m.s.Accounts.Get(uid).HomeRegion != "asia" || m.s.Accounts.Get(uid).Region != "europe" || m.s.Images.get(imageID) == nil {
 		t.Fatal("master records or fixed home were lost after restart")
 	}
 	exp := time.Now().Unix() + 3600

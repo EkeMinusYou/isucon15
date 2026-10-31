@@ -114,8 +114,8 @@ func TestRegionalMasterRoutesMovedUserAndInvalidatesImages(t *testing.T) {
 	uid := registered["user"].(map[string]any)["id"].(string)
 	centralCalls.Store(0)
 	login := jsonRequest(1, "POST", "/api/auth/login", "", object{"username": "moved_master", "secretKey": registered["secretKey"]}, 200)
-	if centralCalls.Load() != 0 {
-		t.Fatal("home login contacted the coordinator")
+	if centralCalls.Load() == 0 {
+		t.Fatal("login did not reach central session authority")
 	}
 	token := login["token"].(string)
 	jsonRequest(1, "PATCH", "/api/me", token, object{"region": "america"}, 200)
@@ -159,22 +159,22 @@ func TestRegionalMasterRoutesMovedUserAndInvalidatesImages(t *testing.T) {
 	var post object
 	centralCalls.Store(0)
 	json.Unmarshal(request(0, "POST", "/api/posts", author, postUpload.contentType, postUpload.body, 201), &post)
-	if centralCalls.Load() != 0 || owner.appCore.s.Posts.get(post["id"].(string)) != nil {
-		t.Fatal("local post waited for or updated the coordinator")
+	if centralCalls.Load() == 0 || owner.appCore.s.Posts.get(post["id"].(string)) == nil {
+		t.Fatal("post did not reach central authority")
 	}
 	viewerUpload := imageRequest("/api/posts", token, map[string]string{"visibility": "public", "location_kind": "none"})
 	request(2, "POST", "/api/posts", token, viewerUpload.contentType, viewerUpload.body, 201)
 	feed := jsonRequest(0, "GET", "/api/feeds/friends", author, nil, 200)
 	items := feed["items"].([]any)
 	if len(items) != 1 || items[0].(map[string]any)["author"].(map[string]any)["id"] != uid {
-		t.Fatal("friends feed missed its foreign friend's locally committed post")
+		t.Fatal("friends feed missed a committed post")
 	}
 	reactionPath := "/api/posts/" + post["id"].(string) + "/realmojis"
 	reactionUpload := imageRequest(reactionPath, token, map[string]string{"reactionType": "like"})
 	var reaction object
 	json.Unmarshal(request(2, "POST", reactionPath, token, reactionUpload.contentType, reactionUpload.body, 201), &reaction)
 	if owner.appCore.s.Posts.get(post["id"].(string)) == nil {
-		t.Fatal("a coordinator read missed a completed regional post")
+		t.Fatal("a coordinator read missed a completed post")
 	}
 	reactionURL := reaction["imageUrl"].(string)
 	request(2, "GET", reactionURL, "", "", nil, 200)

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,50 +13,28 @@ import (
 	"time"
 )
 
-func TestLocalReadDoesNotWaitForUnrelatedRegion(t *testing.T) {
+func TestCentralReadsDoNotQueryRegionalState(t *testing.T) {
 	a := fixtureApp(t)
-	uid, token := register(t, a, "scoped_reader")
+	uid, token := register(t, a, "central_reader")
 	local, err := newRegionalMaster(a.initial, t.TempDir(), a.initial+"/images", "asia", &regionalUploads{root: t.TempDir()})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer local.close()
 	a.master, a.mastersEnabled = local, true
-	entered, release := make(chan struct{}), make(chan struct{})
-	var once sync.Once
-	defer once.Do(func() { close(release) })
+	var calls atomic.Int64
 	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		close(entered)
-		<-release
-		output(w, 200, masterPull{})
+		calls.Add(1)
+		http.Error(w, "regional state unavailable", 503)
 	}))
-	defer func() { once.Do(func() { close(release) }); remote.Close() }()
+	defer remote.Close()
 	t.Setenv("REGION_EUROPE_URL", remote.URL)
-	finished := make(chan error, 1)
-	go func() { finished <- a.ensureFresh(context.Background(), 2) }()
-	<-entered
-	read := make(chan int, 1)
-	go func() {
-		for _, path := range []string{"/api/users/" + uid, "/api/feeds/friends"} {
-			code, _, _ := call(t, a, "GET", path, token, nil)
-			if code != 200 {
-				read <- code
-				return
-			}
-		}
-		read <- 200
-	}()
-	select {
-	case code := <-read:
-		if code != 200 {
-			t.Fatalf("local profile read: %d", code)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("local read waited for another region's barrier")
+	t.Setenv("REGION_AMERICA_URL", remote.URL)
+	for _, path := range []string{"/api/users/" + uid, "/api/feeds/friends"} {
+		requireCall(t, a, "GET", path, token, nil, 200)
 	}
-	once.Do(func() { close(release) })
-	if err := <-finished; err != nil {
-		t.Fatal(err)
+	if calls.Load() != 0 {
+		t.Fatal("central read queried regional state")
 	}
 }
 
@@ -156,6 +133,9 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	token := login["token"].(string)
+	if europe.s.Sessions.Get(token) != "" {
+		t.Fatal("central session was replicated to an image master")
+	}
 	delayed.Store(true)
 	finished := make(chan int, 1)
 	go func() {
@@ -171,16 +151,8 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("master commit was not reached")
 	}
-	duringToken := idInRegion("europe")
-	if err := europe.commit([]masterTransaction{{Epoch: europe.epoch, ID: id(), Source: "europe", Sequence: 1, Changes: []change{masterChange(t, "session", tokenChange{duringToken, uid})}}}); err != nil {
-		t.Fatal(err)
-	}
 	visible := make(chan map[string]any, 1)
 	go func() {
-		if err := a.ensureFresh(context.Background(), 2); err != nil {
-			visible <- nil
-			return
-		}
 		_, value, _ := call(t, a, "GET", "/api/users/"+uid, viewer, nil)
 		visible <- value
 	}()
@@ -188,9 +160,6 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	case value := <-visible:
 		if value["displayName"] != "before" {
 			t.Fatal("uncommitted master update leaked")
-		}
-		if a.appCore.s.Sessions.Get(duringToken) != uid {
-			t.Fatal("regional publication waited for an unrelated prepared update")
 		}
 	case <-time.After(time.Second):
 		t.Fatal("master RPC blocked unrelated committed reads")
@@ -215,14 +184,6 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	}
 	if restored.s.Accounts.Get(uid).DisplayName != "after" || restored.s.Sessions.Get(token) != uid {
 		t.Fatal("coordinator intent replay lost master state")
-	}
-	newToken := idInRegion("europe")
-	if err := europe.commit([]masterTransaction{{Epoch: europe.epoch, ID: id(), Source: "europe", Sequence: 2, Changes: []change{masterChange(t, "session", tokenChange{token, ""}), masterChange(t, "session", tokenChange{newToken, uid})}}}); err != nil {
-		t.Fatal(err)
-	}
-	requireCall(t, restored, "GET", "/api/users/"+uid, newToken, nil, 403)
-	if restored.s.Sessions.Get(token) != "" || restored.s.Sessions.Get(newToken) != uid {
-		t.Fatal("read barrier did not recover a locally committed session")
 	}
 	initialView, initialMaster := restored.initialState, local.initialState
 	if initialView.Accounts.Get(uid) != nil || initialMaster.Accounts.Get(uid) != nil {
