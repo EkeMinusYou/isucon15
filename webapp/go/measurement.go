@@ -56,8 +56,6 @@ func metricRoute(path string) int {
 }
 func (a *App) snapshot() measurement.Snapshot {
 	m := map[string]any{
-		"app_snapshot_groups_total":      a.snapshots.cohorts.Load(),
-		"app_snapshot_reads_total":       a.snapshots.reads.Load(),
 		"app_image_local_total":          a.regionalImages.local.Load(),
 		"app_image_fallback_total":       a.regionalImages.fallback.Load(),
 		"app_image_local_bytes_total":    a.regionalImages.bytes.Load(),

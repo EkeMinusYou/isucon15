@@ -302,12 +302,15 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Reject banned or unauthenticated uploads before retaining their bodies.
 		a.mu.RLock()
 		a.globalGate.RLock()
+		a.viewMu.RLock()
+		a.s = a.appCore.s
 		check := httptest.NewRecorder()
 		if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 			failure(check, 403, "ip_banned")
 		} else {
 			a.auth(check, r, !profile)
 		}
+		a.viewMu.RUnlock()
 		a.globalGate.RUnlock()
 		a.mu.RUnlock()
 		if check.Code != 200 {
@@ -361,12 +364,20 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	locked := time.Now()
 	stats.waitNS.Add(uint64(locked.Sub(started)))
 	stats.requests.Add(1)
+	if !readOnly && r.URL.Path != "/api/initialize" {
+		a.viewMu.RLock()
+		a.s = a.appCore.s.fork()
+		a.prepared = true
+	}
 	if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 		failure(rr, 403, "ip_banned")
 	} else {
 		a.dispatch(rr, r)
 	}
 	if !readOnly {
+		if a.prepared {
+			a.viewMu.RUnlock()
+		}
 		a.commit()
 	}
 	stats.holdNS.Add(uint64(time.Since(locked)))
@@ -495,7 +506,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		}
 		a.put("account", n)
 		if n.Region != u.Region {
-			a.notifier.userChanged(u.ID)
+			a.signalUser(u.ID)
 		}
 		output(w, 200, a.me(&n))
 	case path == "/api/me/profile-image":
@@ -540,7 +551,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		for t := range s.UserTokens.Get(u.ID) {
 			a.put("session", tokenChange{t, ""})
 		}
-		a.notifier.userChanged(u.ID)
+		a.signalUser(u.ID)
 		w.WriteHeader(204)
 	case path == "/api/users" && method == "GET":
 		a.search(w, r, u)
@@ -661,7 +672,7 @@ func (a *App) adminAPI(w http.ResponseWriter, r *http.Request) {
 				a.put("notification", Notification{id(), u.ID, n.ID, now})
 			}
 		}
-		a.notifier.regionChanged(v.Region)
+		a.signalRegion(v.Region)
 		output(w, 201, windowJSON(&n))
 		return
 	}
@@ -763,7 +774,11 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
 			stripe.Lock()
 			a.globalGate.RLock()
+			a.viewMu.RLock()
+			a.s = a.appCore.s.fork()
+			a.prepared = true
 			a.failIP(r, "signature", 3, 5*time.Second)
+			a.viewMu.RUnlock()
 			a.commit()
 			a.globalGate.RUnlock()
 			stripe.Unlock()

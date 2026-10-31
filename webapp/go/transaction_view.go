@@ -5,6 +5,34 @@ import (
 	"slices"
 )
 
+type stateSignal struct{ user, region string }
+
+func (a *App) signalUser(user string) {
+	if a.prepared {
+		a.signals = append(a.signals, stateSignal{user: user})
+	} else {
+		a.notifier.userChanged(user)
+	}
+}
+func (a *App) signalRegion(region string) {
+	if a.prepared {
+		a.signals = append(a.signals, stateSignal{region: region})
+	} else {
+		a.notifier.regionChanged(region)
+	}
+}
+func (a *App) publishSignals() {
+	for _, signal := range a.signals {
+		if signal.user != "" {
+			a.notifier.userChanged(signal.user)
+		}
+		if signal.region != "" {
+			a.notifier.regionChanged(signal.region)
+		}
+	}
+	a.signals = nil
+}
+
 func copyMap[K comparable, V any](value map[K]V) map[K]V { return maps.Clone(value) }
 func copySlice[V any](value []V) []V                     { return slices.Clone(value) }
 

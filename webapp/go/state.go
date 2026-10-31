@@ -152,13 +152,16 @@ type State struct {
 }
 type App struct {
 	*appCore
-	pending []change // Owned by one request, never shared between handlers.
+	s        *State
+	pending  []change // Owned by one request, never shared between handlers.
+	prepared bool
+	signals  []stateSignal
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics
 	mu                   sync.RWMutex
 	globalGate           sync.RWMutex
-	snapshots            snapshotBatch
+	viewMu               sync.RWMutex
 	journalMu            sync.Mutex
 	notifier             notificationHub
 	transactions         [stateShardCount]sync.RWMutex
@@ -434,6 +437,10 @@ func (a *App) put(kind string, v any) {
 }
 func (a *App) commit() {
 	if len(a.pending) == 0 {
+		if a.prepared {
+			a.s = a.appCore.s
+			a.prepared = false
+		}
 		return
 	}
 	b, e := json.Marshal(a.pending)
@@ -443,14 +450,26 @@ func (a *App) commit() {
 	b = append(b, '\n')
 	waiting := time.Now()
 	a.journalMu.Lock()
-	defer a.journalMu.Unlock()
 	a.journalWaitNS.Add(uint64(time.Since(waiting)))
 	writing := time.Now()
 	if _, e = a.journal.Write(b); e != nil {
 		log.Fatalf("journal write: %v", e)
 	}
 	a.journalWriteNS.Add(uint64(time.Since(writing)))
+	a.journalMu.Unlock()
+	if a.prepared {
+		a.viewMu.Lock()
+		for _, c := range a.pending {
+			if err := a.appCore.s.apply(c.Kind, c.Data); err != nil {
+				panic(err)
+			}
+		}
+		a.s = a.appCore.s
+		a.viewMu.Unlock()
+		a.prepared = false
+	}
 	a.pending = nil
+	a.publishSignals()
 }
 func loadLines(path string, fn func([]byte) error) error {
 	f, e := os.Open(path)
@@ -572,6 +591,7 @@ func (a *App) loadInitial() error {
 	s.finishPostPeriods()
 	complete = true
 	a.s = s
+	a.appCore.s = s
 	a.historyResidentBytes.Store(uint64(len(s.Posts.data)+len(s.Reactions.data)+len(s.Comments.data)+len(s.Images.data)) * recordChunkBytes)
 	return nil
 }
@@ -616,6 +636,7 @@ func (a *App) reset() error {
 		a.s.closeHistory()
 	}
 	a.s = nil
+	a.appCore.s = nil
 	runtime.GC()
 	if e := a.loadInitial(); e != nil {
 		return e
