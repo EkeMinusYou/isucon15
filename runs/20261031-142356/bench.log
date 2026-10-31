@@ -1,0 +1,19 @@
+2026-10-31T05:24:00.257252683Z	BENCHMARK_START
+PORTAL_JOB_ID: 17238
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "初期化に失敗しました: POST /api/initialize: ステータスコード 504 が返りました（期待値 200、unknown）（上限 1m0s）"
+  ]
+}
+SCORE: 0
+BENCHMARK_FAIL
+portal-bench: benchmark failed
+2026-10-31T05:25:01.025610422Z	BENCHMARK_END
+BENCHMARK_FAIL	exit_status=1
+
+SCORE: 0
+BENCHMARK_FAIL

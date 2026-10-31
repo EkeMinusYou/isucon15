@@ -1,0 +1,7 @@
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "初期化に失敗しました: POST /api/initialize: ステータスコード 504 が返りました（期待値 200、unknown）（上限 1m0s）"
+  ]
+}
