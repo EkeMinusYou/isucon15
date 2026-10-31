@@ -1,0 +1,35 @@
+2026-10-31T02:32:45.748781709Z	BENCHMARK_START
+PORTAL_JOB_ID: 4355
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T02:33:20.376Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:33:23.360Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:33:26.358Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:33:29.379Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T02:33:32.363Z level=INFO msg="europe 2 日目: 16 人"
+time=2026-10-31T02:33:35.360Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T02:33:38.381Z level=INFO msg="asia 3 日目: 154 人"
+time=2026-10-31T02:33:41.393Z level=INFO msg="europe 3 日目: 39 人"
+time=2026-10-31T02:33:44.588Z level=INFO msg="america 3 日目: 36 人"
+time=2026-10-31T02:33:44.625Z level=INFO msg="user moved" user=mamaivy.5763 from=asia to=europe
+time=2026-10-31T02:33:47.651Z level=INFO msg="asia 4 日目: 209 人"
+time=2026-10-31T02:33:50.585Z level=INFO msg="europe 4 日目: 40 人"
+time=2026-10-31T02:33:53.431Z level=INFO msg="america 4 日目: 36 人"
+time=2026-10-31T02:33:57.068Z level=INFO msg="asia 5 日目: 209 人"
+time=2026-10-31T02:33:59.615Z level=INFO msg="europe 5 日目: 40 人"
+time=2026-10-31T02:34:02.983Z level=INFO msg="america 5 日目: 36 人"
+time=2026-10-31T02:34:11.595Z level=INFO msg="europe 最終日（グランプリ）: 39 人"
+time=2026-10-31T02:34:11.613Z level=INFO msg="asia 最終日（グランプリ）: 208 人"
+time=2026-10-31T02:34:11.614Z level=INFO msg="america 最終日（グランプリ）: 35 人"
+time=2026-10-31T02:34:20.361Z level=INFO msg="グランプリ: アジア 188 人, ヨーロッパ 24 人, アメリカ 22 人"
+{
+  "pass": true,
+  "score": 61644,
+  "messages": []
+}
+SCORE: 61644
+BENCHMARK_PASS
+2026-10-31T02:34:42.149028057Z	BENCHMARK_END
+
+SCORE: 61644
+BENCHMARK_PASS
