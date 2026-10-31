@@ -1,0 +1,39 @@
+2026-10-31T02:25:09.135406561Z	BENCHMARK_START
+PORTAL_JOB_ID: 3833
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T02:25:43.419Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:25:46.399Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:25:49.398Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:25:52.422Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T02:25:55.454Z level=INFO msg="europe 2 日目: 14 人"
+time=2026-10-31T02:25:55.815Z level=INFO msg="user moved" user=kelia_5246 from=asia to=europe
+time=2026-10-31T02:25:58.403Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T02:26:01.427Z level=INFO msg="asia 3 日目: 153 人"
+time=2026-10-31T02:26:02.270Z level=INFO msg="user moved" user=riisra_5422 from=europe to=asia
+time=2026-10-31T02:26:04.649Z level=INFO msg="europe 3 日目: 37 人"
+time=2026-10-31T02:26:07.693Z level=INFO msg="america 3 日目: 38 人"
+time=2026-10-31T02:26:08.010Z level=INFO msg="user moved" user=riisra_5422 from=asia to=america
+time=2026-10-31T02:26:08.057Z level=INFO msg="user moved" user=tsuri5929 from=asia to=america
+time=2026-10-31T02:26:10.628Z level=INFO msg="user moved" user=riyone5574 from=asia to=america
+time=2026-10-31T02:26:10.753Z level=INFO msg="asia 4 日目: 380 人"
+time=2026-10-31T02:26:14.141Z level=INFO msg="europe 4 日目: 39 人"
+time=2026-10-31T02:26:16.768Z level=INFO msg="america 4 日目: 41 人"
+time=2026-10-31T02:26:20.366Z level=INFO msg="asia 5 日目: 380 人"
+time=2026-10-31T02:26:24.295Z level=INFO msg="europe 5 日目: 39 人"
+time=2026-10-31T02:26:26.354Z level=INFO msg="america 5 日目: 41 人"
+time=2026-10-31T02:26:34.554Z level=INFO msg="america 最終日（グランプリ）: 41 人"
+time=2026-10-31T02:26:34.555Z level=INFO msg="europe 最終日（グランプリ）: 39 人"
+time=2026-10-31T02:26:34.575Z level=INFO msg="asia 最終日（グランプリ）: 380 人"
+time=2026-10-31T02:26:43.417Z level=INFO msg="グランプリ: アジア 212 人, ヨーロッパ 19 人, アメリカ 16 人"
+{
+  "pass": true,
+  "score": 55914,
+  "messages": []
+}
+SCORE: 55914
+BENCHMARK_PASS
+2026-10-31T02:27:05.116263456Z	BENCHMARK_END
+
+SCORE: 55914
+BENCHMARK_PASS
