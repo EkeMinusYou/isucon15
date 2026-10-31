@@ -301,15 +301,14 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if profile || multipart {
 		// Reject banned or unauthenticated uploads before retaining their bodies.
 		a.mu.RLock()
-		a.viewMu.RLock()
-		a.s = a.appCore.s
+		a.globalGate.RLock()
 		check := httptest.NewRecorder()
 		if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 			failure(check, 403, "ip_banned")
 		} else {
 			a.auth(check, r, !profile)
 		}
-		a.viewMu.RUnlock()
+		a.globalGate.RUnlock()
 		a.mu.RUnlock()
 		if check.Code != 200 {
 			for k, vs := range check.Header() {
@@ -355,7 +354,6 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	readOnly := r.Method == "GET"
 	unlock := a.lockRequest(r)
 	defer func() {
-		a.endPreparation()
 		if unlock != nil {
 			unlock()
 		}
@@ -363,16 +361,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	locked := time.Now()
 	stats.waitNS.Add(uint64(locked.Sub(started)))
 	stats.requests.Add(1)
-	if !readOnly && r.URL.Path != "/api/initialize" {
-		a.beginPreparation()
-	}
 	if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 		failure(rr, 403, "ip_banned")
 	} else {
 		a.dispatch(rr, r)
 	}
 	if !readOnly {
-		a.endPreparation()
 		a.commit()
 	}
 	stats.holdNS.Add(uint64(time.Since(locked)))
@@ -501,7 +495,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		}
 		a.put("account", n)
 		if n.Region != u.Region {
-			a.signalUser(u.ID)
+			a.notifier.userChanged(u.ID)
 		}
 		output(w, 200, a.me(&n))
 	case path == "/api/me/profile-image":
@@ -546,7 +540,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		for t := range s.UserTokens.Get(u.ID) {
 			a.put("session", tokenChange{t, ""})
 		}
-		a.signalUser(u.ID)
+		a.notifier.userChanged(u.ID)
 		w.WriteHeader(204)
 	case path == "/api/users" && method == "GET":
 		a.search(w, r, u)
@@ -667,7 +661,7 @@ func (a *App) adminAPI(w http.ResponseWriter, r *http.Request) {
 				a.put("notification", Notification{id(), u.ID, n.ID, now})
 			}
 		}
-		a.signalRegion(v.Region)
+		a.notifier.regionChanged(v.Region)
 		output(w, 201, windowJSON(&n))
 		return
 	}
@@ -774,20 +768,15 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	secret := a.s.Accounts.Get(im.OwnerID).Secret
 	responseWork(w, func(w http.ResponseWriter) {
 		if !hmac.Equal([]byte(ss[0]), []byte(a.signImage(i, secret, exp))) {
-			func() {
-				a.mu.RLock()
-				defer a.mu.RUnlock()
-				stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
-				stripe.Lock()
-				defer stripe.Unlock()
-				a.globalGate.RLock()
-				defer a.globalGate.RUnlock()
-				a.beginPreparation()
-				defer a.endPreparation()
-				a.failIP(r, "signature", 3, 5*time.Second)
-				a.endPreparation()
-				a.commit()
-			}()
+			a.mu.RLock()
+			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
+			stripe.Lock()
+			a.globalGate.RLock()
+			a.failIP(r, "signature", 3, 5*time.Second)
+			a.commit()
+			a.globalGate.RUnlock()
+			stripe.Unlock()
+			a.mu.RUnlock()
 			failure(w, 403, "image_forbidden")
 			return
 		}

@@ -65,7 +65,6 @@ func (a *App) acquireStripeModes(indices []int, writes *[stateShardCount]bool) {
 func (a *App) lockRequest(r *http.Request) func() {
 	if r.URL.Path == "/api/initialize" {
 		a.mu.Lock()
-		a.s = a.appCore.s
 		return a.mu.Unlock
 	}
 	if r.Method == "GET" {
@@ -73,10 +72,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 	}
 	for {
 		a.mu.RLock()
-		a.viewMu.RLock()
-		a.s = a.appCore.s
 		keys, all := a.mutationKeys(r)
-		a.viewMu.RUnlock()
 		if all {
 			a.globalGate.Lock()
 			a.transactionRequests.Add(1)
@@ -118,10 +114,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 		if r.URL.Path == "/api/auth/login" {
 			// A registration may have published the name while locks were being
 			// acquired. Retry if its actual user requires an additional stripe.
-			a.viewMu.RLock()
-			a.s = a.appCore.s
 			current, _ := a.mutationKeys(r)
-			a.viewMu.RUnlock()
 			retry := false
 			for _, key := range current {
 				if !seen[stateHash(key)%stateShardCount] {
