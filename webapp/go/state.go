@@ -156,7 +156,7 @@ type App struct {
 type appCore struct {
 	mu                   sync.RWMutex
 	journalMu            sync.Mutex
-	signalMu             sync.Mutex
+	notifier             notificationHub
 	transactions         [stateShardCount]sync.RWMutex
 	transactionRequests  atomic.Uint64
 	transactionShards    atomic.Uint64
@@ -167,7 +167,6 @@ type appCore struct {
 	initial, durable     string
 	journal              *os.File
 	failures             *shardedMap[string, []time.Time]
-	signal               chan struct{}
 	signatures           map[string]string
 	signatureMu          sync.Mutex
 	signatureFlights     map[string]*signatureFlight
@@ -418,12 +417,6 @@ func (a *App) commit() {
 	a.writes++
 	a.pending = nil
 }
-func (a *App) wake() {
-	a.signalMu.Lock()
-	close(a.signal)
-	a.signal = make(chan struct{})
-	a.signalMu.Unlock()
-}
 func loadLines(path string, fn func([]byte) error) error {
 	f, e := os.Open(path)
 	if e != nil {
@@ -548,7 +541,7 @@ func (a *App) loadInitial() error {
 	return nil
 }
 func newApp(initial, durable string) (*App, error) {
-	a := &App{appCore: &appCore{initial: initial, durable: durable, failures: newShardedMapWith(map[string][]time.Time{}), signal: make(chan struct{}), signatures: map[string]string{}}}
+	a := &App{appCore: &appCore{initial: initial, durable: durable, failures: newShardedMapWith(map[string][]time.Time{}), signatures: map[string]string{}}}
 	if e := os.MkdirAll(filepath.Join(durable, "images"), 0755); e != nil {
 		return nil, e
 	}
@@ -613,7 +606,7 @@ func (a *App) reset() error {
 	a.signatureNext = 0
 	a.signatureResets.Add(1)
 	a.signatureMu.Unlock()
-	a.wake()
+	a.notifier.reset()
 	return nil
 }
 func (a *App) imageReader(im *Image) (*os.File, int64, error) {

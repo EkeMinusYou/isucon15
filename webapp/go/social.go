@@ -682,7 +682,8 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	uid, region := u.ID, u.Region
-	signal := a.signal
+	subscription := a.notifier.subscribe(uid, region)
+	defer subscription.close()
 	a.unlockSnapshot()
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -706,7 +707,7 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 				selected = &c
 			}
 		}
-		signal = a.signal
+		userSignal, regionSignal := subscription.channels()
 		if selected != nil {
 			v := object{"id": selected.ID, "postingWindowId": selected.WindowID, "region": s.Windows.Get(selected.WindowID).Region, "createdAt": selected.CreatedAt}
 			b, _ := json.Marshal(v)
@@ -719,7 +720,10 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		}
 		a.unlockSnapshot()
 		select {
-		case <-signal:
+		case <-userSignal:
+			a.notifier.wakeups.Add(1)
+		case <-regionSignal:
+			a.notifier.wakeups.Add(1)
 		case <-r.Context().Done():
 			return
 		}

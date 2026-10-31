@@ -522,7 +522,9 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 			n.Region = *v.Region
 		}
 		a.put("account", n)
-		a.wake()
+		if n.Region != u.Region {
+			a.notifier.userChanged(u.ID)
+		}
 		output(w, 200, a.me(&n))
 	case path == "/api/me/profile-image":
 		if method == "DELETE" {
@@ -566,7 +568,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		for t := range s.UserTokens.Get(u.ID) {
 			a.put("session", tokenChange{t, ""})
 		}
-		a.wake()
+		a.notifier.userChanged(u.ID)
 		w.WriteHeader(204)
 	case path == "/api/users" && method == "GET":
 		a.search(w, r, u)
@@ -687,7 +689,7 @@ func (a *App) adminAPI(w http.ResponseWriter, r *http.Request) {
 				a.put("notification", Notification{id(), u.ID, n.ID, now})
 			}
 		}
-		a.wake()
+		a.notifier.regionChanged(v.Region)
 		output(w, 201, windowJSON(&n))
 		return
 	}

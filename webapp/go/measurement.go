@@ -60,6 +60,8 @@ func (a *App) snapshot() measurement.Snapshot {
 		entropy = 1
 	}
 	m := map[string]any{
+		"app_notification_wakeups_total": a.notifier.wakeups.Load(),
+		"app_notification_targets_total": a.notifier.targeted.Load(),
 		"app_transaction_requests_total": a.transactionRequests.Load(),
 		"app_transaction_shards_total":   a.transactionShards.Load(),
 		"app_transaction_global_total":   a.transactionGlobal.Load(),
