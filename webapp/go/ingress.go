@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	measurement "github.com/EkeMinusYou/isucon-template/tools/measurement/app"
 )
@@ -48,6 +49,7 @@ func detectRole() (string, bool, error) {
 	return "", false, fmt.Errorf("host has no configured contest interface")
 }
 func serviceHandler() (http.Handler, *App, error) {
+	started := time.Now()
 	region, owner, e := detectRole()
 	if e != nil {
 		return nil, nil, e
@@ -71,6 +73,12 @@ func serviceHandler() (http.Handler, *App, error) {
 		if e != nil {
 			return nil, nil, e
 		}
+		a.imagePermits = newOwnerImagePermits()
+		// Old grants must have expired even if an owner restart lost its grant
+		// registry. Initial loading normally exceeds this bounded interval.
+		if remaining := time.Until(started.Add(imagePermitLifetime)); remaining > 0 {
+			time.Sleep(remaining)
+		}
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !isInternal(r) {
 				r.Header.Del("X-ISU-Region")
@@ -89,6 +97,8 @@ func serviceHandler() (http.Handler, *App, error) {
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	edge := &App{appCore: &appCore{}}
+	permits := newRegionalImagePermits()
+	edge.regionalPermits = permits
 	var uploads *regionalUploads
 	if root := os.Getenv("REGIONAL_STATE_DIR"); root != "" {
 		uploads, e = newRegionalUploads(root)
@@ -113,6 +123,7 @@ func serviceHandler() (http.Handler, *App, error) {
 		}
 	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
+		permits.install(resp)
 		if uploads != nil {
 			uploads.finish(resp)
 		}
@@ -132,6 +143,13 @@ func serviceHandler() (http.Handler, *App, error) {
 			w.Write([]byte("ok\n"))
 			return
 		}
+		if r.URL.Path == imageRevokePath {
+			permits.revoke(w, r)
+			return
+		}
+		if r.URL.Path == regionalResetPath && isInternal(r) {
+			permits.reset()
+		}
 		if uploads != nil && uploads.internal(w, r) {
 			return
 		}
@@ -139,6 +157,10 @@ func serviceHandler() (http.Handler, *App, error) {
 		r.Header.Del("X-ISU-Region")
 		r.Header.Del("X-ISU-Source")
 		r.Header.Del(regionalUploadHeader)
+		if permits.serve(w, r, imageRoot, uploads, &edge.regionalImages) {
+			return
+		}
+		r = withRegionRequestStart(r)
 		if profile, multipart := isImageUpload(r); uploads != nil && (profile || multipart) {
 			var p *preparedUpload
 			r, p = uploads.prepare(edge, w, r)

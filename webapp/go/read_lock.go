@@ -15,7 +15,7 @@ func (a *App) readKeys(r *http.Request) ([]string, bool) {
 		if im == nil {
 			return nil, true
 		}
-		keys := []string{"user:" + im.OwnerID}
+		keys := []string{"user:" + im.OwnerID, "ip:" + ipOf(r)}
 		switch im.Kind {
 		case 'p':
 			keys = append(keys, "post:"+im.Ref)
