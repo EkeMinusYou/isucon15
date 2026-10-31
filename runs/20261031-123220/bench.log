@@ -1,0 +1,52 @@
+2026-10-31T03:32:24.130082158Z	BENCHMARK_START
+PORTAL_JOB_ID: 8526
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T03:33:01.380Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T03:33:04.364Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T03:33:07.362Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T03:33:10.382Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T03:33:10.852Z level=INFO msg="user moved" user=rehi5168 from=asia to=america
+time=2026-10-31T03:33:13.363Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T03:33:15.194Z level=INFO msg="user moved" user=rehi5168 from=america to=asia
+time=2026-10-31T03:33:16.362Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T03:33:19.388Z level=INFO msg="asia 3 日目: 138 人"
+time=2026-10-31T03:33:19.912Z level=INFO msg="user moved" user=rehi5168 from=asia to=america
+time=2026-10-31T03:33:22.210Z level=INFO msg="user moved" user=sanoa_5908 from=asia to=europe
+time=2026-10-31T03:33:22.369Z level=INFO msg="europe 3 日目: 53 人"
+time=2026-10-31T03:33:25.363Z level=INFO msg="america 3 日目: 49 人"
+time=2026-10-31T03:33:28.204Z level=INFO msg="user moved" user=sazoe6304 from=europe to=asia
+time=2026-10-31T03:33:28.385Z level=INFO msg="asia 4 日目: 403 人"
+time=2026-10-31T03:33:31.492Z level=INFO msg="europe 4 日目: 130 人"
+time=2026-10-31T03:33:33.153Z level=INFO msg="user moved" user=moyona7169 from=asia to=america
+time=2026-10-31T03:33:35.205Z level=INFO msg="user moved" user=liahois_8236 from=asia to=america
+time=2026-10-31T03:33:38.093Z level=INFO msg="user moved" user=tsuleo.7532 from=asia to=europe
+time=2026-10-31T03:33:38.136Z level=INFO msg="user moved" user=moyona7169 from=america to=europe
+time=2026-10-31T03:33:38.301Z level=INFO msg="user moved" user=liahois_8236 from=america to=europe
+time=2026-10-31T03:33:39.629Z level=INFO msg="user moved" user=yosomar7883 from=asia to=america
+time=2026-10-31T03:33:40.971Z level=INFO msg="user moved" user=hiivy6754 from=asia to=europe
+time=2026-10-31T03:33:41.003Z level=INFO msg="user moved" user=orisso8803 from=europe to=america
+time=2026-10-31T03:33:42.230Z level=INFO msg="america 4 日目: 108 人"
+time=2026-10-31T03:33:42.871Z level=INFO msg="user moved" user=murudan8243 from=asia to=europe
+time=2026-10-31T03:33:43.634Z level=INFO msg="asia 5 日目: 1042 人"
+time=2026-10-31T03:33:43.736Z level=INFO msg="user moved" user=sanoa_5908 from=europe to=asia
+time=2026-10-31T03:33:58.809Z level=INFO msg="user moved" user=kezoemax_10188 from=america to=europe
+time=2026-10-31T03:33:59.719Z level=INFO msg="user moved" user=leoivy8608 from=europe to=america
+time=2026-10-31T03:34:01.396Z level=INFO msg="グランプリ: アジア 0 人, ヨーロッパ 0 人, アメリカ 0 人"
+{
+  "pass": true,
+  "score": 113347,
+  "messages": [
+    "europe の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました",
+    "zoeshire5490 を認定できません: PUT /api/admin/users/538e5604-50aa-4edc-8dd6-a61400b2b072/certification: 応答がタイムアウトしました",
+    "waeva-5018 を認定できません: PUT /api/admin/users/0388fac8-f770-4b83-a1e2-791497c09155/certification: 応答がタイムアウトしました",
+    "europe の投稿期間を開けません: POST /api/admin/posting-window: 応答がタイムアウトしました"
+  ]
+}
+SCORE: 113347
+BENCHMARK_PASS
+2026-10-31T03:34:25.037473034Z	BENCHMARK_END
+
+SCORE: 113347
+BENCHMARK_PASS
