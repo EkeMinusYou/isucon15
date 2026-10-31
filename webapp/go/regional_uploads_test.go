@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"image"
 	"image/jpeg"
@@ -15,7 +14,7 @@ import (
 	"testing"
 )
 
-func TestRegionalUploadTransportPreservesFormsAndRecovery(t *testing.T) {
+func TestRegionalUploadsKeepOriginalsAndReplayStorageLocation(t *testing.T) {
 	oldSecret, oldRegion := transportSecret, fixedRegion
 	transportSecret, fixedRegion = "regional-upload-test", "asia"
 	t.Cleanup(func() { transportSecret, fixedRegion = oldSecret, oldRegion })
@@ -37,7 +36,7 @@ func TestRegionalUploadTransportPreservesFormsAndRecovery(t *testing.T) {
 	t.Setenv("REGIONAL_STATE_DIR", root)
 	t.Setenv("IMAGE_CACHE_DIR", t.TempDir())
 	t.Setenv("REGION_AMERICA_URL", "")
-	h, _, err := serviceHandler()
+	h, edge, err := serviceHandler()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,8 +88,11 @@ func TestRegionalUploadTransportPreservesFormsAndRecovery(t *testing.T) {
 	}
 	imageURL := me["profileImageUrl"].(string)
 	got := request("GET", imageURL, "", "", nil, 200)
-	if !bytes.Equal(got, original.Bytes()) {
-		t.Fatal("regional upload transport changed the original")
+	if !bytes.Equal(got, original.Bytes()) || edge.regionalImages.local.Load() != 1 {
+		t.Fatal("regional original was not served locally")
+	}
+	if _, err := os.Stat(filepath.Join(owner.durable, "images", profileID)); !os.IsNotExist(err) {
+		t.Fatal("local delivery fetched the original through the owner")
 	}
 	_, _, response := call(t, owner, "GET", imageURL, "", nil)
 	if response.Code != 200 || !bytes.Equal(response.Body.Bytes(), original.Bytes()) {
@@ -151,14 +153,6 @@ func TestRegionalUploadTransportPreservesFormsAndRecovery(t *testing.T) {
 	waitingID := id()
 	if err := os.WriteFile(filepath.Join(files.pendingDir(), waitingID), original.Bytes(), 0600); err != nil {
 		t.Fatal(err)
-	}
-	uncertain := &preparedUpload{fileID: waitingID, stagedID: waitingID, registrationUncertain: true}
-	failedRequest := httptest.NewRequest("PUT", "/api/me/profile-image", nil)
-	failedRequest = failedRequest.WithContext(context.WithValue(failedRequest.Context(), regionalUploadKey{}, uncertain))
-	files.finish(&http.Response{Request: failedRequest, Header: http.Header{}, StatusCode: http.StatusBadGateway})
-	files.discard(uncertain)
-	if _, err := os.Stat(filepath.Join(files.pendingDir(), waitingID)); err != nil {
-		t.Fatal("uncertain registration lost its durable original")
 	}
 	requireCall(t, owner, "POST", "/api/initialize", "", nil, 200)
 	accepted, _ := os.ReadDir(files.acceptedDir())

@@ -2,13 +2,6 @@ include:
   - ../deployctl/deployments.yaml
 
 deployments:
-  master-inputs-version:
-    uploads:
-      - label: installed regional master inputs
-        role: image_replica
-        local: data/initial/manifest.json
-        remote: /home/isucon/isureal-initial.version.json
-        verify_required: true
   regional-images-version:
     uploads:
       - label: installed regional image data version

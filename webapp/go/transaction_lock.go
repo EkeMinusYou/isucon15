@@ -2,96 +2,34 @@ package main
 
 import (
 	"bytes"
-	"crypto/hmac"
 	"encoding/json"
 	"io"
 	"net/http"
 	"sort"
 	"strings"
-	"sync"
 )
 
-type transactionEntry struct {
-	sync.RWMutex
-	refs int
-}
-
-type transactionLocks struct {
-	mu      sync.Mutex
-	entries map[string]*transactionEntry
-}
-
-type resourceUse struct {
-	key   string
-	entry *transactionEntry
-	write bool
-}
-
-// References include waiters, so an entry cannot disappear while any request
-// still uses it. Idle entries are removed rather than retaining every user ID.
-func (r *transactionLocks) reference(keys []string, sharedUsers bool) []resourceUse {
-	sort.Strings(keys)
-	uses := make([]resourceUse, 0, len(keys))
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.entries == nil {
-		r.entries = map[string]*transactionEntry{}
-	}
-	for _, key := range keys {
-		if len(uses) > 0 && uses[len(uses)-1].key == key {
-			continue
-		}
-		entry := r.entries[key]
-		if entry == nil {
-			entry = &transactionEntry{}
-			r.entries[key] = entry
-		}
-		entry.refs++
-		uses = append(uses, resourceUse{key, entry, !sharedUsers || !strings.HasPrefix(key, "user:")})
-	}
-	return uses
-}
-
-func (r *transactionLocks) unreference(uses []resourceUse) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, use := range uses {
-		use.entry.refs--
-		if use.entry.refs == 0 {
-			delete(r.entries, use.key)
-		}
-	}
-}
-
-func (use resourceUse) unlock() {
-	if use.write {
-		use.entry.Unlock()
-	} else {
-		use.entry.RUnlock()
-	}
-}
-
-// Never retain an unrelated resource while waiting for a busy one. The
-// resource key, rather than a fixed hash bucket, determines mutual exclusion.
-func (a *App) acquireResources(uses []resourceUse) {
+// Never wait for one resource while retaining locks on unrelated resources.
+// After waking, retain that resource and try the rest without blocking.
+func (a *App) acquireStripeModes(indices []int, writes *[stateShardCount]bool) {
 	held := -1
-	acquired := make([]int, len(uses))
 	for {
+		var acquired [stateShardCount]int
 		n := 0
 		if held >= 0 {
 			acquired[n] = held
 			n++
 		}
 		blocked := -1
-		for i, use := range uses {
+		for _, i := range indices {
 			if i == held {
 				continue
 			}
 			ok := false
-			if use.write {
-				ok = use.entry.TryLock()
+			if writes != nil && writes[i] {
+				ok = a.transactions[i].TryLock()
 			} else {
-				ok = use.entry.TryRLock()
+				ok = a.transactions[i].TryRLock()
 			}
 			if !ok {
 				blocked = i
@@ -105,70 +43,82 @@ func (a *App) acquireResources(uses []resourceUse) {
 		}
 		for n > 0 {
 			n--
-			uses[acquired[n]].unlock()
+			if writes != nil && writes[acquired[n]] {
+				a.transactions[acquired[n]].Unlock()
+			} else {
+				a.transactions[acquired[n]].RUnlock()
+			}
 		}
-		a.lockRetries.Add(1)
-		if uses[blocked].write {
-			uses[blocked].entry.Lock()
+		a.stripeRetries.Add(1)
+		if writes != nil && writes[blocked] {
+			a.transactions[blocked].Lock()
 		} else {
-			uses[blocked].entry.RLock()
+			a.transactions[blocked].RLock()
 		}
 		held = blocked
 	}
 }
 
-func (a *App) releaseResources(uses []resourceUse) {
-	for i := len(uses) - 1; i >= 0; i-- {
-		uses[i].unlock()
-	}
-	a.transactions.unreference(uses)
-}
-
+// All transactions acquire logical resource stripes before using state.
 // The lifecycle lock excludes initialize. The global gate is acquired after
-// resources, so global updates wait for executing operations, not their queues.
+// stripes, so global updates wait only for executing operations, not queues.
 func (a *App) lockRequest(r *http.Request) func() {
 	if r.URL.Path == "/api/initialize" {
 		a.mu.Lock()
-		a.s = a.appCore.s
 		return a.mu.Unlock
 	}
 	if r.Method == "GET" {
-		return a.lockReadView()
+		return a.lockReadRequest(r)
 	}
 	for {
 		a.mu.RLock()
-		a.viewMu.RLock()
-		a.s = a.appCore.s
 		keys, all := a.mutationKeys(r)
-		a.viewMu.RUnlock()
 		if all {
 			a.globalGate.Lock()
 			a.transactionRequests.Add(1)
+			a.transactionShards.Add(stateShardCount)
 			a.transactionGlobal.Add(1)
-			return func() { a.globalGate.Unlock(); a.mu.RUnlock() }
+			return func() {
+				a.globalGate.Unlock()
+				a.mu.RUnlock()
+			}
 		}
-		uses := a.transactions.reference(keys, interactionReadsUsers(r) || relationshipMutation(r))
-		a.acquireResources(uses)
+		indices := []int{}
+		seen := [stateShardCount]bool{}
+		writes := [stateShardCount]bool{}
+		sharedUsers := interactionReadsUsers(r)
+		for _, key := range keys {
+			i := int(stateHash(key) % stateShardCount)
+			if !sharedUsers || !strings.HasPrefix(key, "user:") {
+				writes[i] = true
+			}
+			if !seen[i] {
+				seen[i] = true
+				indices = append(indices, i)
+			}
+		}
+		sort.Ints(indices)
+		a.acquireStripeModes(indices, &writes)
 		a.globalGate.RLock()
-		unlock := func() { a.globalGate.RUnlock(); a.releaseResources(uses); a.mu.RUnlock() }
+		unlock := func() {
+			a.globalGate.RUnlock()
+			for i := len(indices) - 1; i >= 0; i-- {
+				if writes[indices[i]] {
+					a.transactions[indices[i]].Unlock()
+				} else {
+					a.transactions[indices[i]].RUnlock()
+				}
+			}
+			a.mu.RUnlock()
+		}
 		if r.URL.Path == "/api/auth/login" {
-			// A registration may publish the name before its resource is acquired.
-			a.viewMu.RLock()
-			a.s = a.appCore.s
+			// A registration may have published the name while locks were being
+			// acquired. Retry if its actual user requires an additional stripe.
 			current, _ := a.mutationKeys(r)
-			a.viewMu.RUnlock()
 			retry := false
 			for _, key := range current {
-				found := false
-				for _, use := range uses {
-					if use.key == key {
-						found = true
-						break
-					}
-				}
-				if !found {
+				if !seen[stateHash(key)%stateShardCount] {
 					retry = true
-					break
 				}
 			}
 			if retry {
@@ -177,7 +127,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 			}
 		}
 		a.transactionRequests.Add(1)
-		a.transactionKeys.Add(uint64(len(uses)))
+		a.transactionShards.Add(uint64(len(indices)))
 		return unlock
 	}
 }
@@ -192,39 +142,25 @@ func interactionReadsUsers(r *http.Request) bool {
 	return r.Method == "DELETE" && (strings.HasPrefix(p, "/api/comments/") || strings.HasPrefix(p, "/api/realmojis/"))
 }
 
-func relationshipMutation(r *http.Request) bool {
-	p := r.URL.Path
-	return p == "/api/friend-requests" || strings.HasPrefix(p, "/api/friend-requests/") || strings.HasPrefix(p, "/api/friendships/") || strings.HasPrefix(p, "/api/follows/") || strings.HasPrefix(p, "/api/blocks/")
-}
-
 func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 	s, path := a.s, r.URL.Path
 	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	actor := s.Sessions.Get(token)
 	keys := []string{"user:" + actor}
-	var input struct{ Username, SecretKey, RecipientID, Region, IP string }
-	signatureReport := path == masterPrefix+"failure" && isInternal(r)
-	if signatureReport || strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") || strings.HasPrefix(path, "/api/auth/") || strings.HasPrefix(path, "/api/admin/auth/") || path == "/api/friend-requests" || path == "/api/me" {
+	var input struct{ Username, RecipientID, Region string }
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") || strings.HasPrefix(path, "/api/auth/") || strings.HasPrefix(path, "/api/admin/auth/") || path == "/api/friend-requests" || path == "/api/me" {
 		if r.Body != nil {
 			b, _ := io.ReadAll(r.Body)
 			r.Body = io.NopCloser(bytes.NewReader(b))
-			json.NewDecoder(bytes.NewReader(b)).Decode(&input)
+			json.Unmarshal(b, &input)
 		}
-	}
-	if signatureReport && input.IP != "" {
-		return []string{"ip:" + input.IP}, false
 	}
 	if path == "/api/auth/register" {
 		return []string{"name:" + input.Username}, false
 	}
 	if path == "/api/auth/login" {
 		uid := s.Names.Get(input.Username)
-		keys := []string{"name:" + input.Username, "user:" + uid}
-		user := s.Accounts.Get(uid)
-		if !usernameRE.MatchString(input.Username) || user == nil || user.Status != "active" || !hmac.Equal([]byte(user.Secret), []byte(secretHash(input.SecretKey))) {
-			keys = append(keys, "ip:"+ipOf(r))
-		}
-		return keys, false
+		return []string{"name:" + input.Username, "user:" + uid, "ip:" + ipOf(r)}, false
 	}
 	if strings.HasPrefix(path, "/api/admin/") {
 		return nil, true
@@ -242,21 +178,20 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 		return keys, false
 	}
 	if path == "/api/friend-requests" {
-		return append(keys, "user:"+input.RecipientID, "relation:"+pair(actor, input.RecipientID)), false
+		return append(keys, "user:"+input.RecipientID), false
 	}
 	if strings.HasPrefix(path, "/api/friend-requests/") {
 		parts := strings.Split(strings.TrimPrefix(path, "/api/friend-requests/"), "/")
 		if len(parts) > 0 {
 			if relation := s.Requests.Get(parts[0]); relation != nil {
-				return append(keys, "user:"+relation.RequesterID, "user:"+relation.RecipientID, "relation:"+pair(relation.RequesterID, relation.RecipientID)), false
+				return append(keys, "user:"+relation.RequesterID, "user:"+relation.RecipientID), false
 			}
 		}
 		return nil, true
 	}
 	for _, prefix := range []string{"/api/friendships/", "/api/follows/", "/api/blocks/"} {
 		if strings.HasPrefix(path, prefix) {
-			other := strings.TrimPrefix(path, prefix)
-			return append(keys, "user:"+other, "relation:"+pair(actor, other)), false
+			return append(keys, "user:"+strings.TrimPrefix(path, prefix)), false
 		}
 	}
 	pid := ""

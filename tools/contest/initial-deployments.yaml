@@ -3,18 +3,6 @@ include:
   - deployments.yaml
 
 deployments:
-  master-inputs:
-    uploads:
-      - label: initial metadata for regional masters
-        role: image_replica
-        local: data/initial/
-        remote: /home/isucon/isureal-initial/
-        delete: true
-        excludes: ['images/*.bin']
-    activations:
-      - label: regional master input ownership
-        role: image_replica
-        script: sudo chown -R isucon:isucon /home/isucon/isureal-initial
   regional-image-data:
     uploads:
       - label: immutable original images for regional delivery

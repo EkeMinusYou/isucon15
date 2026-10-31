@@ -22,11 +22,11 @@ import (
 
 const regionalUploadHeader = "X-ISU-Upload"
 const regionalUploadAccepted = "X-ISU-Upload-Accepted"
+const regionalImageUploaded = "X-ISU-Image-Uploaded"
 const regionalFilePrefix = "/api/internal/region/images/"
 const regionalResetPath = "/api/internal/region/reset-images"
 
 type regionalUploadMetadata struct {
-	StorageRegion string
 	ID            string
 	Size          int64
 	Valid         bool
@@ -40,7 +40,6 @@ type regionalUploadKey struct{}
 // remove accepted files without removing an upload still waiting to register.
 type regionalUploads struct {
 	root   string
-	region string
 	mu     sync.Mutex
 	active map[string]bool
 }
@@ -79,9 +78,6 @@ func isImageUpload(r *http.Request) (profile, multipart bool) {
 
 func (u *regionalUploads) prepare(a *App, w http.ResponseWriter, r *http.Request) (*http.Request, *preparedUpload) {
 	fileID := id()
-	if validRegion(u.region) {
-		fileID = idInRegion(u.region)
-	}
 	u.mu.Lock()
 	u.active[fileID] = true
 	u.mu.Unlock()
@@ -98,7 +94,7 @@ func (u *regionalUploads) prepare(a *App, w http.ResponseWriter, r *http.Request
 		p = a.stageMultipartImageNamed(r, max, fileID)
 	}
 	p.stagedID, p.registrationUncertain = fileID, true
-	metadata := regionalUploadMetadata{StorageRegion: u.region, ID: p.fileID, Size: p.size, Valid: p.ok, InvalidJPEG: p.invalidJPEG, StorageFailed: p.storageErr != nil}
+	metadata := regionalUploadMetadata{p.fileID, p.size, p.ok, p.invalidJPEG, p.storageErr != nil}
 	b, _ := json.Marshal(metadata)
 	r.Header.Set(regionalUploadHeader, base64.RawURLEncoding.EncodeToString(b))
 	// Validation fields retain ParseMultipartForm's query/body precedence. The
@@ -137,14 +133,7 @@ func decodeRegionalUpload(r *http.Request) (preparedUpload, bool) {
 	if _, ok := uuidKey(m.ID); !ok && !(m.ID == "" && m.StorageFailed) {
 		return preparedUpload{}, false
 	}
-	origin := m.StorageRegion
-	if origin == "" {
-		origin = r.Header.Get("X-ISU-Region")
-	}
-	if !validRegion(origin) {
-		return preparedUpload{}, false
-	}
-	p := preparedUpload{fileID: m.ID, size: m.Size, ok: m.Valid, invalidJPEG: m.InvalidJPEG, origin: origin}
+	p := preparedUpload{fileID: m.ID, size: m.Size, ok: m.Valid, invalidJPEG: m.InvalidJPEG, origin: r.Header.Get("X-ISU-Region")}
 	if m.StorageFailed {
 		p.storageErr = errors.New("regional image storage failed")
 	}
@@ -157,9 +146,7 @@ func (u *regionalUploads) finish(resp *http.Response) {
 	if p == nil {
 		return
 	}
-	// A gateway/server error can conceal an accepted registration. Only a
-	// definite non-server response permits discarding an unacknowledged file.
-	p.registrationUncertain = resp.StatusCode >= 500
+	p.registrationUncertain = false
 	if p.fileID == "" || resp.Header.Get(regionalUploadAccepted) != p.fileID {
 		return
 	}
@@ -196,32 +183,6 @@ func (u *regionalUploads) open(id string) (*os.File, error) {
 	return f, err
 }
 
-func (u *regionalUploads) reset() error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	if err := os.RemoveAll(u.acceptedDir()); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(u.acceptedDir(), 0700); err != nil {
-		return err
-	}
-	pending, err := os.ReadDir(u.pendingDir())
-	if os.IsNotExist(err) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	for _, file := range pending {
-		if !u.active[file.Name()] && !file.IsDir() {
-			if err := os.Remove(filepath.Join(u.pendingDir(), file.Name())); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 func (u *regionalUploads) internal(w http.ResponseWriter, r *http.Request) bool {
 	if r.URL.Path != regionalResetPath && !strings.HasPrefix(r.URL.Path, regionalFilePrefix) {
 		return false
@@ -231,7 +192,24 @@ func (u *regionalUploads) internal(w http.ResponseWriter, r *http.Request) bool 
 		return true
 	}
 	if r.URL.Path == regionalResetPath && r.Method == "POST" {
-		if err := u.reset(); err != nil {
+		u.mu.Lock()
+		err := os.RemoveAll(u.acceptedDir())
+		if err == nil {
+			err = os.MkdirAll(u.acceptedDir(), 0700)
+		}
+		if err == nil {
+			var pending []os.DirEntry
+			pending, err = os.ReadDir(u.pendingDir())
+			for _, file := range pending {
+				if !u.active[file.Name()] && !file.IsDir() {
+					if removeErr := os.Remove(filepath.Join(u.pendingDir(), file.Name())); err == nil {
+						err = removeErr
+					}
+				}
+			}
+		}
+		u.mu.Unlock()
+		if err != nil {
 			failure(w, 500, "regional_reset_failed")
 		} else {
 			w.WriteHeader(http.StatusNoContent)
@@ -272,7 +250,6 @@ func regionalRequest(method, address string) (*http.Response, error) {
 		return nil, err
 	}
 	r.Header.Set("X-ISU-Transport", transportSecret)
-	r.Header.Set("X-ISU-Region", "asia")
 	return regionalClient.Do(r)
 }
 

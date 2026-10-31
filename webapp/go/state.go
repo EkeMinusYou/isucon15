@@ -27,7 +27,6 @@ type Account struct {
 	Bio            string  `json:"bio"`
 	ProfileImageID *string `json:"profileImageId"`
 	Region         string  `json:"region"`
-	HomeRegion     string  `json:"homeRegion,omitempty"`
 	AccountType    string  `json:"accountType"`
 	Status         string  `json:"status"`
 }
@@ -152,30 +151,22 @@ type State struct {
 }
 type App struct {
 	*appCore
-	s        *State
-	pending  []change // Owned by one request, never shared between handlers.
-	prepared bool
-	signals  []stateSignal
+	pending []change // Owned by one request, never shared between handlers.
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics
 	mu                   sync.RWMutex
 	globalGate           sync.RWMutex
-	viewMu               sync.RWMutex
-	master               *regionalMaster
-	mastersEnabled       bool
-	initialState         *State
-	masterEpoch          string
+	snapshots            snapshotBatch
 	journalMu            sync.Mutex
 	notifier             notificationHub
-	transactions         transactionLocks
+	transactions         [stateShardCount]sync.RWMutex
 	transactionRequests  atomic.Uint64
-	transactionKeys      atomic.Uint64
+	transactionShards    atomic.Uint64
 	transactionGlobal    atomic.Uint64
-	lockRetries          atomic.Uint64
+	stripeRetries        atomic.Uint64
 	journalWaitNS        atomic.Uint64
 	journalWriteNS       atomic.Uint64
-	suppressedFailures   atomic.Uint64
 	s                    *State
 	initial, durable     string
 	journal              *os.File
@@ -272,12 +263,6 @@ func (s *State) apply(kind string, data []byte) error {
 	case "account":
 		var v Account
 		decode(&v)
-		if v.HomeRegion == "" {
-			v.HomeRegion = v.Region
-			if old := s.Accounts.Get(v.ID); old != nil && old.HomeRegion != "" {
-				v.HomeRegion = old.HomeRegion
-			}
-		}
 		v.searchUsername = foldSearch(v.Username)
 		v.searchDisplay = foldSearch(v.DisplayName)
 		s.Accounts.Set(v.ID, &v)
@@ -442,49 +427,23 @@ func (a *App) put(kind string, v any) {
 }
 func (a *App) commit() {
 	if len(a.pending) == 0 {
-		if a.prepared {
-			a.s = a.appCore.s
-			a.prepared = false
-		}
 		return
 	}
-	txn := masterTransaction{Epoch: a.masterEpoch, ID: id(), Changes: a.pending}
-	var b []byte
-	var e error
-	if a.mastersEnabled {
-		b, e = json.Marshal(txn)
-	} else {
-		b, e = json.Marshal(a.pending)
-	}
+	b, e := json.Marshal(a.pending)
 	if e != nil {
 		panic(e)
 	}
 	b = append(b, '\n')
 	waiting := time.Now()
 	a.journalMu.Lock()
+	defer a.journalMu.Unlock()
 	a.journalWaitNS.Add(uint64(time.Since(waiting)))
 	writing := time.Now()
 	if _, e = a.journal.Write(b); e != nil {
 		log.Fatalf("journal write: %v", e)
 	}
 	a.journalWriteNS.Add(uint64(time.Since(writing)))
-	a.journalMu.Unlock()
-	if a.mastersEnabled {
-		a.persistMasterTransaction(txn)
-	}
-	if a.prepared {
-		a.viewMu.Lock()
-		for _, c := range a.pending {
-			if err := a.appCore.s.apply(c.Kind, c.Data); err != nil {
-				panic(err)
-			}
-		}
-		a.s = a.appCore.s
-		a.viewMu.Unlock()
-		a.prepared = false
-	}
 	a.pending = nil
-	a.publishSignals()
 }
 func loadLines(path string, fn func([]byte) error) error {
 	f, e := os.Open(path)
@@ -507,11 +466,6 @@ func loadLines(path string, fn func([]byte) error) error {
 	return sc.Err()
 }
 func (a *App) loadInitial() error {
-	if a.initialState != nil {
-		a.s = a.initialState.fork()
-		a.appCore.s = a.s
-		return nil
-	}
 	s := emptyState()
 	complete := false
 	defer func() {
@@ -611,34 +565,13 @@ func (a *App) loadInitial() error {
 	s.finishPostPeriods()
 	complete = true
 	a.s = s
-	if a.mastersEnabled {
-		a.initialState = s
-		a.s = s.fork()
-	}
-	a.appCore.s = a.s
 	a.historyResidentBytes.Store(uint64(len(s.Posts.data)+len(s.Reactions.data)+len(s.Comments.data)+len(s.Images.data)) * recordChunkBytes)
 	return nil
 }
-
-func (a *App) closeHistory() {
-	if a.initialState != nil {
-		a.initialState.closeHistory()
-	} else if a.appCore.s != nil {
-		a.appCore.s.closeHistory()
-	}
-}
-func newAppCore(initial, durable string) (*App, error) {
+func newApp(initial, durable string) (*App, error) {
 	a := &App{appCore: &appCore{initial: initial, durable: durable, failures: new(shardedMap[string, []time.Time]), signatures: map[string]string{}}}
 	if e := os.MkdirAll(filepath.Join(durable, "images"), 0755); e != nil {
 		return nil, e
-	}
-	return a, nil
-}
-
-func newApp(initial, durable string) (*App, error) {
-	a, err := newAppCore(initial, durable)
-	if err != nil {
-		return nil, err
 	}
 	if e := a.loadInitial(); e != nil {
 		return nil, e
@@ -672,14 +605,10 @@ func newApp(initial, durable string) (*App, error) {
 	return a, nil
 }
 func (a *App) reset() error {
-	if a.mastersEnabled {
-		return a.resetRegionalMasters()
-	}
 	if a.s != nil {
 		a.s.closeHistory()
 	}
 	a.s = nil
-	a.appCore.s = nil
 	runtime.GC()
 	if e := a.loadInitial(); e != nil {
 		return e

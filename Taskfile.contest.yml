@@ -91,19 +91,6 @@ tasks:
     cmds:
       - '{{.OPERATION_LOCK}} python3 tools/contest/public-contract.py verify'
 
-  deploy-master-inputs:
-    desc: 地域マスター用の初期メタデータを欧州・米州へ配布
-    deps: [prepare-initial-data, build-deployctl]
-    preconditions:
-      - sh: test ! -f '{{.RUN_STATE_FILE}}'
-        msg: ベンチRUN終了後に実行してください
-    cmds:
-      - |
-        {{.OPERATION_LOCK}} bash -e <<'BASH'
-        {{.DEPLOYCTL_DIR}}/deployctl apply master-inputs -config tools/contest/initial-deployments.yaml {{.DEPLOYCTL_COMMON}}
-        {{.DEPLOYCTL_DIR}}/deployctl apply master-inputs-version -config {{.DEPLOYCTL_CONFIG}} {{.DEPLOYCTL_COMMON}}
-        BASH
-
   deploy-regional-images:
     desc: 欧州・米州へ不変の初期画像原本を配布する
     preconditions:

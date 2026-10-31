@@ -11,24 +11,7 @@ import (
 )
 
 func TestResidentRecordsCrossChunkBoundaries(t *testing.T) {
-	checkRecordChunkBoundaries(t, newRecordStore[Post]())
-}
-
-func TestFileBackedRecordsCrossChunkBoundaries(t *testing.T) {
 	s := newRecordStore[Post]()
-	root := t.TempDir()
-	if err := s.useFileBacking(root); err != nil {
-		t.Fatal(err)
-	}
-	checkRecordChunkBoundaries(t, s)
-	entries, err := os.ReadDir(root)
-	if err != nil || len(entries) != 0 || s.backing != nil {
-		t.Fatal("derived backing file was retained after close")
-	}
-}
-
-func checkRecordChunkBoundaries(t *testing.T, s *recordStore[Post]) {
-	t.Helper()
 	for n := 0; n < 3; n++ {
 		p := Post{ID: id(), Caption: strings.Repeat(string(rune('a'+n)), recordChunkBytes/2)}
 		raw, err := json.Marshal(p)

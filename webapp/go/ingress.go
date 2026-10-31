@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto/hmac"
 	"fmt"
 	"log"
@@ -68,39 +67,10 @@ func serviceHandler() (http.Handler, *App, error) {
 		return computeHandler(a), a, nil
 	}
 	if owner {
-		constructor := newApp
-		if os.Getenv("MASTER_STATE_DIR") != "" {
-			constructor = newAppCore
-		}
-		a, e := constructor(envOr("INITIAL_DIR", "/home/isucon/isureal-initial"), envOr("STATE_DIR", "/home/isucon/isureal-state"))
+		a, e := newApp(envOr("INITIAL_DIR", "/home/isucon/isureal-initial"), envOr("STATE_DIR", "/home/isucon/isureal-state"))
 		if e != nil {
 			return nil, nil, e
 		}
-		if masterDir := os.Getenv("MASTER_STATE_DIR"); masterDir != "" {
-			a.mastersEnabled = true
-			if err := a.loadInitial(); err != nil {
-				return nil, nil, err
-			}
-			files, err := newRegionalUploads(a.durable)
-			if err != nil {
-				return nil, nil, err
-			}
-			files.region = region
-			master, err := openRegionalMaster(a.initial, masterDir, filepath.Join(a.initial, "images"), region, files, a.initialState)
-			if err != nil {
-				return nil, nil, err
-			}
-			if err = a.enableRegionalMasters(master); err != nil {
-				master.close()
-				return nil, nil, err
-			}
-			// Requests obtain the current view from appCore. The service handler
-			// must not retain an obsolete view after an initialize request.
-			a.s = nil
-			h, err := master.route(a)
-			return h, a, err
-		}
-		a.s = nil
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !isInternal(r) {
 				r.Header.Del("X-ISU-Region")
@@ -126,7 +96,6 @@ func serviceHandler() (http.Handler, *App, error) {
 			return nil, nil, e
 		}
 		edge.durable = filepath.Join(root, "pending")
-		uploads.region = region
 	}
 	proxy.Transport = measurement.NewUpstreamTransport()
 	imageRoot := os.Getenv("IMAGE_CACHE_DIR")
@@ -135,15 +104,22 @@ func serviceHandler() (http.Handler, *App, error) {
 		base(r)
 		r.Host = target.Host
 		r.Header.Set("X-Country-Code", "JP")
-		r.Header.Set("X-ISU-Region", ingressRegion(r))
-		r.Header.Set("X-ISU-Source", ingressRegion(r))
+		r.Header.Set("X-ISU-Region", region)
+		r.Header.Set("X-ISU-Source", region)
 		r.Header.Set("X-ISU-Transport", transportSecret)
+		r.Header.Del(regionalImageRequest)
+		if imageRoot != "" && r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/api/images/") {
+			r.Header.Set(regionalImageRequest, "1")
+		}
 	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
 		if uploads != nil {
 			uploads.finish(resp)
 		}
 		resp.Header.Del(regionalUploadAccepted)
+		if err := serveRegionalImage(resp, imageRoot, uploads, proxy.Transport, &edge.regionalImages); err != nil {
+			return err
+		}
 		if identity := resp.Header.Get("X-ISU-Identity"); identity != "" {
 			setMeasurementIdentity(resp.Request, identity)
 		}
@@ -151,10 +127,7 @@ func serviceHandler() (http.Handler, *App, error) {
 		return nil
 	}
 	proxy.FlushInterval = -1
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, ok := r.Context().Value(ingressRegionKey{}).(string); !ok {
-			r = r.WithContext(context.WithValue(r.Context(), ingressRegionKey{}, region))
-		}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/healthz" {
 			w.Write([]byte("ok\n"))
 			return
@@ -171,18 +144,6 @@ func serviceHandler() (http.Handler, *App, error) {
 			r, p = uploads.prepare(edge, w, r)
 			defer uploads.discard(p)
 		}
-		r.Header.Set(coordinatorHeader, "1")
 		proxy.ServeHTTP(w, r)
-	})
-	if masterDir := os.Getenv("MASTER_STATE_DIR"); masterDir != "" {
-		master, err := newRegionalMaster(envOr("INITIAL_DIR", "/home/isucon/isureal-initial"), masterDir, imageRoot, region, uploads)
-		if err != nil {
-			return nil, nil, err
-		}
-		edge.master = master
-		master.stats = &edge.regionalImages
-		h, err := master.route(handler)
-		return h, edge, err
-	}
-	return handler, edge, nil
+	}), edge, nil
 }

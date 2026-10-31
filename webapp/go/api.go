@@ -302,16 +302,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Reject banned or unauthenticated uploads before retaining their bodies.
 		a.mu.RLock()
 		a.globalGate.RLock()
-		a.viewMu.RLock()
-		a.s = a.appCore.s
 		check := httptest.NewRecorder()
-		var uploadUser *Account
 		if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 			failure(check, 403, "ip_banned")
 		} else {
-			uploadUser = a.auth(check, r, !profile)
+			a.auth(check, r, !profile)
 		}
-		a.viewMu.RUnlock()
 		a.globalGate.RUnlock()
 		a.mu.RUnlock()
 		if check.Code != 200 {
@@ -325,15 +321,14 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
 		p, regional := decodeRegionalUpload(r)
 		if !regional {
-			fileID := idInRegion(uploadUser.HomeRegion)
 			if profile {
-				p = a.stageImageNamed(r.Body, 512, fileID)
+				p = a.stageImage(r.Body, 512)
 			} else {
 				max := 512
 				if r.URL.Path == "/api/posts" {
 					max = 4096
 				}
-				p = a.stageMultipartImageNamed(r, max, fileID)
+				p = a.stageMultipartImage(r, max)
 			}
 		}
 		if p.fileID != "" && !regional {
@@ -366,21 +361,12 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	locked := time.Now()
 	stats.waitNS.Add(uint64(locked.Sub(started)))
 	stats.requests.Add(1)
-	if !readOnly && r.URL.Path != "/api/initialize" {
-		a.viewMu.RLock()
-		a.s = a.appCore.s.fork()
-		a.prepared = true
-	}
-	internalFailure := r.Method == "POST" && r.URL.Path == masterPrefix+"failure" && isInternal(r)
-	if !internalFailure && time.Now().Before(a.s.Bans.Get(ipOf(r))) {
+	if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 		failure(rr, 403, "ip_banned")
 	} else {
 		a.dispatch(rr, r)
 	}
 	if !readOnly {
-		if a.prepared {
-			a.viewMu.RUnlock()
-		}
 		a.commit()
 	}
 	stats.holdNS.Add(uint64(time.Since(locked)))
@@ -419,32 +405,6 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		output(w, 200, object{"language": "go", "agent": "Codex", "harness": "Codex", "model": "GPT-6"})
 		return
 	}
-	if path == masterPrefix+"failure" && method == "POST" && isInternal(r) {
-		var v struct{ IP, Region, Kind string }
-		if !decode(r, &v) || !validRegion(v.Region) || (v.Kind != "signature" && v.Kind != "login" && v.Kind != "jpeg") {
-			failure(w, 400, "invalid_failure")
-			return
-		}
-		// Reports can have been queued before the regional BAN became visible.
-		// An already banned client neither extends the ban nor needs another RPC.
-		if time.Now().Before(s.Bans.Get(v.IP)) {
-			a.suppressedFailures.Add(1)
-			w.WriteHeader(204)
-			return
-		}
-		r.Header.Set("X-Client-IP", v.IP)
-		r.Header.Set("X-ISU-Source", v.Region)
-		limit, period := 3, 5*time.Second
-		if v.Kind == "login" {
-			limit, period = 10, 10*time.Second
-		}
-		if v.Kind == "jpeg" {
-			limit = 2
-		}
-		a.failIP(r, v.Kind, limit, period)
-		w.WriteHeader(204)
-		return
-	}
 	if path == "/api/auth/register" && method == "POST" {
 		var v struct{ Username, DisplayName, Region string }
 		if !decode(r, &v) || !usernameRE.MatchString(v.Username) || !validText(v.DisplayName, 1, 100) || !validRegion(v.Region) {
@@ -456,7 +416,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		secret := id()
-		u := &Account{ID: idInRegion(v.Region), Username: v.Username, Secret: secretHash(secret), DisplayName: v.DisplayName, Region: v.Region, HomeRegion: v.Region, AccountType: "regular", Status: "active"}
+		u := &Account{ID: id(), Username: v.Username, Secret: secretHash(secret), DisplayName: v.DisplayName, Region: v.Region, AccountType: "regular", Status: "active"}
 		a.put("account", u)
 		output(w, 201, object{"secretKey": secret, "user": sessionUser(u)})
 		return
@@ -465,11 +425,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		var v struct{ Username, SecretKey string }
 		decode(r, &v)
 		u := s.Accounts.Get(s.Names.Get(v.Username))
-		valid := usernameRE.MatchString(v.Username) && u != nil && u.Status == "active"
-		if valid {
-			valid = hmac.Equal([]byte(u.Secret), []byte(secretHash(v.SecretKey)))
-		}
-		if !valid {
+		if !usernameRE.MatchString(v.Username) || u == nil || u.Status != "active" || !hmac.Equal([]byte(u.Secret), []byte(secretHash(v.SecretKey))) {
 			a.failIP(r, "login", 10, 10*time.Second)
 			failure(w, 401, "invalid_credentials")
 			return
@@ -477,7 +433,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		for t := range s.UserTokens.Get(u.ID) {
 			a.put("session", tokenChange{t, ""})
 		}
-		token := idInRegion(u.HomeRegion)
+		token := id()
 		a.put("session", tokenChange{token, u.ID})
 		setMeasurementIdentity(r, u.ID)
 		if isInternal(r) {
@@ -539,7 +495,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		}
 		a.put("account", n)
 		if n.Region != u.Region {
-			a.signalUser(u.ID)
+			a.notifier.userChanged(u.ID)
 		}
 		output(w, 200, a.me(&n))
 	case path == "/api/me/profile-image":
@@ -584,7 +540,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		for t := range s.UserTokens.Get(u.ID) {
 			a.put("session", tokenChange{t, ""})
 		}
-		a.signalUser(u.ID)
+		a.notifier.userChanged(u.ID)
 		w.WriteHeader(204)
 	case path == "/api/users" && method == "GET":
 		a.search(w, r, u)
@@ -705,7 +661,7 @@ func (a *App) adminAPI(w http.ResponseWriter, r *http.Request) {
 				a.put("notification", Notification{id(), u.ID, n.ID, now})
 			}
 		}
-		a.signalRegion(v.Region)
+		a.notifier.regionChanged(v.Region)
 		output(w, 201, windowJSON(&n))
 		return
 	}
@@ -756,12 +712,6 @@ func (a *App) addImage(r *http.Request, uid string) (*Image, error) {
 	if p.storageErr != nil {
 		return nil, p.storageErr
 	}
-	if a.mastersEnabled {
-		home := a.masterHome(uid)
-		if homeOfNewID(p.fileID) != home || p.origin != "" && p.origin != home {
-			return nil, errors.New("upload was not staged at its master")
-		}
-	}
 	im := &Image{ID: p.fileID, OwnerID: uid, MediaType: "image/jpeg", Size: p.size, StorageRegion: p.origin}
 	a.put("image", im)
 	p.committed = true
@@ -810,17 +760,13 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	responseWork(w, func(w http.ResponseWriter) {
 		if !hmac.Equal([]byte(ss[0]), []byte(a.signImage(i, secret, exp))) {
 			a.mu.RLock()
-			uses := a.transactions.reference([]string{"ip:" + ipOf(r)}, false)
-			a.acquireResources(uses)
+			stripe := &a.transactions[stateHash("ip:"+ipOf(r))%stateShardCount]
+			stripe.Lock()
 			a.globalGate.RLock()
-			a.viewMu.RLock()
-			a.s = a.appCore.s.fork()
-			a.prepared = true
 			a.failIP(r, "signature", 3, 5*time.Second)
-			a.viewMu.RUnlock()
 			a.commit()
 			a.globalGate.RUnlock()
-			a.releaseResources(uses)
+			stripe.Unlock()
 			a.mu.RUnlock()
 			failure(w, 403, "image_forbidden")
 			return
@@ -829,15 +775,21 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			failure(w, 403, "image_forbidden")
 			return
 		}
-		f, off, err := a.imageReader(&copyImage)
-		if err != nil {
-			failure(w, 500, "image_unavailable")
-			return
+		localDelivery := isInternal(r) && r.Header.Get(regionalImageRequest) == "1" && (copyImage.Part != "" || copyImage.StorageRegion != "" && copyImage.StorageRegion == requestRegion(r))
+		var f *os.File
+		var off int64
+		if !localDelivery {
+			var err error
+			f, off, err = a.imageReader(&copyImage)
+			if err != nil {
+				failure(w, 500, "image_unavailable")
+				return
+			}
+			defer f.Close()
 		}
-		defer f.Close()
 		// Signature work and opening storage can wait. Recheck immediately
 		// before publishing a cacheable response or evaluating its validator.
-		unlockImage := a.lockReadView()
+		unlockImage := a.lockReadRequest(r)
 		current := a.s.Images.get(i)
 		cacheable := a.validImage(current)
 		checkedAt := time.Now()
@@ -861,6 +813,19 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			}
 		}
 		w.Header().Set("Content-Type", copyImage.MediaType)
+		if localDelivery {
+			part := copyImage.Part
+			if part == "" {
+				part = copyImage.ID
+				w.Header().Set(regionalImageUploaded, "1")
+			}
+			w.Header().Set(regionalImagePart, part)
+			w.Header().Set(regionalImageOffset, strconv.FormatInt(copyImage.Offset, 10))
+			w.Header().Set(regionalImageSize, strconv.FormatInt(copyImage.Size, 10))
+			w.Header().Set("Content-Length", "0")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		w.Header().Set("Content-Length", strconv.FormatInt(copyImage.Size, 10))
 		copyStream(w, io.NewSectionReader(f, off, copyImage.Size))
 	})
@@ -963,7 +928,7 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request, u *Account) {
 		failure(w, 500, "image_storage_failed")
 		return
 	}
-	p := Post{ID: idInRegion(u.HomeRegion), AuthorID: u.ID, WindowID: a.s.window(u).ID, ImageID: im.ID, Caption: caption, Visibility: vis, Location: loc, PostedAt: time.Now().UTC()}
+	p := Post{ID: id(), AuthorID: u.ID, WindowID: a.s.window(u).ID, ImageID: im.ID, Caption: caption, Visibility: vis, Location: loc, PostedAt: time.Now().UTC()}
 	a.put("post", p)
 	output(w, 201, a.post(&p))
 }

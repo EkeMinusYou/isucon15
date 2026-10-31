@@ -84,7 +84,7 @@ func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, p
 					a.put("reaction", v)
 				}
 			}
-			v := Reaction{ID: idInRegion(u.HomeRegion), PostID: pid, ReactorID: u.ID, ImageID: im.ID, Type: t, CreatedAt: now}
+			v := Reaction{ID: id(), PostID: pid, ReactorID: u.ID, ImageID: im.ID, Type: t, CreatedAt: now}
 			a.put("reaction", v)
 			output(w, 201, a.reaction(&v))
 		}
@@ -670,7 +670,7 @@ func (a *App) relationships(w http.ResponseWriter, r *http.Request, u *Account, 
 }
 func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
-	unlock := a.lockReadView()
+	unlock := a.lockReadRequest(r)
 	if started.Before(a.s.Bans.Get(ipOf(r))) {
 		unlock()
 		failure(w, 403, "ip_banned")
@@ -692,7 +692,7 @@ func (a *App) notifications(w http.ResponseWriter, r *http.Request) {
 		f.Flush()
 	}
 	for {
-		unlock = a.lockReadView()
+		unlock = a.lockUserRead(uid)
 		s := a.s
 		u = s.Accounts.Get(uid)
 		if u == nil || u.Status != "active" || u.Region != region {

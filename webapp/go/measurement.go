@@ -34,12 +34,6 @@ type requestMetrics struct {
 	responseNS atomic.Uint64 // Streaming responses include transfer time; JSON records materialization.
 }
 
-type regionalImageMetrics struct {
-	local     atomic.Uint64
-	bytes     atomic.Uint64
-	forwarded atomic.Uint64
-}
-
 var routeMetricNames = [...]string{"post", "image", "feed", "memory", "export", "auth", "other"}
 
 func metricRoute(path string) int {
@@ -62,18 +56,19 @@ func metricRoute(path string) int {
 }
 func (a *App) snapshot() measurement.Snapshot {
 	m := map[string]any{
+		"app_snapshot_groups_total":      a.snapshots.cohorts.Load(),
+		"app_snapshot_reads_total":       a.snapshots.reads.Load(),
 		"app_image_local_total":          a.regionalImages.local.Load(),
+		"app_image_fallback_total":       a.regionalImages.fallback.Load(),
 		"app_image_local_bytes_total":    a.regionalImages.bytes.Load(),
-		"app_image_forward_total":        a.regionalImages.forwarded.Load(),
 		"app_notification_wakeups_total": a.notifier.wakeups.Load(),
 		"app_notification_targets_total": a.notifier.targeted.Load(),
 		"app_transaction_requests_total": a.transactionRequests.Load(),
-		"app_transaction_keys_total":     a.transactionKeys.Load(),
+		"app_transaction_shards_total":   a.transactionShards.Load(),
 		"app_transaction_global_total":   a.transactionGlobal.Load(),
-		"app_lock_retries_total":         a.lockRetries.Load(),
+		"app_stripe_retries_total":       a.stripeRetries.Load(),
 		"app_journal_wait_ns_total":      a.journalWaitNS.Load(),
 		"app_journal_write_ns_total":     a.journalWriteNS.Load(),
-		"app_failure_suppressed_total":   a.suppressedFailures.Load(),
 		"app_upload_stage_ns_total":      a.uploadStageNS.Load(),
 		"app_upload_stage_bytes_total":   a.uploadStageBytes.Load(),
 		"app_history_resident_bytes":     a.historyResidentBytes.Load(),
