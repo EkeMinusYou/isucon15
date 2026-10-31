@@ -33,7 +33,7 @@ func runCheckRoles(args []string) error {
 		return fmt.Errorf("invalid SSH user: %q", *sshUser)
 	}
 	service := vars["service"]
-	if service == "" || !nameRE.MatchString(service) {
+	if service == "" || !unitRE.MatchString(service) {
 		return errors.New("-var service=<systemd-unit> is required")
 	}
 	for _, role := range []string{"all", "app"} {
@@ -48,7 +48,7 @@ func runCheckRoles(args []string) error {
 		}
 		unit, role, ok := strings.Cut(pair, ":")
 		_, declared := roles[role]
-		if !ok || !nameRE.MatchString(unit) || !nameRE.MatchString(role) || !declared {
+		if !ok || !unitRE.MatchString(unit) || !nameRE.MatchString(role) || !declared {
 			return fmt.Errorf("invalid extra_service_roles entry %q; expected unit:role with a declared role", pair)
 		}
 	}
@@ -69,7 +69,7 @@ func (r *deployRunner) checkRoles(appService string) error {
 			if unit == "" {
 				continue
 			}
-			if !nameRE.MatchString(unit) || unit == appService {
+			if !unitRE.MatchString(unit) || unit == appService {
 				return fmt.Errorf("invalid disabled service: %q", unit)
 			}
 			script += fmt.Sprintf("check_unit %q inactive\n", unit)
