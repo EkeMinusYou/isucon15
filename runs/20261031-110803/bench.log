@@ -1,0 +1,38 @@
+2026-10-31T02:08:05.093816851Z	BENCHMARK_START
+PORTAL_JOB_ID: 2748
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T02:08:41.443Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:08:44.427Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:08:47.425Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:08:50.446Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T02:08:52.639Z level=INFO msg="user moved" user=konare5254 from=asia to=america
+time=2026-10-31T02:08:53.451Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T02:08:54.320Z level=INFO msg="user moved" user=konare5254 from=america to=europe
+time=2026-10-31T02:08:56.428Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T02:08:59.449Z level=INFO msg="asia 3 日目: 153 人"
+time=2026-10-31T02:09:02.479Z level=INFO msg="europe 3 日目: 44 人"
+time=2026-10-31T02:09:05.446Z level=INFO msg="america 3 日目: 23 人"
+time=2026-10-31T02:09:08.453Z level=INFO msg="asia 4 日目: 225 人"
+time=2026-10-31T02:09:11.428Z level=INFO msg="europe 4 日目: 44 人"
+time=2026-10-31T02:09:14.428Z level=INFO msg="america 4 日目: 23 人"
+time=2026-10-31T02:09:15.552Z level=INFO msg="user moved" user=mozoeha_6618 from=asia to=europe
+time=2026-10-31T02:09:17.469Z level=INFO msg="asia 5 日目: 224 人"
+time=2026-10-31T02:09:20.425Z level=INFO msg="europe 5 日目: 45 人"
+time=2026-10-31T02:09:23.425Z level=INFO msg="america 5 日目: 23 人"
+time=2026-10-31T02:09:32.425Z level=INFO msg="europe 最終日（グランプリ）: 44 人"
+time=2026-10-31T02:09:32.427Z level=INFO msg="america 最終日（グランプリ）: 23 人"
+time=2026-10-31T02:09:32.452Z level=INFO msg="asia 最終日（グランプリ）: 223 人"
+time=2026-10-31T02:09:41.432Z level=INFO msg="グランプリ: アジア 216 人, ヨーロッパ 42 人, アメリカ 21 人"
+{
+  "pass": true,
+  "score": 43087,
+  "messages": []
+}
+SCORE: 43087
+BENCHMARK_PASS
+2026-10-31T02:10:01.427402423Z	BENCHMARK_END
+
+SCORE: 43087
+BENCHMARK_PASS
