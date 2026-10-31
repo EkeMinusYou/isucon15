@@ -1,0 +1,57 @@
+2026-10-31T06:02:24.877766993Z	BENCHMARK_START
+PORTAL_JOB_ID: 20472
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T06:02:33.179Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:02:36.150Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:02:39.149Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:02:42.177Z level=INFO msg="asia 2 日目: 50 人"
+time=2026-10-31T06:02:45.152Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T06:02:48.150Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T06:02:51.270Z level=INFO msg="asia 3 日目: 146 人"
+time=2026-10-31T06:02:54.179Z level=INFO msg="europe 3 日目: 51 人"
+time=2026-10-31T06:02:57.226Z level=INFO msg="america 3 日目: 53 人"
+time=2026-10-31T06:03:00.665Z level=INFO msg="asia 4 日目: 422 人"
+time=2026-10-31T06:03:03.258Z level=INFO msg="europe 4 日目: 137 人"
+time=2026-10-31T06:03:06.573Z level=INFO msg="america 4 日目: 134 人"
+time=2026-10-31T06:03:09.597Z level=INFO msg="asia 5 日目: 688 人"
+time=2026-10-31T06:03:12.542Z level=INFO msg="europe 5 日目: 184 人"
+time=2026-10-31T06:03:16.051Z level=INFO msg="america 5 日目: 134 人"
+time=2026-10-31T06:03:25.945Z level=INFO msg="asia 最終日（グランプリ）: 688 人"
+time=2026-10-31T06:03:26.348Z level=INFO msg="user moved" user=elelmia7383 from=asia to=europe
+time=2026-10-31T06:03:27.212Z level=INFO msg="europe 最終日（グランプリ）: 184 人"
+time=2026-10-31T06:03:27.999Z level=INFO msg="america 最終日（グランプリ）: 134 人"
+time=2026-10-31T06:03:33.094Z level=INFO msg="グランプリ: アジア 375 人, ヨーロッパ 109 人, アメリカ 79 人"
+{
+  "pass": true,
+  "score": 79964,
+  "messages": [
+    "shike_9260: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "yashi-9480: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "muma.8522: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "tema_6411: 友達申請を承認できません: POST /api/friend-requests/b5d13fbe-3d74-46b8-bcf5-629eb47ec60a/accept: 応答がタイムアウトしました",
+    "elna-6267: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "musol10190: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "rumafu_9725: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "hore-6203: 投稿 50ff02d5-f293-46c3-a15a-44d9647afa57 に RealMoji を送れません: POST /api/posts/50ff02d5-f293-46c3-a15a-44d9647afa57/realmojis: 応答がタイムアウトしました",
+    "tamiato.5455: 投稿 50ff02d5-f293-46c3-a15a-44d9647afa57 に RealMoji を送れません: POST /api/posts/50ff02d5-f293-46c3-a15a-44d9647afa57/realmojis: 応答がタイムアウトしました",
+    "noakimi-9825: 認定公開アカウントをフォローできません: PUT /api/follows/c54f6b88-7095-41de-bcf7-6688d846bee5: 応答がタイムアウトしました",
+    "zoemeya10474: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "teka5521: 友達申請を承認できません: POST /api/friend-requests/a98ba8a8-92cd-4bff-99ad-0a45158bcdd6/accept: 応答がタイムアウトしました",
+    "nonoa_10155: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "anro_7287: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "ivyleo_7389: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "koyo_9424: 認定公開アカウントをフォローできません: PUT /api/follows/c54f6b88-7095-41de-bcf7-6688d846bee5: 応答がタイムアウトしました",
+    "ulvinul_9683: 認定公開アカウントをフォローできません: PUT /api/follows/35c07df6-415c-4a37-84fb-09b67e9166d1: 応答がタイムアウトしました",
+    "benkeni.9699: 認定公開アカウントをフォローできません: PUT /api/follows/35c07df6-415c-4a37-84fb-09b67e9166d1: 応答がタイムアウトしました",
+    "yani6478: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "yuhais-10806: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました"
+  ]
+}
+SCORE: 79964
+BENCHMARK_PASS
+2026-10-31T06:03:55.692216921Z	BENCHMARK_END
+
+SCORE: 79964
+BENCHMARK_PASS
