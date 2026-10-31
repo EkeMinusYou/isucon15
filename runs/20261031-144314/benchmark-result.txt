@@ -1,0 +1,52 @@
+time=2026-10-31T05:43:23.227Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T05:43:26.202Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T05:43:29.199Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T05:43:32.240Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T05:43:33.721Z level=INFO msg="user moved" user=tosolmu.5168 from=asia to=europe
+time=2026-10-31T05:43:35.206Z level=INFO msg="europe 2 日目: 23 人"
+time=2026-10-31T05:43:38.281Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T05:43:41.301Z level=INFO msg="asia 3 日目: 137 人"
+time=2026-10-31T05:43:43.983Z level=INFO msg="user moved" user=orhayo-5511 from=america to=asia
+time=2026-10-31T05:43:44.255Z level=INFO msg="europe 3 日目: 63 人"
+time=2026-10-31T05:43:45.313Z level=INFO msg="user moved" user=orhayo-5511 from=asia to=america
+time=2026-10-31T05:43:45.563Z level=INFO msg="user moved" user=teruan6107 from=asia to=america
+time=2026-10-31T05:43:47.303Z level=INFO msg="america 3 日目: 38 人"
+time=2026-10-31T05:43:47.538Z level=INFO msg="user moved" user=teruan6107 from=america to=europe
+time=2026-10-31T05:43:50.326Z level=INFO msg="asia 4 日目: 399 人"
+time=2026-10-31T05:43:53.647Z level=INFO msg="europe 4 日目: 172 人"
+time=2026-10-31T05:43:56.389Z level=INFO msg="america 4 日目: 81 人"
+time=2026-10-31T05:43:57.612Z level=INFO msg="user moved" user=teruan6107 from=europe to=asia
+time=2026-10-31T05:43:59.411Z level=INFO msg="asia 5 日目: 844 人"
+time=2026-10-31T05:44:02.717Z level=INFO msg="europe 5 日目: 171 人"
+time=2026-10-31T05:44:04.864Z level=INFO msg="user moved" user=orhayo-5511 from=america to=asia
+time=2026-10-31T05:44:05.446Z level=INFO msg="america 5 日目: 80 人"
+time=2026-10-31T05:44:15.106Z level=INFO msg="america 最終日（グランプリ）: 78 人"
+time=2026-10-31T05:44:15.237Z level=INFO msg="europe 最終日（グランプリ）: 171 人"
+time=2026-10-31T05:44:15.862Z level=INFO msg="asia 最終日（グランプリ）: 842 人"
+time=2026-10-31T05:44:23.241Z level=INFO msg="グランプリ: アジア 466 人, ヨーロッパ 105 人, アメリカ 48 人"
+{
+  "pass": true,
+  "score": 100548,
+  "messages": [
+    "maxevame8048: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "solme-8205: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "rishior_5651: 投稿 0f0e0f00-441a-464a-ba10-fb6fe900b2cb に RealMoji を送れません: POST /api/posts/0f0e0f00-441a-464a-ba10-fb6fe900b2cb/realmojis: 応答がタイムアウトしました",
+    "muul-6415: 投稿 0f0e0f00-441a-464a-ba10-fb6fe900b2cb にコメントできません: POST /api/posts/0f0e0f00-441a-464a-ba10-fb6fe900b2cb/comments: 応答がタイムアウトしました",
+    "yeoneo_byeongjorim_873: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "kudanfu.6907: 認定公開アカウントをフォローできません: PUT /api/follows/88141475-7a24-4a9e-985f-d2bafb3504b6: 応答がタイムアウトしました",
+    "solben_7611: 投稿 0f0e0f00-441a-464a-ba10-fb6fe900b2cb にコメントできません: POST /api/posts/0f0e0f00-441a-464a-ba10-fb6fe900b2cb/comments: 応答がタイムアウトしました",
+    "zoetane_9271: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "momoel_7316: 投稿の公開範囲を変えられません: PATCH /api/posts/c6af40b0-b440-4134-871f-35ff6f42938c: 応答がタイムアウトしました",
+    "yeoneo_byeongjorim_873: 履歴を読めません: GET /api/memories/2026-02-09: ステータスコード 401 が返りました（期待値 200、invalid_session）",
+    "keuroket_seongjang_3200: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "bennu9509: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "taleo-5415: 投稿 554a7bae-0b7a-4541-ac02-05152c39695d に RealMoji を送れません: POST /api/posts/554a7bae-0b7a-4541-ac02-05152c39695d/realmojis: 応答がタイムアウトしました",
+    "isben-7749: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "rumi-8320: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "leomar7690: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "minjun_kim_528: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "elvinro-9713: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "solha.10624: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "remarna-9733: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
