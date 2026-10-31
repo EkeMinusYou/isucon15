@@ -1,0 +1,56 @@
+time=2026-10-31T05:48:44.435Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T05:48:47.413Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T05:48:50.409Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T05:48:53.441Z level=INFO msg="asia 2 日目: 54 人"
+time=2026-10-31T05:48:54.647Z level=INFO msg="user moved" user=miakasol_5217 from=asia to=america
+time=2026-10-31T05:48:56.385Z level=INFO msg="user moved" user=miakasol_5217 from=america to=europe
+time=2026-10-31T05:48:56.411Z level=INFO msg="europe 2 日目: 21 人"
+time=2026-10-31T05:48:59.410Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T05:49:02.339Z level=INFO msg="user moved" user=releo5428 from=europe to=america
+time=2026-10-31T05:49:02.538Z level=INFO msg="asia 3 日目: 161 人"
+time=2026-10-31T05:49:04.905Z level=INFO msg="user moved" user=ivyortsu-5743 from=asia to=europe
+time=2026-10-31T05:49:05.522Z level=INFO msg="europe 3 日目: 58 人"
+time=2026-10-31T05:49:05.782Z level=INFO msg="user moved" user=sori5731 from=asia to=europe
+time=2026-10-31T05:49:07.432Z level=INFO msg="user moved" user=rimeku5865 from=asia to=america
+time=2026-10-31T05:49:08.728Z level=INFO msg="america 3 日目: 50 人"
+time=2026-10-31T05:49:11.819Z level=INFO msg="asia 4 日目: 468 人"
+time=2026-10-31T05:49:13.331Z level=INFO msg="user moved" user=leoyuor.6414 from=europe to=asia
+time=2026-10-31T05:49:14.924Z level=INFO msg="europe 4 日目: 151 人"
+time=2026-10-31T05:49:15.337Z level=INFO msg="user moved" user=mome6896 from=asia to=america
+time=2026-10-31T05:49:17.883Z level=INFO msg="america 4 日目: 104 人"
+time=2026-10-31T05:49:19.150Z level=INFO msg="user moved" user=kahe.7665 from=asia to=america
+time=2026-10-31T05:49:19.892Z level=INFO msg="user moved" user=leoyuor.6414 from=asia to=europe
+time=2026-10-31T05:49:21.469Z level=INFO msg="asia 5 日目: 618 人"
+time=2026-10-31T05:49:24.303Z level=INFO msg="europe 5 日目: 151 人"
+time=2026-10-31T05:49:24.756Z level=INFO msg="user moved" user=ivyortsu-5743 from=europe to=asia
+time=2026-10-31T05:49:28.327Z level=INFO msg="america 5 日目: 105 人"
+time=2026-10-31T05:49:37.216Z level=INFO msg="europe 最終日（グランプリ）: 150 人"
+time=2026-10-31T05:49:38.311Z level=INFO msg="asia 最終日（グランプリ）: 619 人"
+time=2026-10-31T05:49:38.933Z level=INFO msg="america 最終日（グランプリ）: 104 人"
+time=2026-10-31T05:49:44.438Z level=INFO msg="グランプリ: アジア 129 人, ヨーロッパ 79 人, アメリカ 9 人"
+{
+  "pass": true,
+  "score": 92378,
+  "messages": [
+    "tsuleo_8960: 新しいユーザーを登録できません: POST /api/auth/register: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "hiso-7186: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "sunoa_7972: 認定公開アカウントをフォローできません: PUT /api/follows/34788a09-bfa9-4b24-99de-4dcc28d561ea: 応答がタイムアウトしました",
+    "tomia8057: 認定公開アカウントをフォローできません: PUT /api/follows/34788a09-bfa9-4b24-99de-4dcc28d561ea: 応答がタイムアウトしました",
+    "mivin8085: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "sukihe6734: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "fuyo-10201: 認定公開アカウントをフォローできません: PUT /api/follows/08d2c3bc-4a57-4ca1-8954-b3905551b0d2: 応答がタイムアウトしました",
+    "tsuki.9776: 認定公開アカウントをフォローできません: PUT /api/follows/7161f01f-0800-4ec0-a84c-4ed478d1ee38: 応答がタイムアウトしました",
+    "marnusu7596: 投稿の公開範囲を変えられません: PATCH /api/posts/1207f919-0fe0-4e48-8d37-c6b6c28c7539: 応答がタイムアウトしました",
+    "rire9983: 認定公開アカウントをフォローできません: PUT /api/follows/34788a09-bfa9-4b24-99de-4dcc28d561ea: 応答がタイムアウトしました",
+    "shimino8731: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "shimehe-7294: 友達申請を承認できません: POST /api/friend-requests/e31ae064-884a-4bd2-9c74-34672facf816/accept: 応答がタイムアウトしました",
+    "rimeku5865: RealMoji c9460b4d-0d34-4dff-a1ae-27d3ad127178 を取り消せません: DELETE /api/realmojis/c9460b4d-0d34-4dff-a1ae-27d3ad127178: 応答がタイムアウトしました",
+    "naheho8648: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "evahami_7174: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "yuliaben.5968: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "ansa.6216: 友達申請を承認できません: POST /api/friend-requests/8d803c35-50b1-4b1a-9816-136feb8d1a5e/accept: 応答がタイムアウトしました",
+    "kusol-5055: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "solmaxmi_6331: 友達申請を取り下げられません: POST /api/friend-requests/eb0586fc-54a4-41a6-9d0a-a8c95e991528/cancel: 応答がタイムアウトしました",
+    "niho.10624: 認定公開アカウントをフォローできません: PUT /api/follows/34788a09-bfa9-4b24-99de-4dcc28d561ea: 応答がタイムアウトしました"
+  ]
+}
