@@ -4,10 +4,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
+	"golang.org/x/sys/unix"
 )
 
-// Historical rows stay in resident byte chunks. Neither their contents nor
-// the fixed-width index require pointer tracing by the garbage collector.
+// Historical rows stay in anonymous memory, outside the filesystem page cache
+// and Go's heap limit.
+// The fixed-width index requires no pointer tracing by the garbage collector.
 // Mutations are an overlay, persisted by the existing journal.
 const recordChunkBytes = 4 << 20
 
@@ -91,7 +94,11 @@ func (s *recordStore[T]) add(id string, raw []byte, v *T) error {
 	}
 	n := len(s.data) - 1
 	if n < 0 || len(s.data[n])+len(raw) > recordChunkBytes {
-		s.data = append(s.data, make([]byte, 0, recordChunkBytes))
+		block, err := unix.Mmap(-1, 0, recordChunkBytes, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_PRIVATE|unix.MAP_ANON)
+		if err != nil {
+			return err
+		}
+		s.data = append(s.data, block[:0])
 		n++
 	}
 	offset := uint64(n)*recordChunkBytes + uint64(len(s.data[n]))
@@ -100,6 +107,9 @@ func (s *recordStore[T]) add(id string, raw []byte, v *T) error {
 	return nil
 }
 func (s *recordStore[T]) close() {
+	for _, chunk := range s.data {
+		unix.Munmap(chunk[:cap(chunk)])
+	}
 	s.data = nil
 }
 func (s *recordStore[T]) len() int { return len(s.index) + len(s.live) }
