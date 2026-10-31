@@ -1,0 +1,61 @@
+2026-10-31T06:40:53.719935443Z	BENCHMARK_START
+PORTAL_JOB_ID: 23861
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T06:41:01.648Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:41:04.626Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:41:07.656Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:41:10.702Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T06:41:13.628Z level=INFO msg="europe 2 日目: 20 人"
+time=2026-10-31T06:41:16.626Z level=INFO msg="america 2 日目: 15 人"
+time=2026-10-31T06:41:19.666Z level=INFO msg="asia 3 日目: 154 人"
+time=2026-10-31T06:41:21.082Z level=INFO msg="user moved" user=niso_5626 from=asia to=europe
+time=2026-10-31T06:41:22.643Z level=INFO msg="europe 3 日目: 59 人"
+time=2026-10-31T06:41:25.688Z level=INFO msg="america 3 日目: 41 人"
+time=2026-10-31T06:41:28.730Z level=INFO msg="asia 4 日目: 452 人"
+time=2026-10-31T06:41:32.138Z level=INFO msg="europe 4 日目: 159 人"
+time=2026-10-31T06:41:34.522Z level=INFO msg="user moved" user=yomihi7090 from=asia to=europe
+time=2026-10-31T06:41:35.192Z level=INFO msg="america 4 日目: 103 人"
+time=2026-10-31T06:41:36.822Z level=INFO msg="user moved" user=medan.7172 from=asia to=america
+time=2026-10-31T06:41:38.189Z level=INFO msg="asia 5 日目: 1100 人"
+time=2026-10-31T06:41:38.653Z level=INFO msg="user moved" user=soltor.7835 from=asia to=america
+time=2026-10-31T06:41:39.505Z level=INFO msg="user moved" user=teka.8914 from=europe to=america
+time=2026-10-31T06:41:40.973Z level=INFO msg="europe 5 日目: 161 人"
+time=2026-10-31T06:41:43.873Z level=INFO msg="america 5 日目: 106 人"
+time=2026-10-31T06:41:52.907Z level=INFO msg="europe 最終日（グランプリ）: 160 人"
+time=2026-10-31T06:41:53.131Z level=INFO msg="america 最終日（グランプリ）: 106 人"
+time=2026-10-31T06:41:53.493Z level=INFO msg="asia 最終日（グランプリ）: 1099 人"
+time=2026-10-31T06:42:01.598Z level=INFO msg="グランプリ: アジア 749 人, ヨーロッパ 118 人, アメリカ 78 人"
+{
+  "pass": true,
+  "score": 136789,
+  "messages": [
+    "powered_by_a_snack_budget_2988: ログインできません: POST /api/auth/login: ステータスコード 502 が返りました（期待値 200、unknown）",
+    "ninevin.8531: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "kinuleo-8482: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "hakanoa.8084: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "nileose7528: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "munu.5218: 友達申請を承認できません: POST /api/friend-requests/f9207201-8b78-4d5f-ac88-3f33a96e73d0/accept: 応答がタイムアウトしました",
+    "kanifu.5935: 友達申請を承認できません: POST /api/friend-requests/5869d04e-6aff-467f-aeeb-cd12a5115790/accept: 応答がタイムアウトしました",
+    "mudanvin.9698: 認定公開アカウントをフォローできません: PUT /api/follows/982d5f46-ba9f-4c3e-b2f8-a89a8cfd6d16: 応答がタイムアウトしました",
+    "nohasol10797: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "nime.5040: 友達申請を承認できません: POST /api/friend-requests/111db7b7-3204-4dbd-9241-6e638a21e2ac/accept: 応答がタイムアウトしました",
+    "shimarki_9968: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "honi_6482: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "solsu9598: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "yachi-12202: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "tasolhe11931: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "kosuno_6794: 友達申請を拒否できません: POST /api/friend-requests/55e70795-d18b-4011-91e4-e254d0d2ea47/reject: 応答がタイムアウトしました",
+    "reel-9869: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "antari.12725: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "rutetor-10234: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "nomiamo_8626: 友達申請を承認できません: POST /api/friend-requests/938b7570-cba9-43c8-9721-cb39f56ebbad/accept: 応答がタイムアウトしました"
+  ]
+}
+SCORE: 136789
+BENCHMARK_PASS
+2026-10-31T06:42:44.556214234Z	BENCHMARK_END
+
+SCORE: 136789
+BENCHMARK_PASS
