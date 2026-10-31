@@ -39,6 +39,9 @@ vars:
       COMPUTE_URL: http://192.168.4.10
       NATIVE_CRYPTO_LIB: /home/isucon/webapp/go/libisureal-crypto.so
       IMAGE_CACHE_DIR: /home/isucon/isureal-regional-images
+      REGIONAL_STATE_DIR: /home/isucon/isureal-region-state
+      REGION_EUROPE_URL: http://192.168.2.10
+      REGION_AMERICA_URL: http://192.168.3.10
   TARGET_OS: linux
   TARGET_ARCH: amd64
   # Optional Go PGO profile path for build/build-pgo; unset uses -pgo=auto (default.pgo).

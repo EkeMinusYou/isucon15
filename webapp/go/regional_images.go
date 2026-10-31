@@ -37,14 +37,15 @@ func (b *regionalImageBody) Read(p []byte) (int, error) {
 
 func (b *regionalImageBody) Close() error { return b.file.Close() }
 
-// The owner authorizes every request. Only immutable initial image bytes are
-// substituted locally; mutable validity, BANs and signatures stay authoritative.
-func serveRegionalImage(resp *http.Response, root string, transport http.RoundTripper, stats *regionalImageMetrics) error {
+// The owner authorizes every request. Original bytes are substituted locally;
+// mutable validity, BANs and signatures stay authoritative.
+func serveRegionalImage(resp *http.Response, root string, uploads *regionalUploads, transport http.RoundTripper, stats *regionalImageMetrics) error {
 	part := resp.Header.Get(regionalImagePart)
 	defer func() {
 		resp.Header.Del(regionalImagePart)
 		resp.Header.Del(regionalImageOffset)
 		resp.Header.Del(regionalImageSize)
+		resp.Header.Del(regionalImageUploaded)
 	}()
 	if resp.StatusCode != http.StatusOK || part == "" {
 		return nil
@@ -54,7 +55,17 @@ func serveRegionalImage(resp *http.Response, root string, transport http.RoundTr
 	if part != filepath.Base(part) || err1 != nil || err2 != nil || offset < 0 || size < 0 {
 		return fmt.Errorf("invalid regional image metadata")
 	}
-	file, err := os.Open(filepath.Join(root, part))
+	var file *os.File
+	if resp.Header.Get(regionalImageUploaded) == "1" {
+		if uploads == nil {
+			err1 = os.ErrNotExist
+		} else {
+			file, err1 = uploads.open(part)
+		}
+	} else {
+		file, err1 = os.Open(filepath.Join(root, part))
+	}
+	err := err1
 	if err == nil {
 		stat, statErr := file.Stat()
 		if statErr != nil || offset > stat.Size() || size > stat.Size()-offset {

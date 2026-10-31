@@ -30,8 +30,12 @@ func (w *stagedImageWriter) Write(b []byte) (int, error) {
 }
 
 func (a *App) stageImage(body io.Reader, maxDimension int) (p preparedUpload) {
+	return a.stageImageNamed(body, maxDimension, id())
+}
+
+func (a *App) stageImageNamed(body io.Reader, maxDimension int, fileID string) (p preparedUpload) {
 	started := time.Now()
-	p.fileID = id()
+	p.fileID = fileID
 	f, err := os.OpenFile(filepath.Join(a.durable, "images", p.fileID), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		p.fileID = ""
@@ -64,9 +68,13 @@ func (a *App) stageImage(body io.Reader, maxDimension int) (p preparedUpload) {
 }
 
 func (a *App) stageMultipartImage(r *http.Request, maxDimension int) preparedUpload {
+	return a.stageMultipartImageNamed(r, maxDimension, id())
+}
+
+func (a *App) stageMultipartImageNamed(r *http.Request, maxDimension int, fileID string) preparedUpload {
 	var p preparedUpload
 	found := readMultipartSelected(r, func(part io.Reader) error {
-		p = a.stageImage(part, maxDimension)
+		p = a.stageImageNamed(part, maxDimension, fileID)
 		_, err := io.Copy(io.Discard, part)
 		return err
 	})

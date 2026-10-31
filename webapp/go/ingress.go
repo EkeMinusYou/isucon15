@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	measurement "github.com/EkeMinusYou/isucon-template/tools/measurement/app"
@@ -88,6 +89,14 @@ func serviceHandler() (http.Handler, *App, error) {
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	edge := &App{appCore: &appCore{}}
+	var uploads *regionalUploads
+	if root := os.Getenv("REGIONAL_STATE_DIR"); root != "" {
+		uploads, e = newRegionalUploads(root)
+		if e != nil {
+			return nil, nil, e
+		}
+		edge.durable = filepath.Join(root, "pending")
+	}
 	proxy.Transport = measurement.NewUpstreamTransport()
 	imageRoot := os.Getenv("IMAGE_CACHE_DIR")
 	base := proxy.Director
@@ -104,7 +113,11 @@ func serviceHandler() (http.Handler, *App, error) {
 		}
 	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
-		if err := serveRegionalImage(resp, imageRoot, proxy.Transport, &edge.regionalImages); err != nil {
+		if uploads != nil {
+			uploads.finish(resp)
+		}
+		resp.Header.Del(regionalUploadAccepted)
+		if err := serveRegionalImage(resp, imageRoot, uploads, proxy.Transport, &edge.regionalImages); err != nil {
 			return err
 		}
 		if identity := resp.Header.Get("X-ISU-Identity"); identity != "" {
@@ -119,9 +132,18 @@ func serviceHandler() (http.Handler, *App, error) {
 			w.Write([]byte("ok\n"))
 			return
 		}
+		if uploads != nil && uploads.internal(w, r) {
+			return
+		}
 		r.Header.Del("X-ISU-Transport")
 		r.Header.Del("X-ISU-Region")
 		r.Header.Del("X-ISU-Source")
+		r.Header.Del(regionalUploadHeader)
+		if profile, multipart := isImageUpload(r); uploads != nil && (profile || multipart) {
+			var p *preparedUpload
+			r, p = uploads.prepare(edge, w, r)
+			defer uploads.discard(p)
+		}
 		proxy.ServeHTTP(w, r)
 	}), edge, nil
 }

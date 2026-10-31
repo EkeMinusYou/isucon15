@@ -58,7 +58,7 @@ func TestRegionalImageUsesOriginalAndReauthorizesFallback(t *testing.T) {
 	if response.ContentLength != 0 || response.Header.Get(regionalImagePart) != im.Part {
 		t.Fatal("owner did not return authorization metadata")
 	}
-	if err = serveRegionalImage(response, root, http.DefaultTransport, nil); err != nil {
+	if err = serveRegionalImage(response, root, nil, http.DefaultTransport, nil); err != nil {
 		t.Fatal(err)
 	}
 	body, err = io.ReadAll(response.Body)
@@ -98,7 +98,7 @@ func TestRegionalImageUsesOriginalAndReauthorizesFallback(t *testing.T) {
 	}
 	os.Remove(local)
 	response = request(true)
-	if err = serveRegionalImage(response, root, http.DefaultTransport, nil); err != nil {
+	if err = serveRegionalImage(response, root, nil, http.DefaultTransport, nil); err != nil {
 		t.Fatal(err)
 	}
 	body, err = io.ReadAll(response.Body)
@@ -108,7 +108,7 @@ func TestRegionalImageUsesOriginalAndReauthorizesFallback(t *testing.T) {
 	}
 	requireCall(t, a, "DELETE", "/api/posts/"+p.ID, token, nil, 204)
 	response = request(true)
-	if err = serveRegionalImage(response, root, http.DefaultTransport, nil); err != nil {
+	if err = serveRegionalImage(response, root, nil, http.DefaultTransport, nil); err != nil {
 		t.Fatal(err)
 	}
 	response.Body.Close()

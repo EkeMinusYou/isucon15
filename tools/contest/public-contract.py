@@ -1,5 +1,6 @@
 """Observe cross-region API behavior and durable state through the public router."""
 import argparse
+import base64
 import hashlib
 import io
 import json
@@ -12,15 +13,21 @@ import zipfile
 BASE = 'http://13.192.72.111:8080'
 COUNTRY = {'asia': 'JP', 'europe': 'GB', 'america': 'US'}
 STATE = Path('generated/validation/restart-state.json')
+PROFILE_JPEG = base64.b64decode(
+    '/9j/2wCEAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDIBCQkJDAsMGA0NGDIhHCEyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMv/AABEIAAIAAgMBIgACEQEDEQH/xAGiAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgsQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+gEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoLEQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/APn+iiigD//Z'
+) + b'preserved original trailer'
 
 
-def api(method, path, token='', body=None, region='asia', expected=200):
+def api(method, path, token='', body=None, region='asia', expected=200, raw_body=None):
     headers = {'X-Country-Code': COUNTRY[region]}
     if token:
         headers['Authorization'] = 'Bearer ' + token
     if body is not None:
         headers['Content-Type'] = 'application/json'
         body = json.dumps(body).encode()
+    if raw_body is not None:
+        headers['Content-Type'] = 'image/jpeg'
+        body = raw_body
     request = urllib.request.Request(BASE + path, data=body, headers=headers, method=method)
     for attempt in range(3 if method == 'GET' else 1):
         try:
@@ -67,12 +74,15 @@ def capture():
         login = api('POST', '/api/auth/login', body={'username': name, 'secretKey': registration['secretKey']}, region=region)
         token = login['token']
         api('PATCH', '/api/me', token, {'bio': 'durable-' + region}, region)
+        api('PUT', '/api/me/profile-image', token, region=region, expected=204, raw_body=PROFILE_JPEG)
         me = api('GET', '/api/me', token, region=region)
         assert me['bio'] == 'durable-' + region
         for other in COUNTRY:
             if other != region:
                 api('GET', '/api/me', token, region=other, expected=403)
-        saved.append({'region': region, 'token': token, 'id': me['id'], 'bio': me['bio']})
+        for image_region in COUNTRY:
+            assert api('GET', me['profileImageUrl'], region=image_region) == PROFILE_JPEG
+        saved.append({'region': region, 'token': token, 'id': me['id'], 'bio': me['bio'], 'profileImageUrl': me['profileImageUrl']})
     # A relationship written through Europe must be visible through America.
     request = api('POST', '/api/friend-requests', saved[1]['token'], {'recipientId': saved[2]['id']}, 'europe', 201)
     api('POST', '/api/friend-requests/' + request['relationId'] + '/accept', saved[2]['token'], region='america')
@@ -82,7 +92,7 @@ def capture():
     STATE.parent.mkdir(exist_ok=True, parents=True)
     STATE.write_text(json.dumps(saved))
     STATE.chmod(0o600)
-    print('cross-region authentication, profile visibility, and reciprocal friendship passed; restart state captured')
+    print('cross-region authentication, original profile images, and reciprocal friendship passed; restart state captured')
 
 
 def verify():
@@ -90,10 +100,12 @@ def verify():
     for entry in saved:
         me = api('GET', '/api/me', entry['token'], region=entry['region'])
         assert me['id'] == entry['id'] and me['bio'] == entry['bio']
+        for image_region in COUNTRY:
+            assert api('GET', entry['profileImageUrl'], region=image_region) == PROFILE_JPEG
     for entry, other in [(saved[1], saved[2]), (saved[2], saved[1])]:
         friends = api('GET', '/api/relationships/friends', entry['token'], region=entry['region'])
         assert any(v['user']['id'] == other['id'] for v in friends['items'])
-    print('public read-after-restart: account, token, profile, and cross-region friendship retained')
+    print('public read-after-restart: account, token, original profile images, and cross-region friendship retained')
 
 
 if __name__ == '__main__':

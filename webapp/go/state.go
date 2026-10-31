@@ -93,14 +93,15 @@ type Relation struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 type Image struct {
-	ID        string `json:"id"`
-	OwnerID   string `json:"ownerId"`
-	MediaType string `json:"mediaType"`
-	Part      string `json:"part"`
-	Offset    int64  `json:"offset"`
-	Size      int64  `json:"size"`
-	Ref       string `json:"-"`
-	Kind      byte   `json:"-"`
+	ID            string `json:"id"`
+	OwnerID       string `json:"ownerId"`
+	MediaType     string `json:"mediaType"`
+	Part          string `json:"part"`
+	Offset        int64  `json:"offset"`
+	Size          int64  `json:"size"`
+	Ref           string `json:"-"`
+	Kind          byte   `json:"-"`
+	StorageRegion string `json:"storageRegion,omitempty"`
 }
 type Notification struct {
 	ID        string    `json:"id"`
@@ -634,7 +635,7 @@ func (a *App) reset() error {
 	a.signatureResets.Add(1)
 	a.signatureMu.Unlock()
 	a.notifier.reset()
-	return nil
+	return resetRegionalImages()
 }
 func (a *App) imageReader(im *Image) (*os.File, int64, error) {
 	p := filepath.Join(a.initial, "images", im.Part)
@@ -642,6 +643,11 @@ func (a *App) imageReader(im *Image) (*os.File, int64, error) {
 		p = filepath.Join(a.durable, "images", im.ID)
 	}
 	f, e := os.Open(p)
+	if os.IsNotExist(e) && im.Part == "" && im.StorageRegion != "" {
+		if e = a.fetchRegionalImage(im); e == nil {
+			f, e = os.Open(p)
+		}
+	}
 	return f, im.Offset, e
 }
 func (s *State) window(u *Account) *Window { return s.Windows.Get(s.Current.Get(u.Region)) }

@@ -54,12 +54,15 @@ func responseWork(w http.ResponseWriter, work func(http.ResponseWriter)) {
 
 type uploadKey struct{}
 type preparedUpload struct {
-	ok          bool
-	invalidJPEG bool
-	fileID      string
-	size        int64
-	storageErr  error
-	committed   bool
+	ok                    bool
+	invalidJPEG           bool
+	fileID                string
+	size                  int64
+	storageErr            error
+	committed             bool
+	origin                string
+	stagedID              string
+	registrationUncertain bool
 }
 
 func output(w http.ResponseWriter, status int, v any) {
@@ -294,8 +297,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.notifications(w, r)
 		return
 	}
-	profile := r.URL.Path == "/api/me/profile-image" && r.Method == "PUT" && r.Header.Get("Content-Type") == "image/jpeg"
-	multipart := r.Method == "POST" && (r.URL.Path == "/api/posts" || strings.HasSuffix(r.URL.Path, "/realmojis"))
+	profile, multipart := isImageUpload(r)
 	if profile || multipart {
 		// Reject banned or unauthenticated uploads before retaining their bodies.
 		a.mu.RLock()
@@ -317,17 +319,19 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
-		var p preparedUpload
-		if profile {
-			p = a.stageImage(r.Body, 512)
-		} else {
-			max := 512
-			if r.URL.Path == "/api/posts" {
-				max = 4096
+		p, regional := decodeRegionalUpload(r)
+		if !regional {
+			if profile {
+				p = a.stageImage(r.Body, 512)
+			} else {
+				max := 512
+				if r.URL.Path == "/api/posts" {
+					max = 4096
+				}
+				p = a.stageMultipartImage(r, max)
 			}
-			p = a.stageMultipartImage(r, max)
 		}
-		if p.fileID != "" {
+		if p.fileID != "" && !regional {
 			defer func() {
 				if !p.committed {
 					os.Remove(filepath.Join(a.durable, "images", p.fileID))
@@ -368,6 +372,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	stats.holdNS.Add(uint64(time.Since(locked)))
 	unlock()
 	unlock = nil
+	if p, ok := r.Context().Value(uploadKey{}).(*preparedUpload); ok && p.origin != "" && p.committed {
+		rr.Header().Set(regionalUploadAccepted, p.fileID)
+	}
 	started = time.Now()
 	for k, vs := range rr.Header() {
 		for _, v := range vs {
@@ -705,7 +712,7 @@ func (a *App) addImage(r *http.Request, uid string) (*Image, error) {
 	if p.storageErr != nil {
 		return nil, p.storageErr
 	}
-	im := &Image{ID: p.fileID, OwnerID: uid, MediaType: "image/jpeg", Size: p.size}
+	im := &Image{ID: p.fileID, OwnerID: uid, MediaType: "image/jpeg", Size: p.size, StorageRegion: p.origin}
 	a.put("image", im)
 	p.committed = true
 	return im, nil
@@ -768,7 +775,7 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 			failure(w, 403, "image_forbidden")
 			return
 		}
-		localDelivery := isInternal(r) && r.Header.Get(regionalImageRequest) == "1" && copyImage.Part != ""
+		localDelivery := isInternal(r) && r.Header.Get(regionalImageRequest) == "1" && (copyImage.Part != "" || copyImage.StorageRegion != "" && copyImage.StorageRegion == requestRegion(r))
 		var f *os.File
 		var off int64
 		if !localDelivery {
@@ -807,7 +814,12 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 		}
 		w.Header().Set("Content-Type", copyImage.MediaType)
 		if localDelivery {
-			w.Header().Set(regionalImagePart, copyImage.Part)
+			part := copyImage.Part
+			if part == "" {
+				part = copyImage.ID
+				w.Header().Set(regionalImageUploaded, "1")
+			}
+			w.Header().Set(regionalImagePart, part)
 			w.Header().Set(regionalImageOffset, strconv.FormatInt(copyImage.Offset, 10))
 			w.Header().Set(regionalImageSize, strconv.FormatInt(copyImage.Size, 10))
 			w.Header().Set("Content-Length", "0")
