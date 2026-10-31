@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"image/jpeg"
 	"io"
+	"isuconapp/internal/jpegvalidate"
 	"math"
 	"net"
 	"net/http"
@@ -49,7 +50,7 @@ func prepareProfile(body io.Reader) preparedUpload {
 		return preparedUpload{}
 	}
 	header := append([]byte(nil), b.Bytes()...)
-	if _, err = jpeg.Decode(io.MultiReader(bytes.NewReader(header), r)); err != nil {
+	if err = jpegvalidate.Validate(io.MultiReader(bytes.NewReader(header), r)); err != nil {
 		return preparedUpload{invalidJPEG: true}
 	}
 	if _, err = io.Copy(&b, body); err != nil {
@@ -719,7 +720,7 @@ func multipartImage(r *http.Request, max int) ([]byte, bool) {
 	if e != nil || cfg.Width > max || cfg.Height > max {
 		return nil, false
 	}
-	if _, e = jpeg.Decode(bytes.NewReader(b)); e != nil {
+	if e = jpegvalidate.Validate(bytes.NewReader(b)); e != nil {
 		return nil, false
 	}
 	return b, true
