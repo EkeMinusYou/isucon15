@@ -1,0 +1,65 @@
+2026-10-31T04:44:48.105455060Z	BENCHMARK_START
+PORTAL_JOB_ID: 14043
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T04:45:25.475Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:45:28.458Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:45:31.454Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:45:34.478Z level=INFO msg="asia 2 日目: 54 人"
+time=2026-10-31T04:45:37.458Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T04:45:40.455Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T04:45:43.483Z level=INFO msg="asia 3 日目: 162 人"
+time=2026-10-31T04:45:45.639Z level=INFO msg="user moved" user=anhani.5724 from=asia to=america
+time=2026-10-31T04:45:46.470Z level=INFO msg="europe 3 日目: 54 人"
+time=2026-10-31T04:45:49.490Z level=INFO msg="america 3 日目: 56 人"
+time=2026-10-31T04:45:52.489Z level=INFO msg="asia 4 日目: 477 人"
+time=2026-10-31T04:45:55.390Z level=INFO msg="user moved" user=nime.7016 from=asia to=europe
+time=2026-10-31T04:45:55.473Z level=INFO msg="europe 4 日目: 149 人"
+time=2026-10-31T04:45:55.884Z level=INFO msg="user moved" user=tosu.8425 from=asia to=europe
+time=2026-10-31T04:45:56.007Z level=INFO msg="user moved" user=ulru.8623 from=asia to=europe
+time=2026-10-31T04:45:57.632Z level=INFO msg="user moved" user=sochi-9078 from=asia to=america
+time=2026-10-31T04:45:58.476Z level=INFO msg="america 4 日目: 152 人"
+time=2026-10-31T04:45:58.521Z level=INFO msg="user moved" user=niivy8856 from=asia to=america
+time=2026-10-31T04:45:58.813Z level=INFO msg="user moved" user=ivyrenu-6029 from=asia to=america
+time=2026-10-31T04:45:58.973Z level=INFO msg="user moved" user=mosaeva9155 from=asia to=america
+time=2026-10-31T04:46:01.506Z level=INFO msg="asia 5 日目: 1360 人"
+time=2026-10-31T04:46:03.325Z level=INFO msg="user moved" user=heorku_9554 from=europe to=america
+time=2026-10-31T04:46:04.500Z level=INFO msg="europe 5 日目: 354 人"
+time=2026-10-31T04:46:07.624Z level=INFO msg="america 5 日目: 291 人"
+time=2026-10-31T04:46:16.576Z level=INFO msg="america 最終日（グランプリ）: 291 人"
+time=2026-10-31T04:46:16.588Z level=INFO msg="europe 最終日（グランプリ）: 353 人"
+time=2026-10-31T04:46:16.640Z level=INFO msg="asia 最終日（グランプリ）: 1358 人"
+time=2026-10-31T04:46:25.669Z level=INFO msg="グランプリ: アジア 1184 人, ヨーロッパ 103 人, アメリカ 97 人"
+{
+  "pass": true,
+  "score": 180785,
+  "messages": [
+    "yosuru8024: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "tsukiyo_uzura_925: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "dreifach_forschungsclub_709: 履歴を読めません: GET /api/memories?month=2026-07: 応答がタイムアウトしました",
+    "soba_und_geschmeidiges_rust_2334: 履歴を読めません: GET /api/memories?month=2025-12: 応答がタイムアウトしました",
+    "duncai_ayi_1136: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "nuyaya_9457: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "harper_harris_2356: 履歴を読めません: GET /api/memories?month=2026-09: 応答がタイムアウトしました",
+    "chianne_6706: フィード friends-of-friends を取得できません: GET /api/feeds/friends-of-friends: 応答がタイムアウトしました",
+    "isro-5397: フィード friends-of-friends を取得できません: GET /api/feeds/friends-of-friends: 応答がタイムアウトしました",
+    "solzoeyu.5118: フィード friends-of-friends を取得できません: GET /api/feeds/friends-of-friends: 応答がタイムアウトしました",
+    "naelri.8703: 投稿 3ae9b314-5d99-4c31-9206-c025255d3ace の RealMoji の一覧を取得できません: GET /api/posts/3ae9b314-5d99-4c31-9206-c025255d3ace/realmojis: 応答がタイムアウトしました",
+    "sardinhas_na_panela_de_barro_1216: 履歴を読めません: GET /api/memories?month=2025-11: 応答がタイムアウトしました",
+    "training_at_the_bakery_1006: 履歴を読めません: GET /api/memories?month=2026-10: 応答がタイムアウトしました",
+    "yuki.6487: フィード friends-of-friends を取得できません: GET /api/feeds/friends-of-friends: 応答がタイムアウトしました",
+    "sardines_en_cocotte_de_terre_1382: 履歴を読めません: GET /api/memories?month=2025-12: 応答がタイムアウトしました",
+    "hina_nakamura_1751: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "ramihe.10562: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "lukas_muller_4048: 履歴を読めません: GET /api/memories?month=2026-07: 応答がタイムアウトしました",
+    "manuela_almeida_2494: 履歴を読めません: GET /api/memories?month=2026-09: 応答がタイムアウトしました",
+    "sardinhas_na_panela_de_barro_4757: 履歴を読めません: GET /api/memories?month=2026-06: 応答がタイムアウトしました"
+  ]
+}
+SCORE: 180785
+BENCHMARK_PASS
+2026-10-31T04:46:49.728236259Z	BENCHMARK_END
+
+SCORE: 180785
+BENCHMARK_PASS
