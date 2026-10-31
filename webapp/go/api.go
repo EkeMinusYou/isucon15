@@ -352,7 +352,17 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
 		var p preparedUpload
-		if profile {
+		if !validateJPEGEntropy() {
+			if profile {
+				p = a.stageImage(r.Body, 512)
+			} else {
+				max := 512
+				if r.URL.Path == "/api/posts" {
+					max = 4096
+				}
+				p = a.stageMultipartImage(r, max)
+			}
+		} else if profile {
 			p = prepareProfile(r.Body)
 		} else {
 			max := 512
@@ -364,12 +374,14 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				defer r.MultipartForm.RemoveAll()
 			}
 		}
-		if p.ok {
+		if p.ok && validateJPEGEntropy() {
 			started := time.Now()
 			p.fileID, p.size = id(), int64(len(p.data))
 			p.storageErr = os.WriteFile(filepath.Join(a.durable, "images", p.fileID), p.data, 0600)
 			a.uploadStageNS.Add(uint64(time.Since(started)))
 			a.uploadStageBytes.Add(uint64(p.size))
+		}
+		if p.fileID != "" {
 			defer func() {
 				if !p.committed {
 					os.Remove(filepath.Join(a.durable, "images", p.fileID))
@@ -845,7 +857,7 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 		}
 		w.Header().Set("Content-Type", copyImage.MediaType)
 		w.Header().Set("Content-Length", strconv.FormatInt(copyImage.Size, 10))
-		io.Copy(w, io.NewSectionReader(f, off, copyImage.Size))
+		copyStream(w, io.NewSectionReader(f, off, copyImage.Size))
 	})
 }
 
@@ -889,15 +901,24 @@ func multipartImage(r *http.Request, max int) ([]byte, bool) {
 // Read the selected file once. ParseMultipartForm would retain a second copy
 // before callers read the file back. Preserve its query/form value ordering.
 func readMultipartImage(r *http.Request) ([]byte, bool) {
+	var image []byte
+	found := readMultipartSelected(r, func(part io.Reader) error {
+		var err error
+		image, err = io.ReadAll(part)
+		return err
+	})
+	return image, found
+}
+
+func readMultipartSelected(r *http.Request, consume func(io.Reader) error) bool {
 	if err := r.ParseForm(); err != nil {
-		return nil, false
+		return false
 	}
 	mr, err := r.MultipartReader()
 	if err != nil {
-		return nil, false
+		return false
 	}
 	form := &multipart.Form{Value: make(map[string][]string)}
-	var image []byte
 	found := false
 	for n := 0; ; n++ {
 		part, err := mr.NextPart()
@@ -905,23 +926,22 @@ func readMultipartImage(r *http.Request) ([]byte, bool) {
 			break
 		}
 		if err != nil || n >= 1000 {
-			return nil, false
+			return false
 		}
 		name := part.FormName()
 		if name == "" || part.FileName() != "" && (name != "image" || found) {
 			_, err = io.Copy(io.Discard, part)
-		} else {
+		} else if part.FileName() == "" {
 			var data []byte
 			data, err = io.ReadAll(part)
-			if part.FileName() == "" {
-				form.Value[name] = append(form.Value[name], string(data))
-			} else {
-				image, found = data, true
-			}
+			form.Value[name] = append(form.Value[name], string(data))
+		} else {
+			err = consume(part)
+			found = true
 		}
 		part.Close()
 		if err != nil {
-			return nil, false
+			return false
 		}
 	}
 	for key, values := range form.Value {
@@ -929,7 +949,7 @@ func readMultipartImage(r *http.Request) ([]byte, bool) {
 		r.PostForm[key] = append(r.PostForm[key], values...)
 	}
 	r.MultipartForm = form
-	return image, found
+	return found
 }
 func (a *App) createPost(w http.ResponseWriter, r *http.Request, u *Account) {
 	_, ok := multipartImage(r, 4096)

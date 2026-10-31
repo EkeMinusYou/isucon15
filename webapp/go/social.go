@@ -410,7 +410,7 @@ func (a *App) export(w http.ResponseWriter, r *http.Request, u *Account) {
 			if err != nil {
 				panic(http.ErrAbortHandler)
 			}
-			if _, err = io.Copy(f, io.NewSectionReader(src.file, src.offset, src.size)); err != nil {
+			if _, err = copyStream(f, io.NewSectionReader(src.file, src.offset, src.size)); err != nil {
 				panic(http.ErrAbortHandler)
 			}
 		}
