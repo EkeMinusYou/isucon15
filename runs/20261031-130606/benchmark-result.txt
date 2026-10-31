@@ -1,0 +1,31 @@
+time=2026-10-31T04:06:46.786Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:06:49.769Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:06:52.766Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:06:55.784Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T04:06:56.079Z level=INFO msg="user moved" user=samaxte5156 from=asia to=europe
+time=2026-10-31T04:06:58.768Z level=INFO msg="europe 2 日目: 22 人"
+time=2026-10-31T04:07:01.765Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T04:07:04.790Z level=INFO msg="asia 3 日目: 137 人"
+time=2026-10-31T04:07:07.778Z level=INFO msg="europe 3 日目: 59 人"
+time=2026-10-31T04:07:10.767Z level=INFO msg="america 3 日目: 47 人"
+time=2026-10-31T04:07:10.935Z level=INFO msg="user moved" user=miaya.6163 from=europe to=asia
+time=2026-10-31T04:07:13.795Z level=INFO msg="asia 4 日目: 402 人"
+time=2026-10-31T04:07:15.578Z level=INFO msg="user moved" user=bente7086 from=asia to=europe
+time=2026-10-31T04:07:16.935Z level=INFO msg="europe 4 日目: 153 人"
+time=2026-10-31T04:07:19.822Z level=INFO msg="america 4 日目: 112 人"
+time=2026-10-31T04:07:22.851Z level=INFO msg="asia 5 日目: 1088 人"
+time=2026-10-31T04:07:23.459Z level=INFO msg="user moved" user=rutorleo.8783 from=europe to=asia
+time=2026-10-31T04:07:25.856Z level=INFO msg="europe 5 日目: 202 人"
+time=2026-10-31T04:07:29.003Z level=INFO msg="america 5 日目: 116 人"
+time=2026-10-31T04:07:37.965Z level=INFO msg="america 最終日（グランプリ）: 115 人"
+time=2026-10-31T04:07:38.109Z level=INFO msg="asia 最終日（グランプリ）: 1088 人"
+time=2026-10-31T04:07:38.136Z level=INFO msg="europe 最終日（グランプリ）: 201 人"
+time=2026-10-31T04:07:46.844Z level=INFO msg="グランプリ: アジア 1056 人, ヨーロッパ 186 人, アメリカ 106 人"
+{
+  "pass": true,
+  "score": 167380,
+  "messages": [
+    "taliamax-14756: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "lukas_muller_4048: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF"
+  ]
+}
