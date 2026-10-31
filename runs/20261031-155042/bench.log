@@ -1,0 +1,66 @@
+2026-10-31T06:50:46.318999676Z	BENCHMARK_START
+PORTAL_JOB_ID: 24827
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T06:51:24.299Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:51:27.283Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:51:30.280Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:51:33.304Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T06:51:34.524Z level=INFO msg="user moved" user=yunu-5229 from=asia to=europe
+time=2026-10-31T06:51:36.285Z level=INFO msg="europe 2 日目: 24 人"
+time=2026-10-31T06:51:39.280Z level=INFO msg="america 2 日目: 18 人"
+time=2026-10-31T06:51:42.221Z level=INFO msg="user moved" user=hievaor-5513 from=europe to=america
+time=2026-10-31T06:51:42.304Z level=INFO msg="asia 3 日目: 153 人"
+time=2026-10-31T06:51:43.472Z level=INFO msg="user moved" user=leoru_5690 from=asia to=america
+time=2026-10-31T06:51:45.249Z level=INFO msg="user moved" user=leoru_5690 from=america to=europe
+time=2026-10-31T06:51:45.284Z level=INFO msg="europe 3 日目: 68 人"
+time=2026-10-31T06:51:45.292Z level=INFO msg="user moved" user=nihemax-6011 from=asia to=america
+time=2026-10-31T06:51:45.447Z level=INFO msg="user moved" user=rolianoa6123 from=asia to=america
+time=2026-10-31T06:51:46.667Z level=INFO msg="user moved" user=rolianoa6123 from=america to=europe
+time=2026-10-31T06:51:48.022Z level=INFO msg="user moved" user=nihemax-6011 from=america to=asia
+time=2026-10-31T06:51:48.335Z level=INFO msg="america 3 日目: 60 人"
+time=2026-10-31T06:51:50.786Z level=INFO msg="user moved" user=hievaor-5513 from=america to=asia
+time=2026-10-31T06:51:51.311Z level=INFO msg="asia 4 日目: 452 人"
+time=2026-10-31T06:51:52.833Z level=INFO msg="user moved" user=yunu-5229 from=europe to=america
+time=2026-10-31T06:51:52.887Z level=INFO msg="user moved" user=hievaor-5513 from=asia to=europe
+time=2026-10-31T06:51:54.652Z level=INFO msg="europe 4 日目: 189 人"
+time=2026-10-31T06:51:56.100Z level=INFO msg="user moved" user=rari8439 from=asia to=europe
+time=2026-10-31T06:51:56.239Z level=INFO msg="user moved" user=elleose_7609 from=asia to=america
+time=2026-10-31T06:51:57.450Z level=INFO msg="america 4 日目: 168 人"
+time=2026-10-31T06:51:58.524Z level=INFO msg="user moved" user=rolianoa6123 from=europe to=america
+time=2026-10-31T06:51:58.655Z level=INFO msg="user moved" user=nihemax-6011 from=asia to=america
+time=2026-10-31T06:52:00.463Z level=INFO msg="user moved" user=saisku_7421 from=asia to=europe
+time=2026-10-31T06:52:00.536Z level=INFO msg="asia 5 日目: 1203 人"
+time=2026-10-31T06:52:01.028Z level=INFO msg="user moved" user=leoru_5690 from=europe to=america
+time=2026-10-31T06:52:03.797Z level=INFO msg="europe 5 日目: 399 人"
+time=2026-10-31T06:52:07.159Z level=INFO msg="america 5 日目: 273 人"
+time=2026-10-31T06:52:15.577Z level=INFO msg="america 最終日（グランプリ）: 273 人"
+time=2026-10-31T06:52:15.671Z level=INFO msg="europe 最終日（グランプリ）: 399 人"
+time=2026-10-31T06:52:15.875Z level=INFO msg="asia 最終日（グランプリ）: 1202 人"
+time=2026-10-31T06:52:24.394Z level=INFO msg="グランプリ: アジア 706 人, ヨーロッパ 268 人, アメリカ 170 人"
+{
+  "pass": true,
+  "score": 184663,
+  "messages": [
+    "dannuchi-5524: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "nael17973: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "keis_17609: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "teku.16830: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "elleose_7609: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "ruramia_5162: 友達申請を承認できません: POST /api/friend-requests/b76f65f3-6246-44db-8016-4cb79ca981ba/accept: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/friend-requests/b76f65f3-6246-44db-8016-4cb79ca981ba/accept\": EOF",
+    "nonuke-17635: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "muivynoa_9790: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "fumia.12896: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "torkoka.13023: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "tetoran_18007: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "tachi17903: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "susol.17701: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
+SCORE: 184663
+BENCHMARK_PASS
+2026-10-31T06:52:52.225378214Z	BENCHMARK_END
+
+SCORE: 184663
+BENCHMARK_PASS
