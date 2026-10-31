@@ -1,0 +1,36 @@
+2026-10-31T01:40:59.589070322Z	BENCHMARK_START
+PORTAL_JOB_ID: 1328
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T01:41:36.651Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T01:41:40.606Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T01:41:42.792Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T01:41:45.738Z level=INFO msg="asia 2 日目: 51 人"
+time=2026-10-31T01:41:49.255Z level=INFO msg="europe 2 日目: 7 人"
+time=2026-10-31T01:41:53.094Z level=INFO msg="america 2 日目: 6 人"
+time=2026-10-31T01:41:55.919Z level=INFO msg="asia 3 日目: 51 人"
+time=2026-10-31T01:41:59.852Z level=INFO msg="europe 3 日目: 7 人"
+time=2026-10-31T01:42:02.734Z level=INFO msg="america 3 日目: 6 人"
+time=2026-10-31T01:42:05.832Z level=INFO msg="asia 4 日目: 51 人"
+time=2026-10-31T01:42:06.109Z level=INFO msg="user moved" user=sotato_5361 from=asia to=europe
+time=2026-10-31T01:42:08.677Z level=INFO msg="europe 4 日目: 8 人"
+time=2026-10-31T01:42:11.979Z level=INFO msg="america 4 日目: 6 人"
+time=2026-10-31T01:42:14.342Z level=INFO msg="asia 5 日目: 50 人"
+time=2026-10-31T01:42:16.422Z level=INFO msg="europe 5 日目: 8 人"
+time=2026-10-31T01:42:23.212Z level=INFO msg="america 5 日目: 6 人"
+time=2026-10-31T01:42:28.452Z level=INFO msg="america 最終日（グランプリ）: 6 人"
+time=2026-10-31T01:42:28.487Z level=INFO msg="asia 最終日（グランプリ）: 50 人"
+time=2026-10-31T01:42:28.508Z level=INFO msg="europe 最終日（グランプリ）: 8 人"
+time=2026-10-31T01:42:36.631Z level=INFO msg="グランプリ: アジア 2 人, ヨーロッパ 0 人, アメリカ 1 人"
+{
+  "pass": true,
+  "score": 6170,
+  "messages": []
+}
+SCORE: 6170
+BENCHMARK_PASS
+2026-10-31T01:42:55.449451485Z	BENCHMARK_END
+
+SCORE: 6170
+BENCHMARK_PASS
