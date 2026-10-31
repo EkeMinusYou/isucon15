@@ -1,0 +1,60 @@
+time=2026-10-31T04:35:56.340Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:35:59.323Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:36:02.321Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:36:05.343Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T04:36:05.959Z level=INFO msg="user moved" user=yuho.5155 from=asia to=america
+time=2026-10-31T04:36:08.325Z level=INFO msg="europe 2 日目: 21 人"
+time=2026-10-31T04:36:10.467Z level=INFO msg="user moved" user=yuho.5155 from=america to=asia
+time=2026-10-31T04:36:10.882Z level=INFO msg="user moved" user=nome.5132 from=america to=europe
+time=2026-10-31T04:36:11.321Z level=INFO msg="america 2 日目: 19 人"
+time=2026-10-31T04:36:14.362Z level=INFO msg="asia 3 日目: 154 人"
+time=2026-10-31T04:36:16.841Z level=INFO msg="user moved" user=yuho.5155 from=asia to=america
+time=2026-10-31T04:36:17.207Z level=INFO msg="user moved" user=ordanshi_5976 from=asia to=america
+time=2026-10-31T04:36:17.322Z level=INFO msg="europe 3 日目: 65 人"
+time=2026-10-31T04:36:17.464Z level=INFO msg="user moved" user=nome.5132 from=europe to=america
+time=2026-10-31T04:36:19.577Z level=INFO msg="user moved" user=suruho.6359 from=europe to=asia
+time=2026-10-31T04:36:19.970Z level=INFO msg="user moved" user=marha.6299 from=europe to=asia
+time=2026-10-31T04:36:20.333Z level=INFO msg="america 3 日目: 61 人"
+time=2026-10-31T04:36:22.365Z level=INFO msg="user moved" user=suor.6525 from=europe to=america
+time=2026-10-31T04:36:23.349Z level=INFO msg="asia 4 日目: 460 人"
+time=2026-10-31T04:36:25.411Z level=INFO msg="user moved" user=suruho.6359 from=asia to=europe
+time=2026-10-31T04:36:25.637Z level=INFO msg="user moved" user=marha.6299 from=asia to=europe
+time=2026-10-31T04:36:26.302Z level=INFO msg="user moved" user=neyu.7523 from=asia to=europe
+time=2026-10-31T04:36:26.303Z level=INFO msg="user moved" user=miase_6849 from=asia to=europe
+time=2026-10-31T04:36:26.335Z level=INFO msg="europe 4 日目: 182 人"
+time=2026-10-31T04:36:29.196Z level=INFO msg="user moved" user=rael.8584 from=asia to=europe
+time=2026-10-31T04:36:29.369Z level=INFO msg="america 4 日目: 157 人"
+time=2026-10-31T04:36:31.311Z level=INFO msg="user moved" user=suor.6525 from=america to=europe
+time=2026-10-31T04:36:32.524Z level=INFO msg="asia 5 日目: 1259 人"
+time=2026-10-31T04:36:35.329Z level=INFO msg="europe 5 日目: 428 人"
+time=2026-10-31T04:36:38.343Z level=INFO msg="america 5 日目: 328 人"
+time=2026-10-31T04:36:47.372Z level=INFO msg="asia 最終日（グランプリ）: 1257 人"
+time=2026-10-31T04:36:47.438Z level=INFO msg="america 最終日（グランプリ）: 326 人"
+time=2026-10-31T04:36:47.509Z level=INFO msg="europe 最終日（グランプリ）: 427 人"
+time=2026-10-31T04:36:56.590Z level=INFO msg="グランプリ: アジア 952 人, ヨーロッパ 310 人, アメリカ 212 人"
+{
+  "pass": true,
+  "score": 190360,
+  "messages": [
+    "rewaben_7713: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "nusol-7455: 認定公開アカウントをフォローできません: PUT /api/follows/6700d81b-4375-479a-9d70-b976b2b8ca69: 応答がタイムアウトしました",
+    "byoshin_kobo_4338: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "dannuho-8535: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "jeongeori_pilapeu_1724: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "anorke_5991: 投稿 54e47b03-442b-47b2-abab-2a4f53aa57ab にコメントできません: POST /api/posts/54e47b03-442b-47b2-abab-2a4f53aa57ab/comments: 応答がタイムアウトしました",
+    "yuleosu-9111: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "kuchisol-9925: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "tortafu.10117: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hupo_shuizuguan_1760: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "sukusu_10507: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "maho_10369: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "liam_davis_92: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "aprendiendo_en_la_panaderia_1939: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "issu_10968: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "mevinya_8416: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "elheke11274: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "kani_11003: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "miaozhen_gongfang_970: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hupo_shuizuguan_4475: ログインできません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
