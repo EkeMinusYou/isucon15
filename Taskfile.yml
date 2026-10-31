@@ -40,6 +40,8 @@ vars:
       NATIVE_CRYPTO_LIB: /home/isucon/webapp/go/libisureal-crypto.so
       IMAGE_CACHE_DIR: /home/isucon/isureal-regional-images
       REGIONAL_STATE_DIR: /home/isucon/isureal-region-state
+      MASTER_STATE_DIR: /home/isucon/isureal-master-state
+      REGION_ASIA_URL: http://192.168.1.10
       REGION_EUROPE_URL: http://192.168.2.10
       REGION_AMERICA_URL: http://192.168.3.10
   TARGET_OS: linux

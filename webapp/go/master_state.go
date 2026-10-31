@@ -195,6 +195,9 @@ func (m *regionalMaster) validate(c change) error {
 			return err
 		}
 		uid = v.AuthorID
+		if indexedHome(m.homes.posts, v.ID) != m.region {
+			return fmt.Errorf("post identifier belongs to another master")
+		}
 	case "reaction":
 		var v Reaction
 		if err := json.Unmarshal(c.Data, &v); err != nil {
@@ -207,6 +210,9 @@ func (m *regionalMaster) validate(c change) error {
 			return err
 		}
 		uid = v.OwnerID
+		if indexedHome(m.homes.images, v.ID) != m.region {
+			return fmt.Errorf("image identifier belongs to another master")
+		}
 		if v.Part == "" {
 			f, err := m.files.open(v.ID)
 			if err != nil {

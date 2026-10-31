@@ -162,6 +162,9 @@ type appCore struct {
 	mu                   sync.RWMutex
 	globalGate           sync.RWMutex
 	viewMu               sync.RWMutex
+	master               *regionalMaster
+	mastersEnabled       bool
+	masterEpoch          string
 	journalMu            sync.Mutex
 	notifier             notificationHub
 	transactions         [stateShardCount]sync.RWMutex
@@ -443,7 +446,14 @@ func (a *App) commit() {
 		}
 		return
 	}
-	b, e := json.Marshal(a.pending)
+	txn := masterTransaction{Epoch: a.masterEpoch, ID: id(), Changes: a.pending}
+	var b []byte
+	var e error
+	if a.mastersEnabled {
+		b, e = json.Marshal(txn)
+	} else {
+		b, e = json.Marshal(a.pending)
+	}
 	if e != nil {
 		panic(e)
 	}
@@ -457,6 +467,9 @@ func (a *App) commit() {
 	}
 	a.journalWriteNS.Add(uint64(time.Since(writing)))
 	a.journalMu.Unlock()
+	if a.mastersEnabled {
+		a.persistMasterTransaction(txn)
+	}
 	if a.prepared {
 		a.viewMu.Lock()
 		for _, c := range a.pending {
@@ -632,6 +645,9 @@ func newApp(initial, durable string) (*App, error) {
 	return a, nil
 }
 func (a *App) reset() error {
+	if a.mastersEnabled {
+		return a.resetRegionalMasters()
+	}
 	if a.s != nil {
 		a.s.closeHistory()
 	}

@@ -27,6 +27,7 @@ const regionalFilePrefix = "/api/internal/region/images/"
 const regionalResetPath = "/api/internal/region/reset-images"
 
 type regionalUploadMetadata struct {
+	StorageRegion string
 	ID            string
 	Size          int64
 	Valid         bool
@@ -40,6 +41,7 @@ type regionalUploadKey struct{}
 // remove accepted files without removing an upload still waiting to register.
 type regionalUploads struct {
 	root   string
+	region string
 	mu     sync.Mutex
 	active map[string]bool
 }
@@ -78,6 +80,9 @@ func isImageUpload(r *http.Request) (profile, multipart bool) {
 
 func (u *regionalUploads) prepare(a *App, w http.ResponseWriter, r *http.Request) (*http.Request, *preparedUpload) {
 	fileID := id()
+	if validRegion(u.region) {
+		fileID = idInRegion(u.region)
+	}
 	u.mu.Lock()
 	u.active[fileID] = true
 	u.mu.Unlock()
@@ -94,7 +99,7 @@ func (u *regionalUploads) prepare(a *App, w http.ResponseWriter, r *http.Request
 		p = a.stageMultipartImageNamed(r, max, fileID)
 	}
 	p.stagedID, p.registrationUncertain = fileID, true
-	metadata := regionalUploadMetadata{p.fileID, p.size, p.ok, p.invalidJPEG, p.storageErr != nil}
+	metadata := regionalUploadMetadata{StorageRegion: u.region, ID: p.fileID, Size: p.size, Valid: p.ok, InvalidJPEG: p.invalidJPEG, StorageFailed: p.storageErr != nil}
 	b, _ := json.Marshal(metadata)
 	r.Header.Set(regionalUploadHeader, base64.RawURLEncoding.EncodeToString(b))
 	// Validation fields retain ParseMultipartForm's query/body precedence. The
@@ -133,7 +138,14 @@ func decodeRegionalUpload(r *http.Request) (preparedUpload, bool) {
 	if _, ok := uuidKey(m.ID); !ok && !(m.ID == "" && m.StorageFailed) {
 		return preparedUpload{}, false
 	}
-	p := preparedUpload{fileID: m.ID, size: m.Size, ok: m.Valid, invalidJPEG: m.InvalidJPEG, origin: r.Header.Get("X-ISU-Region")}
+	origin := m.StorageRegion
+	if origin == "" {
+		origin = r.Header.Get("X-ISU-Region")
+	}
+	if !validRegion(origin) {
+		return preparedUpload{}, false
+	}
+	p := preparedUpload{fileID: m.ID, size: m.Size, ok: m.Valid, invalidJPEG: m.InvalidJPEG, origin: origin}
 	if m.StorageFailed {
 		p.storageErr = errors.New("regional image storage failed")
 	}
@@ -252,6 +264,7 @@ func regionalRequest(method, address string) (*http.Response, error) {
 		return nil, err
 	}
 	r.Header.Set("X-ISU-Transport", transportSecret)
+	r.Header.Set("X-ISU-Region", "asia")
 	return regionalClient.Do(r)
 }
 

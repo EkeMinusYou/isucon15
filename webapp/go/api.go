@@ -305,10 +305,11 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.viewMu.RLock()
 		a.s = a.appCore.s
 		check := httptest.NewRecorder()
+		var uploadUser *Account
 		if time.Now().Before(a.s.Bans.Get(ipOf(r))) {
 			failure(check, 403, "ip_banned")
 		} else {
-			a.auth(check, r, !profile)
+			uploadUser = a.auth(check, r, !profile)
 		}
 		a.viewMu.RUnlock()
 		a.globalGate.RUnlock()
@@ -324,14 +325,15 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
 		p, regional := decodeRegionalUpload(r)
 		if !regional {
+			fileID := idInRegion(uploadUser.HomeRegion)
 			if profile {
-				p = a.stageImage(r.Body, 512)
+				p = a.stageImageNamed(r.Body, 512, fileID)
 			} else {
 				max := 512
 				if r.URL.Path == "/api/posts" {
 					max = 4096
 				}
-				p = a.stageMultipartImage(r, max)
+				p = a.stageMultipartImageNamed(r, max, fileID)
 			}
 		}
 		if p.fileID != "" && !regional {
@@ -350,6 +352,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		r.Body = io.NopCloser(bytes.NewReader(b))
+	}
+	if a.mastersEnabled && r.URL.Path == "/api/auth/login" && r.Method == "POST" {
+		r = a.prepareMasterLogin(r)
 	}
 	rr := &deferredResponse{ResponseRecorder: httptest.NewRecorder(), ctx: r.Context()}
 	stats := &a.routeMetrics[metricRoute(r.URL.Path)]
@@ -416,6 +421,18 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		output(w, 200, object{"language": "go", "agent": "Codex", "harness": "Codex", "model": "GPT-6"})
 		return
 	}
+	if path == masterPrefix+"failure" && method == "POST" && isInternal(r) {
+		var v struct{ IP, Region, Kind string }
+		if !decode(r, &v) || !validRegion(v.Region) || v.Kind != "signature" {
+			failure(w, 400, "invalid_failure")
+			return
+		}
+		r.Header.Set("X-Client-IP", v.IP)
+		r.Header.Set("X-ISU-Source", v.Region)
+		a.failIP(r, "signature", 3, 5*time.Second)
+		w.WriteHeader(204)
+		return
+	}
 	if path == "/api/auth/register" && method == "POST" {
 		var v struct{ Username, DisplayName, Region string }
 		if !decode(r, &v) || !usernameRE.MatchString(v.Username) || !validText(v.DisplayName, 1, 100) || !validRegion(v.Region) {
@@ -436,7 +453,18 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 		var v struct{ Username, SecretKey string }
 		decode(r, &v)
 		u := s.Accounts.Get(s.Names.Get(v.Username))
-		if !usernameRE.MatchString(v.Username) || u == nil || u.Status != "active" || !hmac.Equal([]byte(u.Secret), []byte(secretHash(v.SecretKey))) {
+		valid := usernameRE.MatchString(v.Username) && u != nil && u.Status == "active"
+		if valid && a.mastersEnabled {
+			result, _ := r.Context().Value(masterLoginKey{}).(masterLoginResult)
+			valid = result.user == u.ID && result.valid
+			if result.err != nil {
+				failure(w, 503, "authentication_unavailable")
+				return
+			}
+		} else if valid {
+			valid = hmac.Equal([]byte(u.Secret), []byte(secretHash(v.SecretKey)))
+		}
+		if !valid {
 			a.failIP(r, "login", 10, 10*time.Second)
 			failure(w, 401, "invalid_credentials")
 			return
@@ -722,6 +750,12 @@ func (a *App) addImage(r *http.Request, uid string) (*Image, error) {
 	}
 	if p.storageErr != nil {
 		return nil, p.storageErr
+	}
+	if a.mastersEnabled {
+		home := a.masterHome(uid)
+		if homeOfNewID(p.fileID) != home || p.origin != "" && p.origin != home {
+			return nil, errors.New("upload was not staged at its master")
+		}
 	}
 	im := &Image{ID: p.fileID, OwnerID: uid, MediaType: "image/jpeg", Size: p.size, StorageRegion: p.origin}
 	a.put("image", im)

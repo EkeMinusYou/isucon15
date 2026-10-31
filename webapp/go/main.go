@@ -22,6 +22,9 @@ func main() {
 		log.Fatal(err)
 	}
 	if app != nil {
+		if app.master != nil {
+			defer app.master.close()
+		}
 		config.Snapshot = app.snapshot
 		if app.journal != nil {
 			defer app.journal.Close()

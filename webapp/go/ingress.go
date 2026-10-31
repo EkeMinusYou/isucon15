@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/hmac"
 	"fmt"
 	"log"
@@ -71,6 +72,19 @@ func serviceHandler() (http.Handler, *App, error) {
 		if e != nil {
 			return nil, nil, e
 		}
+		if masterDir := os.Getenv("MASTER_STATE_DIR"); masterDir != "" {
+			files := &regionalUploads{root: a.durable, region: region}
+			master, err := newRegionalMaster(a.initial, masterDir, filepath.Join(a.initial, "images"), region, files)
+			if err != nil {
+				return nil, nil, err
+			}
+			if err = a.enableRegionalMasters(master); err != nil {
+				master.close()
+				return nil, nil, err
+			}
+			h, err := master.route(a)
+			return h, a, err
+		}
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !isInternal(r) {
 				r.Header.Del("X-ISU-Region")
@@ -96,6 +110,7 @@ func serviceHandler() (http.Handler, *App, error) {
 			return nil, nil, e
 		}
 		edge.durable = filepath.Join(root, "pending")
+		uploads.region = region
 	}
 	proxy.Transport = measurement.NewUpstreamTransport()
 	imageRoot := os.Getenv("IMAGE_CACHE_DIR")
@@ -104,8 +119,8 @@ func serviceHandler() (http.Handler, *App, error) {
 		base(r)
 		r.Host = target.Host
 		r.Header.Set("X-Country-Code", "JP")
-		r.Header.Set("X-ISU-Region", region)
-		r.Header.Set("X-ISU-Source", region)
+		r.Header.Set("X-ISU-Region", ingressRegion(r))
+		r.Header.Set("X-ISU-Source", ingressRegion(r))
 		r.Header.Set("X-ISU-Transport", transportSecret)
 		r.Header.Del(regionalImageRequest)
 		if imageRoot != "" && r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/api/images/") {
@@ -127,7 +142,10 @@ func serviceHandler() (http.Handler, *App, error) {
 		return nil
 	}
 	proxy.FlushInterval = -1
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := r.Context().Value(ingressRegionKey{}).(string); !ok {
+			r = r.WithContext(context.WithValue(r.Context(), ingressRegionKey{}, region))
+		}
 		if r.URL.Path == "/healthz" {
 			w.Write([]byte("ok\n"))
 			return
@@ -145,5 +163,15 @@ func serviceHandler() (http.Handler, *App, error) {
 			defer uploads.discard(p)
 		}
 		proxy.ServeHTTP(w, r)
-	}), edge, nil
+	})
+	if masterDir := os.Getenv("MASTER_STATE_DIR"); masterDir != "" {
+		master, err := newRegionalMaster(envOr("INITIAL_DIR", "/home/isucon/isureal-initial"), masterDir, imageRoot, region, uploads)
+		if err != nil {
+			return nil, nil, err
+		}
+		edge.master = master
+		h, err := master.route(handler)
+		return h, edge, err
+	}
+	return handler, edge, nil
 }
