@@ -55,7 +55,12 @@ func metricRoute(path string) int {
 	}
 }
 func (a *App) snapshot() measurement.Snapshot {
+	entropy := 0
+	if validateJPEGEntropy() {
+		entropy = 1
+	}
 	m := map[string]any{
+		"app_jpeg_entropy_validation":    entropy,
 		"app_jpeg_queue_depth":           jpegQueued.Load(),
 		"app_jpeg_active":                jpegActive.Load(),
 		"app_jpeg_requests_total":        jpegRequests.Load(),

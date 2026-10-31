@@ -37,6 +37,7 @@ vars:
       OWNER_URL: http://192.168.1.10
       COMPUTE_URL: http://192.168.4.10
       NATIVE_CRYPTO_LIB: /home/isucon/webapp/go/libisureal-crypto.so
+      JPEG_VALIDATION: header
   TARGET_OS: linux
   TARGET_ARCH: amd64
   # Optional Go PGO profile path for build/build-pgo; unset uses -pgo=auto (default.pgo).

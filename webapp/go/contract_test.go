@@ -70,6 +70,31 @@ func TestOversizedProfilePreservesDecodeFailureClassification(t *testing.T) {
 	}
 }
 
+func TestHeaderValidationMode(t *testing.T) {
+	t.Setenv("JPEG_VALIDATION", "header")
+	if p := prepareProfile(bytes.NewBufferString("not a JPEG")); p.ok || !p.invalidJPEG {
+		t.Fatal("non-JPEG must still be rejected")
+	}
+	var b bytes.Buffer
+	if err := jpeg.Encode(&b, image.NewRGBA(image.Rect(0, 0, 128, 128)), nil); err != nil {
+		t.Fatal(err)
+	}
+	truncated := b.Bytes()[:b.Len()-20]
+	if _, err := jpeg.Decode(bytes.NewReader(truncated)); err == nil {
+		t.Fatal("fixture must have invalid entropy data")
+	}
+	if p := prepareProfile(bytes.NewReader(truncated)); !p.ok || !bytes.Equal(p.data, truncated) {
+		t.Fatal("header mode did not preserve the opaque JPEG payload")
+	}
+	b.Reset()
+	if err := jpeg.Encode(&b, image.NewRGBA(image.Rect(0, 0, 513, 2)), nil); err != nil {
+		t.Fatal(err)
+	}
+	if p := prepareProfile(bytes.NewReader(b.Bytes())); p.ok || p.invalidJPEG {
+		t.Fatal("dimension rejection must remain separate from invalid format")
+	}
+}
+
 func BenchmarkSignedAlternatingExpiration(b *testing.B) {
 	a := &App{s: emptyState(), signatures: map[string]string{}}
 	a.s.Accounts["owner"] = &Account{Secret: secretHash("key")}

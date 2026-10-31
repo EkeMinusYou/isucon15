@@ -62,6 +62,8 @@ type preparedUpload struct {
 	invalidJPEG bool
 }
 
+func validateJPEGEntropy() bool { return os.Getenv("JPEG_VALIDATION") != "header" }
+
 // Validate before taking the state lock. The tee retains original bytes only
 // after the JPEG header has been accepted; malformed bodies need not be read.
 func prepareProfile(body io.Reader) preparedUpload {
@@ -71,9 +73,11 @@ func prepareProfile(body io.Reader) preparedUpload {
 	if err != nil {
 		return preparedUpload{invalidJPEG: true}
 	}
-	header := append([]byte(nil), b.Bytes()...)
-	if err = jpegvalidate.Validate(io.MultiReader(bytes.NewReader(header), r)); err != nil {
-		return preparedUpload{invalidJPEG: true}
+	if validateJPEGEntropy() {
+		header := append([]byte(nil), b.Bytes()...)
+		if err = jpegvalidate.Validate(io.MultiReader(bytes.NewReader(header), r)); err != nil {
+			return preparedUpload{invalidJPEG: true}
+		}
 	}
 	// Decode failures count toward the abuse limit even when dimensions also
 	// exceed the profile limit. A valid oversized JPEG does not.
@@ -788,6 +792,9 @@ func multipartImage(r *http.Request, max int) ([]byte, bool) {
 	cfg, e := jpeg.DecodeConfig(bytes.NewReader(b))
 	if e != nil || cfg.Width > max || cfg.Height > max {
 		return nil, false
+	}
+	if !validateJPEGEntropy() {
+		return b, true
 	}
 	if max > 512 {
 		if !validateLargeJPEG(r.Context(), b) {
