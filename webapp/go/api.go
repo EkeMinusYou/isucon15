@@ -171,7 +171,7 @@ func (a *App) signed(im *Image, exp int64) string {
 	return sig
 }
 func (a *App) imageURL(i string) any {
-	im := a.s.Images[i]
+	im := a.s.Images.get(i)
 	if im == nil {
 		return nil
 	}
@@ -653,15 +653,15 @@ func (a *App) validImage(im *Image) bool {
 		return true
 	}
 	if im.Kind == 'p' {
-		p := s.Posts[im.Ref]
+		p := s.Posts.get(im.Ref)
 		return p != nil && p.DeletedAt == nil
 	}
 	if im.Kind == 'r' {
-		v := s.Reactions[im.Ref]
+		v := s.Reactions.get(im.Ref)
 		if v == nil || v.DeletedAt != nil || v.ReplacedAt != nil {
 			return false
 		}
-		p := s.Posts[v.PostID]
+		p := s.Posts.get(v.PostID)
 		return p != nil && p.DeletedAt == nil && s.active(p.AuthorID)
 	}
 	return false
@@ -676,7 +676,7 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	}
 	exp, e := strconv.ParseInt(es[0], 10, 64)
 	raw, e2 := base64.RawURLEncoding.DecodeString(ss[0])
-	im := a.s.Images[i]
+	im := a.s.Images.get(i)
 	if e != nil || strconv.FormatInt(exp, 10) != es[0] || exp <= time.Now().Unix() || e2 != nil || len(raw) != 32 || base64.RawURLEncoding.EncodeToString(raw) != ss[0] || im == nil || !a.s.active(im.OwnerID) {
 		failure(w, 403, "image_forbidden")
 		return
@@ -767,7 +767,7 @@ func (a *App) createPost(w http.ResponseWriter, r *http.Request, u *Account) {
 	output(w, 201, a.post(&p))
 }
 func (a *App) postAPI(w http.ResponseWriter, r *http.Request, u *Account, i string) {
-	p := a.s.Posts[i]
+	p := a.s.Posts.get(i)
 	if p == nil || p.DeletedAt != nil {
 		failure(w, 404, "post_not_found")
 		return
@@ -809,7 +809,7 @@ func (a *App) postAPI(w http.ResponseWriter, r *http.Request, u *Account, i stri
 		date := a.s.Windows[p.WindowID].LocalDate
 		n := 0
 		for _, pid := range a.s.UserPosts[u.ID] {
-			x := a.s.Posts[pid]
+			x := a.s.Posts.get(pid)
 			if x.DeletedAt != nil && a.s.Windows[x.WindowID].LocalDate == date {
 				n++
 			}

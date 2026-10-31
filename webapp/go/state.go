@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -117,19 +116,20 @@ type banChange struct {
 	Until time.Time
 }
 type State struct {
+	imageLinks    map[[16]byte]imageLink
 	LivePosts     map[string][]string
 	Accounts      map[string]*Account
 	Names         map[string]string
 	Admins        map[string]*Administrator
 	Windows       map[string]*Window
 	Current       map[string]string
-	Posts         map[string]*Post
+	Posts         *recordStore[Post]
 	UserPosts     map[string][]string
-	Reactions     map[string]*Reaction
+	Reactions     *recordStore[Reaction]
 	PostReactions map[string][]string
-	Comments      map[string]*Comment
+	Comments      *recordStore[Comment]
 	PostComments  map[string][]string
-	Images        map[string]*Image
+	Images        *recordStore[Image]
 	Requests      map[string]*Relation
 	Friends       map[string]*Relation
 	Adj           map[string]map[string]bool
@@ -154,7 +154,15 @@ type App struct {
 }
 
 func emptyState() *State {
-	return &State{LivePosts: map[string][]string{}, Accounts: map[string]*Account{}, Names: map[string]string{}, Admins: map[string]*Administrator{}, Windows: map[string]*Window{}, Current: map[string]string{}, Posts: map[string]*Post{}, UserPosts: map[string][]string{}, Reactions: map[string]*Reaction{}, PostReactions: map[string][]string{}, Comments: map[string]*Comment{}, PostComments: map[string][]string{}, Images: map[string]*Image{}, Requests: map[string]*Relation{}, Friends: map[string]*Relation{}, Adj: map[string]map[string]bool{}, Follows: map[string]*Relation{}, Blocks: map[string]*Relation{}, Sessions: map[string]string{}, AdminSessions: map[string]string{}, Bans: map[string]time.Time{}, Notifications: map[string][]Notification{}}
+	s := &State{imageLinks: map[[16]byte]imageLink{}, LivePosts: map[string][]string{}, Accounts: map[string]*Account{}, Names: map[string]string{}, Admins: map[string]*Administrator{}, Windows: map[string]*Window{}, Current: map[string]string{}, Posts: newRecordStore[Post](), UserPosts: map[string][]string{}, Reactions: newRecordStore[Reaction](), PostReactions: map[string][]string{}, Comments: newRecordStore[Comment](), PostComments: map[string][]string{}, Images: newRecordStore[Image](), Requests: map[string]*Relation{}, Friends: map[string]*Relation{}, Adj: map[string]map[string]bool{}, Follows: map[string]*Relation{}, Blocks: map[string]*Relation{}, Sessions: map[string]string{}, AdminSessions: map[string]string{}, Bans: map[string]time.Time{}, Notifications: map[string][]Notification{}}
+	s.Images.decorate = func(id string, im *Image) {
+		key, _ := uuidKey(id)
+		if link, ok := s.imageLinks[key]; ok {
+			im.Ref = uuidString(link.Ref)
+			im.Kind = link.Kind
+		}
+	}
+	return s
 }
 func id() string {
 	var b [16]byte
@@ -204,7 +212,7 @@ func (s *State) apply(kind string, data []byte) error {
 			for uid, ids := range s.LivePosts {
 				keep := ids[:0]
 				for _, pid := range ids {
-					if s.Posts[pid].WindowID != v.ID {
+					if s.Posts.get(pid).WindowID != v.ID {
 						keep = append(keep, pid)
 					}
 				}
@@ -223,39 +231,33 @@ func (s *State) apply(kind string, data []byte) error {
 	case "post":
 		var v Post
 		decode(&v)
-		if s.Posts[v.ID] == nil {
+		if s.Posts.get(v.ID) == nil {
 			s.UserPosts[v.AuthorID] = append(s.UserPosts[v.AuthorID], v.ID)
 			if win := s.Windows[v.WindowID]; win != nil && win.EndedAt == nil {
 				s.LivePosts[v.AuthorID] = append(s.LivePosts[v.AuthorID], v.ID)
 			}
 		}
-		s.Posts[v.ID] = &v
-		if im := s.Images[v.ImageID]; im != nil {
-			im.Kind = 'p'
-			im.Ref = v.ID
-		}
+		s.Posts.set(v.ID, &v)
+		s.linkImage(v.ImageID, v.ID, 'p')
 	case "reaction":
 		var v Reaction
 		decode(&v)
-		if s.Reactions[v.ID] == nil {
+		if s.Reactions.get(v.ID) == nil {
 			s.PostReactions[v.PostID] = append(s.PostReactions[v.PostID], v.ID)
 		}
-		s.Reactions[v.ID] = &v
-		if im := s.Images[v.ImageID]; im != nil {
-			im.Kind = 'r'
-			im.Ref = v.ID
-		}
+		s.Reactions.set(v.ID, &v)
+		s.linkImage(v.ImageID, v.ID, 'r')
 	case "comment":
 		var v Comment
 		decode(&v)
-		if s.Comments[v.ID] == nil {
+		if s.Comments.get(v.ID) == nil {
 			s.PostComments[v.PostID] = append(s.PostComments[v.PostID], v.ID)
 		}
-		s.Comments[v.ID] = &v
+		s.Comments.set(v.ID, &v)
 	case "image":
 		var v Image
 		decode(&v)
-		s.Images[v.ID] = &v
+		s.Images.set(v.ID, &v)
 	case "request":
 		var v Relation
 		decode(&v)
@@ -365,6 +367,22 @@ func loadLines(path string, fn func([]byte) error) error {
 }
 func (a *App) loadInitial() error {
 	s := emptyState()
+	stores := []interface {
+		start(string) error
+		finish() error
+		close()
+	}{s.Posts, s.Reactions, s.Comments, s.Images}
+	complete := false
+	defer func() {
+		if !complete {
+			s.closeHistory()
+		}
+	}()
+	for _, store := range stores {
+		if err := store.start(a.durable); err != nil {
+			return err
+		}
+	}
 	pool := map[string]string{}
 	intern := func(x string) string {
 		if y, ok := pool[x]; ok {
@@ -394,15 +412,14 @@ func (a *App) loadInitial() error {
 					v.ImageID = intern(v.ImageID)
 					v.Visibility = intern(v.Visibility)
 					v.Location.Kind = intern(v.Location.Kind)
-					s.Posts[v.ID] = &v
+					if err := s.Posts.add(v.ID, b, &v); err != nil {
+						return err
+					}
 					s.UserPosts[v.AuthorID] = append(s.UserPosts[v.AuthorID], v.ID)
 					if win := s.Windows[v.WindowID]; win != nil && win.EndedAt == nil {
 						s.LivePosts[v.AuthorID] = append(s.LivePosts[v.AuthorID], v.ID)
 					}
-					if im := s.Images[v.ImageID]; im != nil {
-						im.Kind = 'p'
-						im.Ref = v.ID
-					}
+					s.linkImage(v.ImageID, v.ID, 'p')
 				case "reaction":
 					var v Reaction
 					if e := json.Unmarshal(b, &v); e != nil {
@@ -413,12 +430,11 @@ func (a *App) loadInitial() error {
 					v.ReactorID = intern(v.ReactorID)
 					v.ImageID = intern(v.ImageID)
 					v.Type = intern(v.Type)
-					s.Reactions[v.ID] = &v
-					s.PostReactions[v.PostID] = append(s.PostReactions[v.PostID], v.ID)
-					if im := s.Images[v.ImageID]; im != nil {
-						im.Kind = 'r'
-						im.Ref = v.ID
+					if err := s.Reactions.add(v.ID, b, &v); err != nil {
+						return err
 					}
+					s.PostReactions[v.PostID] = append(s.PostReactions[v.PostID], v.ID)
+					s.linkImage(v.ImageID, v.ID, 'r')
 				case "comment":
 					var v Comment
 					if e := json.Unmarshal(b, &v); e != nil {
@@ -427,7 +443,9 @@ func (a *App) loadInitial() error {
 					v.ID = intern(v.ID)
 					v.PostID = intern(v.PostID)
 					v.AuthorID = intern(v.AuthorID)
-					s.Comments[v.ID] = &v
+					if err := s.Comments.add(v.ID, b, &v); err != nil {
+						return err
+					}
 					s.PostComments[v.PostID] = append(s.PostComments[v.PostID], v.ID)
 				case "image":
 					var v Image
@@ -438,7 +456,9 @@ func (a *App) loadInitial() error {
 					v.OwnerID = intern(v.OwnerID)
 					v.Part = intern(v.Part)
 					v.MediaType = intern(v.MediaType)
-					s.Images[v.ID] = &v
+					if err := s.Images.add(v.ID, b, &v); err != nil {
+						return err
+					}
 				default:
 					return s.apply(spec.kind, b)
 				}
@@ -451,6 +471,12 @@ func (a *App) loadInitial() error {
 	}
 	// Historical notifications precede all future SSE connection times. They are
 	// immutable input, and therefore need no live index or replay allocation.
+	for _, store := range stores {
+		if err := store.finish(); err != nil {
+			return err
+		}
+	}
+	complete = true
 	a.s = s
 	return nil
 }
@@ -487,10 +513,13 @@ func newApp(initial, durable string) (*App, error) {
 		f.Close()
 		return nil, e
 	}
-	log.Printf("state ready: accounts=%d posts=%d images=%d", len(a.s.Accounts), len(a.s.Posts), len(a.s.Images))
+	log.Printf("state ready: accounts=%d posts=%d images=%d", len(a.s.Accounts), a.s.Posts.len(), a.s.Images.len())
 	return a, nil
 }
 func (a *App) reset() error {
+	if a.s != nil {
+		a.s.closeHistory()
+	}
 	a.s = nil
 	runtime.GC()
 	if e := a.loadInitial(); e != nil {
@@ -507,14 +536,6 @@ func (a *App) reset() error {
 	a.signatures = map[string]string{}
 	a.wake()
 	return nil
-}
-func sortedIDs(m map[string]*Post) []string {
-	r := make([]string, 0, len(m))
-	for k := range m {
-		r = append(r, k)
-	}
-	sort.Strings(r)
-	return r
 }
 func (a *App) imageReader(im *Image) (*os.File, int64, error) {
 	p := filepath.Join(a.initial, "images", im.Part)
@@ -533,7 +554,7 @@ func (s *State) dayPosts(u *Account) (*Post, int) {
 	var p *Post
 	deleted := 0
 	for _, pid := range s.UserPosts[u.ID] {
-		x := s.Posts[pid]
+		x := s.Posts.get(pid)
 		if s.Windows[x.WindowID].LocalDate == w.LocalDate {
 			if x.DeletedAt != nil {
 				deleted++

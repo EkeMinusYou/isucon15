@@ -16,7 +16,7 @@ import (
 func (a *App) listComments(pid string) []*Comment {
 	out := []*Comment{}
 	for _, i := range a.s.PostComments[pid] {
-		c := a.s.Comments[i]
+		c := a.s.Comments.get(i)
 		if c.DeletedAt == nil && a.s.active(c.AuthorID) {
 			out = append(out, c)
 		}
@@ -27,7 +27,7 @@ func (a *App) listComments(pid string) []*Comment {
 func (a *App) listReactions(pid string) []*Reaction {
 	out := []*Reaction{}
 	for _, i := range a.s.PostReactions[pid] {
-		c := a.s.Reactions[i]
+		c := a.s.Reactions.get(i)
 		if c.DeletedAt == nil && c.ReplacedAt == nil && a.s.active(c.ReactorID) {
 			out = append(out, c)
 		}
@@ -37,7 +37,7 @@ func (a *App) listReactions(pid string) []*Reaction {
 }
 func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, pid, kind string) {
 	s := a.s
-	p := s.Posts[pid]
+	p := s.Posts.get(pid)
 	allowed := s.view(u, p)
 	if kind == "comments" {
 		allowed = s.interact(u, p)
@@ -77,7 +77,7 @@ func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, p
 			}
 			now := time.Now().UTC()
 			for _, i := range s.PostReactions[pid] {
-				old := s.Reactions[i]
+				old := s.Reactions.get(i)
 				if old.ReactorID == u.ID && old.ReplacedAt == nil && old.DeletedAt == nil {
 					v := *old
 					v.ReplacedAt = &now
@@ -127,12 +127,12 @@ func (a *App) interactions(w http.ResponseWriter, r *http.Request, u *Account, p
 func (a *App) deleteInteraction(w http.ResponseWriter, r *http.Request, u *Account, kind, i string) {
 	now := time.Now().UTC()
 	if kind == "comment" {
-		v := a.s.Comments[i]
+		v := a.s.Comments.get(i)
 		if v == nil || v.DeletedAt != nil {
 			failure(w, 404, "interaction_not_found")
 			return
 		}
-		if v.AuthorID != u.ID && a.s.Posts[v.PostID].AuthorID != u.ID {
+		if v.AuthorID != u.ID && a.s.Posts.get(v.PostID).AuthorID != u.ID {
 			failure(w, 403, "interaction_forbidden")
 			return
 		}
@@ -140,12 +140,12 @@ func (a *App) deleteInteraction(w http.ResponseWriter, r *http.Request, u *Accou
 		c.DeletedAt = &now
 		a.put(kind, c)
 	} else {
-		v := a.s.Reactions[i]
+		v := a.s.Reactions.get(i)
 		if v == nil || v.DeletedAt != nil {
 			failure(w, 404, "interaction_not_found")
 			return
 		}
-		if v.ReactorID != u.ID && a.s.Posts[v.PostID].AuthorID != u.ID {
+		if v.ReactorID != u.ID && a.s.Posts.get(v.PostID).AuthorID != u.ID {
 			failure(w, 403, "interaction_forbidden")
 			return
 		}
@@ -159,13 +159,13 @@ func (a *App) score(uid string, p *Post) int {
 	s := a.s
 	engaged := map[string]bool{}
 	for _, x := range s.PostComments[p.ID] {
-		v := s.Comments[x]
+		v := s.Comments.get(x)
 		if v.DeletedAt == nil && s.active(v.AuthorID) && s.friend(uid, v.AuthorID) {
 			engaged[v.AuthorID] = true
 		}
 	}
 	for _, x := range s.PostReactions[p.ID] {
-		v := s.Reactions[x]
+		v := s.Reactions.get(x)
 		if v.DeletedAt == nil && v.ReplacedAt == nil && s.active(v.ReactorID) && s.friend(uid, v.ReactorID) {
 			engaged[v.ReactorID] = true
 		}
@@ -221,7 +221,7 @@ func (a *App) feed(w http.ResponseWriter, r *http.Request, u *Account, kind stri
 			continue
 		}
 		for _, pid := range s.LivePosts[author.ID] {
-			p := s.Posts[pid]
+			p := s.Posts.get(pid)
 			if s.Windows[p.WindowID].EndedAt != nil || !s.view(u, p) || kind == "public" && p.Visibility != "public" {
 				continue
 			}
@@ -313,7 +313,7 @@ func (a *App) memories(w http.ResponseWriter, r *http.Request, u *Account) {
 func (a *App) ownPosts(u *Account, asc bool) []*Post {
 	ps := []*Post{}
 	for _, i := range a.s.UserPosts[u.ID] {
-		p := a.s.Posts[i]
+		p := a.s.Posts.get(i)
 		if p.DeletedAt == nil {
 			ps = append(ps, p)
 		}
@@ -340,7 +340,7 @@ func (a *App) export(w http.ResponseWriter, r *http.Request, u *Account) {
 			failure(w, 500, "export_failed")
 			return
 		}
-		im := a.s.Images[p.ImageID]
+		im := a.s.Images.get(p.ImageID)
 		src, off, e := a.imageReader(im)
 		if e != nil {
 			failure(w, 500, "export_failed")
