@@ -1,0 +1,41 @@
+2026-10-31T02:45:16.016997167Z	BENCHMARK_START
+PORTAL_JOB_ID: 5208
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T02:45:50.164Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:45:53.144Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:45:56.142Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:45:59.161Z level=INFO msg="asia 2 日目: 46 人"
+time=2026-10-31T02:46:00.600Z level=INFO msg="user moved" user=chiivyno.5219 from=asia to=america
+time=2026-10-31T02:46:01.871Z level=INFO msg="user moved" user=chiivyno.5219 from=america to=asia
+time=2026-10-31T02:46:01.938Z level=INFO msg="user moved" user=somuul.5298 from=asia to=america
+time=2026-10-31T02:46:02.145Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T02:46:05.142Z level=INFO msg="america 2 日目: 21 人"
+time=2026-10-31T02:46:08.177Z level=INFO msg="asia 3 日目: 129 人"
+time=2026-10-31T02:46:08.924Z level=INFO msg="user moved" user=chiivyno.5219 from=asia to=america
+time=2026-10-31T02:46:10.906Z level=INFO msg="user moved" user=leoni_5740 from=asia to=america
+time=2026-10-31T02:46:11.205Z level=INFO msg="europe 3 日目: 46 人"
+time=2026-10-31T02:46:14.143Z level=INFO msg="america 3 日目: 56 人"
+time=2026-10-31T02:46:17.198Z level=INFO msg="asia 4 日目: 373 人"
+time=2026-10-31T02:46:20.622Z level=INFO msg="europe 4 日目: 63 人"
+time=2026-10-31T02:46:23.797Z level=INFO msg="america 4 日目: 65 人"
+time=2026-10-31T02:46:25.733Z level=INFO msg="user moved" user=nufu-7451 from=asia to=europe
+time=2026-10-31T02:46:26.728Z level=INFO msg="asia 5 日目: 671 人"
+time=2026-10-31T02:46:29.651Z level=INFO msg="europe 5 日目: 64 人"
+time=2026-10-31T02:46:32.817Z level=INFO msg="america 5 日目: 65 人"
+time=2026-10-31T02:46:41.838Z level=INFO msg="europe 最終日（グランプリ）: 64 人"
+time=2026-10-31T02:46:41.838Z level=INFO msg="america 最終日（グランプリ）: 64 人"
+time=2026-10-31T02:46:41.857Z level=INFO msg="asia 最終日（グランプリ）: 670 人"
+time=2026-10-31T02:46:50.199Z level=INFO msg="グランプリ: アジア 587 人, ヨーロッパ 42 人, アメリカ 48 人"
+{
+  "pass": true,
+  "score": 94381,
+  "messages": []
+}
+SCORE: 94381
+BENCHMARK_PASS
+2026-10-31T02:47:16.874554124Z	BENCHMARK_END
+
+SCORE: 94381
+BENCHMARK_PASS
