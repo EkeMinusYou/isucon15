@@ -1,0 +1,60 @@
+2026-10-31T06:19:14.316717656Z	BENCHMARK_START
+PORTAL_JOB_ID: 21951
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T06:19:20.420Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:19:23.394Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:19:26.464Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:19:29.469Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T06:19:32.398Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T06:19:35.447Z level=INFO msg="america 2 日目: 14 人"
+time=2026-10-31T06:19:38.505Z level=INFO msg="asia 3 日目: 138 人"
+time=2026-10-31T06:19:41.488Z level=INFO msg="europe 3 日目: 54 人"
+time=2026-10-31T06:19:44.432Z level=INFO msg="america 3 日目: 37 人"
+time=2026-10-31T06:19:46.788Z level=INFO msg="user moved" user=kunueva.6206 from=europe to=asia
+time=2026-10-31T06:19:47.603Z level=INFO msg="asia 4 日目: 397 人"
+time=2026-10-31T06:19:50.173Z level=INFO msg="user moved" user=nakeku.6948 from=asia to=europe
+time=2026-10-31T06:19:50.673Z level=INFO msg="europe 4 日目: 151 人"
+time=2026-10-31T06:19:52.681Z level=INFO msg="user moved" user=hisu.7600 from=asia to=america
+time=2026-10-31T06:19:53.438Z level=INFO msg="user moved" user=kunueva.6206 from=asia to=america
+time=2026-10-31T06:19:53.562Z level=INFO msg="america 4 日目: 92 人"
+time=2026-10-31T06:19:56.703Z level=INFO msg="asia 5 日目: 1015 人"
+time=2026-10-31T06:19:59.740Z level=INFO msg="europe 5 日目: 211 人"
+time=2026-10-31T06:20:02.679Z level=INFO msg="america 5 日目: 92 人"
+time=2026-10-31T06:20:12.193Z level=INFO msg="asia 最終日（グランプリ）: 1014 人"
+time=2026-10-31T06:20:12.424Z level=INFO msg="europe 最終日（グランプリ）: 211 人"
+time=2026-10-31T06:20:12.811Z level=INFO msg="america 最終日（グランプリ）: 92 人"
+time=2026-10-31T06:20:20.385Z level=INFO msg="グランプリ: アジア 691 人, ヨーロッパ 157 人, アメリカ 69 人"
+{
+  "pass": true,
+  "score": 128810,
+  "messages": [
+    "noso.8373: 新しいユーザーを登録できません: POST /api/auth/register: ステータスコード 502 が返りました（期待値 201、unknown）",
+    "yumia8725: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "nehi_9202: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "yukuor.8710: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "teka.9493: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "haelhe.9370: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "raleo9828: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "koevaul.11305: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "chileo.11094: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "chimiaki_12892: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "nihira11733: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "mamax-13426: 新しいユーザーを登録できません: POST /api/auth/register: 応答がタイムアウトしました",
+    "dantsu-12938: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "hozoe_11130: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "rite11778: プロフィールを変えられません: PATCH /api/me: 応答がタイムアウトしました",
+    "semarna12888: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "nere-13026: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "danivyku-5594: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "maso-11563: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "ulke13319: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました"
+  ]
+}
+SCORE: 128810
+BENCHMARK_PASS
+2026-10-31T06:20:40.004329602Z	BENCHMARK_END
+
+SCORE: 128810
+BENCHMARK_PASS
