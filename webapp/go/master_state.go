@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 )
@@ -25,6 +24,7 @@ type regionalMaster struct {
 	initial, durable, imageRoot string
 	files                       *regionalUploads
 	s                           *State
+	initialState                *State
 	homes                       *masterHomes
 	journal                     *os.File
 	seen                        map[string]bool
@@ -131,7 +131,7 @@ func newRegionalMaster(initial, durable, imageRoot, region string, files *region
 	if err != nil {
 		return nil, err
 	}
-	m := &regionalMaster{region: region, initial: initial, durable: durable, imageRoot: imageRoot, files: files, s: s, homes: homes, seen: map[string]bool{}, signer: &App{appCore: &appCore{}}}
+	m := &regionalMaster{region: region, initial: initial, durable: durable, imageRoot: imageRoot, files: files, s: s.fork(), initialState: s, homes: homes, seen: map[string]bool{}, signer: &App{appCore: &appCore{}}}
 	if b, readErr := os.ReadFile(filepath.Join(durable, "epoch")); readErr == nil {
 		m.epoch = strings.TrimSpace(string(b))
 	} else if !os.IsNotExist(readErr) {
@@ -176,8 +176,8 @@ func (m *regionalMaster) close() {
 	if m.journal != nil {
 		m.journal.Close()
 	}
-	if m.s != nil {
-		m.s.closeHistory()
+	if m.initialState != nil {
+		m.initialState.closeHistory()
 	}
 }
 
@@ -295,20 +295,10 @@ func (m *regionalMaster) reset(epoch string) error {
 	if epoch != "" && m.epoch == epoch {
 		return nil
 	}
-	// Initialize may briefly block reads. Release the previous mapped history
-	// before rebuilding it so both generations never consume memory together.
-	m.s.closeHistory()
-	m.s = emptyState()
-	runtime.GC()
-	s, _, err := loadMasterInitial(m.initial, m.region, m.durable)
-	if err != nil {
-		return err
-	}
 	if err := m.journal.Truncate(0); err != nil {
-		s.closeHistory()
 		return err
 	}
-	m.s, m.seen = s, map[string]bool{}
+	m.s, m.seen = m.initialState.fork(), map[string]bool{}
 	// Truncate metadata before removing originals, so a restart never replays
 	// an old reference after its original has been removed by initialization.
 	m.files.mu.Lock()

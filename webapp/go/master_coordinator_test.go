@@ -25,6 +25,8 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 	var delayed atomic.Bool
 	entered, release := make(chan struct{}), make(chan struct{})
 	var once sync.Once
+	var releaseOnce sync.Once
+	defer releaseOnce.Do(func() { close(release) })
 	for _, region := range []string{"europe", "america"} {
 		files, err := newRegionalUploads(t.TempDir())
 		if err != nil {
@@ -47,7 +49,7 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 				http.NotFound(w, r)
 			}
 		}))
-		defer server.Close()
+		defer func() { releaseOnce.Do(func() { close(release) }); server.Close() }()
 		t.Setenv("REGION_"+map[string]string{"europe": "EUROPE", "america": "AMERICA"}[region]+"_URL", server.URL)
 	}
 	if err := a.enableRegionalMasters(local); err != nil {
@@ -85,7 +87,7 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 		t.Fatal("master RPC blocked unrelated committed reads")
 	}
 	delayed.Store(false)
-	close(release)
+	releaseOnce.Do(func() { close(release) })
 	if status := <-finished; status != 200 {
 		t.Fatalf("update status %d", status)
 	}
@@ -98,11 +100,22 @@ func TestCoordinatorPublishesOnlyAfterMasterCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer restored.journal.Close()
-	defer restored.s.closeHistory()
+	defer restored.closeHistory()
 	if err := restored.enableRegionalMasters(local); err != nil {
 		t.Fatal(err)
 	}
 	if restored.s.Accounts.Get(uid).DisplayName != "after" || restored.s.Sessions.Get(token) != uid {
 		t.Fatal("coordinator intent replay lost master state")
+	}
+	initialView, initialMaster := restored.initialState, local.initialState
+	if initialView.Accounts.Get(uid) != nil || initialMaster.Accounts.Get(uid) != nil {
+		t.Fatal("an update mutated immutable initialization state")
+	}
+	requireCall(t, restored, "POST", "/api/initialize", "", nil, 200)
+	if restored.initialState != initialView || local.initialState != initialMaster {
+		t.Fatal("initialize reloaded immutable history")
+	}
+	if restored.appCore.s.Accounts.Get(uid) != nil || local.s.Accounts.Get(uid) != nil {
+		t.Fatal("initialize retained an update")
 	}
 }

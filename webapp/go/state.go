@@ -164,6 +164,7 @@ type appCore struct {
 	viewMu               sync.RWMutex
 	master               *regionalMaster
 	mastersEnabled       bool
+	initialState         *State
 	masterEpoch          string
 	journalMu            sync.Mutex
 	notifier             notificationHub
@@ -505,6 +506,11 @@ func loadLines(path string, fn func([]byte) error) error {
 	return sc.Err()
 }
 func (a *App) loadInitial() error {
+	if a.initialState != nil {
+		a.s = a.initialState.fork()
+		a.appCore.s = a.s
+		return nil
+	}
 	s := emptyState()
 	complete := false
 	defer func() {
@@ -604,9 +610,21 @@ func (a *App) loadInitial() error {
 	s.finishPostPeriods()
 	complete = true
 	a.s = s
-	a.appCore.s = s
+	if a.mastersEnabled {
+		a.initialState = s
+		a.s = s.fork()
+	}
+	a.appCore.s = a.s
 	a.historyResidentBytes.Store(uint64(len(s.Posts.data)+len(s.Reactions.data)+len(s.Comments.data)+len(s.Images.data)) * recordChunkBytes)
 	return nil
+}
+
+func (a *App) closeHistory() {
+	if a.initialState != nil {
+		a.initialState.closeHistory()
+	} else if a.appCore.s != nil {
+		a.appCore.s.closeHistory()
+	}
 }
 func newAppCore(initial, durable string) (*App, error) {
 	a := &App{appCore: &appCore{initial: initial, durable: durable, failures: new(shardedMap[string, []time.Time]), signatures: map[string]string{}}}

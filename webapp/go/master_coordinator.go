@@ -268,10 +268,8 @@ func (a *App) resetRegionalMasters() error {
 	if err := a.ensureMasterEpoch(epoch); err != nil {
 		return err
 	}
-	a.s.closeHistory()
 	a.s = nil
 	a.appCore.s = nil
-	runtime.GC()
 	if err := a.loadInitial(); err != nil {
 		return err
 	}

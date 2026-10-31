@@ -25,7 +25,7 @@ func TestRegionalMasterRoutesMovedUserAndInvalidatesImages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { owner.journal.Close(); owner.s.closeHistory() })
+	t.Cleanup(func() { owner.journal.Close(); owner.closeHistory() })
 	var handlers [3]http.Handler
 	var servers [3]*httptest.Server
 	for i, region := range masterRegions {

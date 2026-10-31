@@ -22,6 +22,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if app != nil {
+		defer app.closeHistory()
 		if app.master != nil {
 			defer app.master.close()
 		}
