@@ -549,6 +549,13 @@ func (a *App) reset() error {
 	if _, e := a.journal.Seek(0, io.SeekEnd); e != nil {
 		return e
 	}
+	// Only initialize removes uploaded bytes. Ordinary restarts replay them.
+	if e := os.RemoveAll(filepath.Join(a.durable, "images")); e != nil {
+		return e
+	}
+	if e := os.MkdirAll(filepath.Join(a.durable, "images"), 0755); e != nil {
+		return e
+	}
 	a.failures = map[string][]time.Time{}
 	a.changes = nil
 	a.signatureMu.Lock()

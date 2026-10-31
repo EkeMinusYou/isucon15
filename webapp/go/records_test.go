@@ -67,3 +67,33 @@ func TestHistoricalOverlayRestoresAndInitializes(t *testing.T) {
 		t.Fatal("initial image was not restored")
 	}
 }
+
+func TestInitializeRemovesOnlyUploadedImages(t *testing.T) {
+	a := fixtureApp(t)
+	uploaded := filepath.Join(a.durable, "images", "uploaded")
+	initial := filepath.Join(a.initial, "images", "original.bin")
+	if err := os.WriteFile(uploaded, []byte("uploaded"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(initial, []byte("initial"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := newApp(a.initial, a.durable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer restored.journal.Close()
+	defer restored.s.closeHistory()
+	if _, err := os.Stat(uploaded); err != nil {
+		t.Fatal("restart removed an upload")
+	}
+	if err := restored.reset(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(uploaded); !os.IsNotExist(err) {
+		t.Fatal("initialize retained an old upload")
+	}
+	if _, err := os.Stat(initial); err != nil {
+		t.Fatal("initialize removed provided image bytes")
+	}
+}
