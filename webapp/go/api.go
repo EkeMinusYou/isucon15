@@ -102,6 +102,9 @@ func decode(r *http.Request, v any) bool { return json.NewDecoder(r.Body).Decode
 func validText(s string, min, max int) bool {
 	return utf8.ValidString(s) && utf8.RuneCountInString(s) >= min && utf8.RuneCountInString(s) <= max
 }
+func foldSearch(s string) string {
+	return norm.NFC.String(cases.Fold().String(norm.NFC.String(s)))
+}
 
 var usernameRE = regexp.MustCompile(`^[a-z0-9_.-]{1,64}$`)
 
@@ -666,14 +669,13 @@ func (a *App) search(w http.ResponseWriter, r *http.Request, u *Account) {
 		failure(w, 400, "invalid_pagination")
 		return
 	}
-	fold := func(v string) string { return norm.NFC.String(cases.Fold().String(norm.NFC.String(v))) }
-	term = fold(term)
+	term = foldSearch(term)
 	var us []*Account
 	for _, x := range a.s.Accounts {
-		if x.ID == u.ID || x.Status != "active" || a.s.blocked(u.ID, x.ID) || (bi != "" && (x.Username < bu || x.Username == bu && x.ID <= bi)) {
+		if x.ID == u.ID || x.Status != "active" || (bi != "" && (x.Username < bu || x.Username == bu && x.ID <= bi)) {
 			continue
 		}
-		if strings.Contains(fold(x.Username), term) || strings.Contains(fold(x.DisplayName), term) {
+		if (strings.Contains(x.searchUsername, term) || strings.Contains(x.searchDisplay, term)) && !a.s.blocked(u.ID, x.ID) {
 			us = append(us, x)
 		}
 	}

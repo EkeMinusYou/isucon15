@@ -19,6 +19,8 @@ import (
 )
 
 type Account struct {
+	searchUsername string
+	searchDisplay  string
 	ID             string  `json:"id"`
 	Username       string  `json:"username"`
 	Secret         string  `json:"secretKeySha256"`
@@ -212,6 +214,8 @@ func (s *State) apply(kind string, data []byte) error {
 	case "account":
 		var v Account
 		decode(&v)
+		v.searchUsername = foldSearch(v.Username)
+		v.searchDisplay = foldSearch(v.DisplayName)
 		s.Accounts[v.ID] = &v
 		s.Names[v.Username] = v.ID
 	case "admin":

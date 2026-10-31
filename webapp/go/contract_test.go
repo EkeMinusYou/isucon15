@@ -274,3 +274,24 @@ func TestSSEContract(t *testing.T) {
 		t.Fatal(fmt.Sprintf("SSE %s: %v", b, e))
 	}
 }
+
+func TestSearchNormalizationTracksProfileUpdates(t *testing.T) {
+	a := fixtureApp(t)
+	_, viewer := register(t, a, "searcher")
+	uid, target := register(t, a, "target")
+	requireCall(t, a, "PATCH", "/api/me", target, object{"displayName": "Straße"}, 200)
+	v := requireCall(t, a, "GET", "/api/users?q=STRASSE", viewer, nil, 200)
+	items := v["items"].([]any)
+	if len(items) != 1 || items[0].(map[string]any)["id"] != uid {
+		t.Fatal("Unicode case folding did not match")
+	}
+	requireCall(t, a, "PATCH", "/api/me", target, object{"displayName": "Cafe\u0301"}, 200)
+	v = requireCall(t, a, "GET", "/api/users?q=STRASSE", viewer, nil, 200)
+	if len(v["items"].([]any)) != 0 {
+		t.Fatal("old display name remained searchable")
+	}
+	v = requireCall(t, a, "GET", "/api/users?q=CAF%C3%89", viewer, nil, 200)
+	if len(v["items"].([]any)) != 1 {
+		t.Fatal("Unicode normalization did not match updated name")
+	}
+}
