@@ -1,0 +1,63 @@
+2026-10-31T06:06:56.870902979Z	BENCHMARK_START
+PORTAL_JOB_ID: 20856
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T06:07:03.115Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:07:06.088Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:07:09.089Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:07:12.120Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T06:07:15.090Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T06:07:18.140Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T06:07:21.216Z level=INFO msg="asia 3 日目: 153 人"
+time=2026-10-31T06:07:22.899Z level=INFO msg="user moved" user=tolia.5727 from=asia to=europe
+time=2026-10-31T06:07:24.230Z level=INFO msg="europe 3 日目: 55 人"
+time=2026-10-31T06:07:27.269Z level=INFO msg="america 3 日目: 44 人"
+time=2026-10-31T06:07:30.217Z level=INFO msg="asia 4 日目: 431 人"
+time=2026-10-31T06:07:32.622Z level=INFO msg="user moved" user=vinmomia5874 from=asia to=europe
+time=2026-10-31T06:07:33.482Z level=INFO msg="europe 4 日目: 138 人"
+time=2026-10-31T06:07:36.399Z level=INFO msg="america 4 日目: 86 人"
+time=2026-10-31T06:07:36.856Z level=INFO msg="user moved" user=ivytolia_6779 from=asia to=europe
+time=2026-10-31T06:07:38.113Z level=INFO msg="user moved" user=tolia.5727 from=europe to=america
+time=2026-10-31T06:07:39.798Z level=INFO msg="asia 5 日目: 568 人"
+time=2026-10-31T06:07:42.395Z level=INFO msg="user moved" user=mumiben_6600 from=america to=asia
+time=2026-10-31T06:07:42.497Z level=INFO msg="europe 5 日目: 138 人"
+time=2026-10-31T06:07:45.876Z level=INFO msg="america 5 日目: 86 人"
+time=2026-10-31T06:07:53.834Z level=INFO msg="user moved" user=teko-7455 from=asia to=europe
+time=2026-10-31T06:07:54.870Z level=INFO msg="america 最終日（グランプリ）: 85 人"
+time=2026-10-31T06:07:55.453Z level=INFO msg="user moved" user=mawase.9409 from=america to=europe
+time=2026-10-31T06:07:55.631Z level=INFO msg="europe 最終日（グランプリ）: 140 人"
+time=2026-10-31T06:07:58.265Z level=INFO msg="asia 最終日（グランプリ）: 568 人"
+time=2026-10-31T06:08:03.011Z level=INFO msg="グランプリ: アジア 285 人, ヨーロッパ 103 人, アメリカ 62 人"
+{
+  "pass": true,
+  "score": 81677,
+  "messages": [
+    "katsu5744: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "mara_8962: 認定公開アカウントをフォローできません: PUT /api/follows/b42b62d6-1a27-4bab-b873-473748ad92f7: 応答がタイムアウトしました",
+    "kumu_7719: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "sonafu.8682: 認定公開アカウントをフォローできません: PUT /api/follows/5dc81e95-d8a2-432d-a322-e576fa298bd3: 応答がタイムアウトしました",
+    "raranoa-5915: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "liayatsu.8895: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "kuyueva8702: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "muri-8680: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "maneri-7326: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "rome7988: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "rokiyo-8322: 認定公開アカウントをフォローできません: PUT /api/follows/5dc81e95-d8a2-432d-a322-e576fa298bd3: 応答がタイムアウトしました",
+    "zoeshi6811: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "hiya_7368: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "waku9127: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "eltsu7173: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "rino.9772: 認定公開アカウントをフォローできません: PUT /api/follows/001e90f9-3968-417b-964c-311011954043: 応答がタイムアウトしました",
+    "fuha6004: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "ranu-10066: プロフィール画像を変えられません: PUT /api/me/profile-image: 応答がタイムアウトしました",
+    "mileoben.5391: 投稿 87054f47-b437-458e-963d-ce689531c1c1 にコメントできません: POST /api/posts/87054f47-b437-458e-963d-ce689531c1c1/comments: 応答がタイムアウトしました",
+    "kawasa.5983: 友達申請を承認できません: POST /api/friend-requests/56e3e5af-ffcc-4180-af27-d29783ea34bd/accept: 応答がタイムアウトしました"
+  ]
+}
+SCORE: 81677
+BENCHMARK_PASS
+2026-10-31T06:08:22.704895437Z	BENCHMARK_END
+
+SCORE: 81677
+BENCHMARK_PASS
