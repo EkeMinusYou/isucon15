@@ -119,7 +119,8 @@ type banChange struct {
 	Until time.Time
 }
 type State struct {
-	search        searchIndex
+	search        *searchIndex
+	staged        bool
 	dayPostCache  sync.Map
 	imageLinks    *shardedMap[[16]byte, imageLink]
 	LivePosts     *shardedMap[string, []string]
@@ -153,13 +154,19 @@ type State struct {
 }
 type App struct {
 	*appCore
-	pending []change // Owned by one request, never shared between handlers.
+	pending           []change // Owned by one request, never shared between handlers.
+	s                 *State
+	prepared          bool
+	preparationLocked bool
+	signals           []stateSignal
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics
 	mu                   sync.RWMutex
 	globalGate           sync.RWMutex
-	snapshots            snapshotBatch
+	viewMu               sync.RWMutex
+	publishWaitNS        atomic.Uint64
+	publishHoldNS        atomic.Uint64
 	journalMu            sync.Mutex
 	notifier             notificationHub
 	transactions         [stateShardCount]sync.RWMutex
@@ -193,7 +200,7 @@ type appCore struct {
 }
 
 func emptyState() *State {
-	s := &State{
+	s := &State{search: new(searchIndex),
 		imageLinks:    new(shardedMap[[16]byte, imageLink]),
 		LivePosts:     new(shardedMap[string, []string]),
 		Accounts:      new(shardedMap[string, *Account]),
@@ -268,7 +275,9 @@ func (s *State) apply(kind string, data []byte) error {
 		decode(&v)
 		v.searchUsername = foldSearch(v.Username)
 		v.searchDisplay = foldSearch(v.DisplayName)
-		s.search.replace(s.Accounts.Get(v.ID), &v)
+		if !s.staged {
+			s.search.replace(s.Accounts.Get(v.ID), &v)
+		}
 		s.Accounts.Set(v.ID, &v)
 		s.Names.Set(v.Username, v.ID)
 	case "admin":
@@ -436,6 +445,11 @@ func (a *App) put(kind string, v any) {
 }
 func (a *App) commit() {
 	if len(a.pending) == 0 {
+		if a.prepared {
+			a.s = a.appCore.s
+			a.prepared = false
+		}
+		a.signals = nil
 		return
 	}
 	b, e := json.Marshal(a.pending)
@@ -452,7 +466,23 @@ func (a *App) commit() {
 		log.Fatalf("journal write: %v", e)
 	}
 	a.journalWriteNS.Add(uint64(time.Since(writing)))
+	if a.prepared {
+		waiting := time.Now()
+		a.viewMu.Lock()
+		a.publishWaitNS.Add(uint64(time.Since(waiting)))
+		published := time.Now()
+		for _, c := range a.pending {
+			if e = a.appCore.s.apply(c.Kind, c.Data); e != nil {
+				panic(e)
+			}
+		}
+		a.s = a.appCore.s
+		a.publishHoldNS.Add(uint64(time.Since(published)))
+		a.viewMu.Unlock()
+		a.prepared = false
+	}
 	a.pending = nil
+	a.publishSignals()
 }
 func loadLines(path string, fn func([]byte) error) error {
 	f, e := os.Open(path)
@@ -574,6 +604,7 @@ func (a *App) loadInitial() error {
 	s.finishPostPeriods()
 	complete = true
 	a.s = s
+	a.appCore.s = s
 	a.historyResidentBytes.Store(uint64(len(s.Posts.data)+len(s.Reactions.data)+len(s.Comments.data)+len(s.Images.data)) * recordChunkBytes)
 	return nil
 }
