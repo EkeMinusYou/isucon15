@@ -151,8 +151,9 @@ type State struct {
 }
 type App struct {
 	*appCore
-	pending     []change // Owned by one request, never shared between handlers.
-	revocations []*heldImagePermit
+	pending                []change // Owned by one request, never shared between handlers.
+	revocations            []*heldImagePermit
+	strictImageRevocations bool
 }
 type appCore struct {
 	regionalImages       regionalImageMetrics

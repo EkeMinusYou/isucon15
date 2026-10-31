@@ -246,6 +246,9 @@ func (a *App) retireImagePermits(kind string, value any) {
 	}
 	if dep != "" {
 		a.revocations = append(a.revocations, a.imagePermits.revoke(dep)...)
+		if kind == "ban" {
+			a.strictImageRevocations = true
+		}
 	}
 }
 
@@ -255,25 +258,34 @@ func (a *App) sendImageRevocations() {
 	}
 	manager := a.imagePermits
 	secret := transportSecret
+	strict := a.strictImageRevocations
+	a.strictImageRevocations = false
 	byRegion := map[string][]*heldImagePermit{}
 	for _, grant := range a.revocations {
 		byRegion[grant.region] = append(byRegion[grant.region], grant)
 	}
 	a.revocations = nil
+	var completed sync.WaitGroup
 	for region, grants := range byRegion {
 		address := regionalPeer(region) + imageRevokePath
-		select {
-		case manager.notifySlots <- struct{}{}:
-		default:
-			// Expiry still enforces the five-second invalidation bound if an
-			// overloaded or disconnected region cannot receive a notice.
-			manager.failures.Add(1)
-			continue
+		if !strict {
+			select {
+			case manager.notifySlots <- struct{}{}:
+			default:
+				// Expiry still enforces the five-second invalidation bound if an
+				// overloaded or disconnected region cannot receive a notice.
+				manager.failures.Add(1)
+				continue
+			}
 		}
+		completed.Add(1)
 		go func(region string, grants []*heldImagePermit) {
+			defer completed.Done()
 			started := time.Now()
 			defer func() {
-				<-manager.notifySlots
+				if !strict {
+					<-manager.notifySlots
+				}
 				manager.rpcNS.Add(uint64(time.Since(started)))
 			}()
 			deadline := grants[0].deadline
@@ -300,6 +312,16 @@ func (a *App) sendImageRevocations() {
 				}
 			}
 			manager.failures.Add(1)
+			if strict {
+				if remaining := time.Until(deadline); remaining > 0 {
+					time.Sleep(remaining)
+				}
+			}
 		}(region, grants)
+	}
+	// BAN is not part of the relaxed image-deletion contract. Its triggering
+	// response retains the original invalidation ordering, outside state locks.
+	if strict {
+		completed.Wait()
 	}
 }
