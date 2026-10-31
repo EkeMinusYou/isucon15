@@ -1,0 +1,57 @@
+2026-10-31T06:58:22.697541870Z	BENCHMARK_START
+PORTAL_JOB_ID: 25538
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T06:59:00.605Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:59:03.589Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:59:06.586Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:59:09.610Z level=INFO msg="asia 2 日目: 54 人"
+time=2026-10-31T06:59:12.588Z level=INFO msg="europe 2 日目: 19 人"
+time=2026-10-31T06:59:15.587Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T06:59:18.613Z level=INFO msg="asia 3 日目: 162 人"
+time=2026-10-31T06:59:20.549Z level=INFO msg="user moved" user=maxfuvin-5734 from=asia to=europe
+time=2026-10-31T06:59:21.616Z level=INFO msg="europe 3 日目: 57 人"
+time=2026-10-31T06:59:24.366Z level=INFO msg="user moved" user=kima_6248 from=europe to=america
+time=2026-10-31T06:59:24.604Z level=INFO msg="america 3 日目: 46 人"
+time=2026-10-31T06:59:27.625Z level=INFO msg="asia 4 日目: 477 人"
+time=2026-10-31T06:59:28.529Z level=INFO msg="user moved" user=hoivy-6855 from=asia to=europe
+time=2026-10-31T06:59:30.790Z level=INFO msg="europe 4 日目: 157 人"
+time=2026-10-31T06:59:31.169Z level=INFO msg="user moved" user=evahi.7435 from=asia to=america
+time=2026-10-31T06:59:32.919Z level=INFO msg="user moved" user=torrane_8030 from=asia to=europe
+time=2026-10-31T06:59:32.990Z level=INFO msg="user moved" user=evahi.7435 from=america to=asia
+time=2026-10-31T06:59:33.376Z level=INFO msg="user moved" user=maxfuvin-5734 from=europe to=america
+time=2026-10-31T06:59:33.996Z level=INFO msg="america 4 日目: 128 人"
+time=2026-10-31T06:59:36.233Z level=INFO msg="user moved" user=kukewa6863 from=asia to=europe
+time=2026-10-31T06:59:36.572Z level=INFO msg="user moved" user=kima_6248 from=america to=asia
+time=2026-10-31T06:59:37.141Z level=INFO msg="asia 5 日目: 1274 人"
+time=2026-10-31T06:59:38.017Z level=INFO msg="user moved" user=chisa-9166 from=europe to=america
+time=2026-10-31T06:59:40.025Z level=INFO msg="europe 5 日目: 333 人"
+time=2026-10-31T06:59:40.091Z level=INFO msg="user moved" user=namame9372 from=europe to=asia
+time=2026-10-31T06:59:43.199Z level=INFO msg="america 5 日目: 190 人"
+time=2026-10-31T06:59:52.630Z level=INFO msg="asia 最終日（グランプリ）: 1275 人"
+time=2026-10-31T06:59:53.283Z level=INFO msg="europe 最終日（グランプリ）: 332 人"
+time=2026-10-31T06:59:53.285Z level=INFO msg="america 最終日（グランプリ）: 189 人"
+time=2026-10-31T07:00:00.678Z level=INFO msg="グランプリ: アジア 690 人, ヨーロッパ 179 人, アメリカ 123 人"
+{
+  "pass": true,
+  "score": 174065,
+  "messages": [
+    "sure16754: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "solto17471: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "yomarne-17417: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "orna-17245: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "raniru-14004: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sudan14342: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "hupo_shuizuguan_2271: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "doyun_cho_3388: ログインできません: POST /api/auth/login: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/auth/login\": EOF",
+    "tator.7321: 友達申請を承認できません: POST /api/friend-requests/e6dc9a69-3ddb-42e9-b5de-dd836f559b5b/accept: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/friend-requests/e6dc9a69-3ddb-42e9-b5de-dd836f559b5b/accept\": EOF",
+    "rume.17400: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
+SCORE: 174065
+BENCHMARK_PASS
+2026-10-31T07:00:33.730712542Z	BENCHMARK_END
+
+SCORE: 174065
+BENCHMARK_PASS
