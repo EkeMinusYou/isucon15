@@ -90,7 +90,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 		indices := []int{}
 		seen := [stateShardCount]bool{}
 		writes := [stateShardCount]bool{}
-		sharedUsers := interactionReadsUsers(r)
+		sharedUsers := interactionReadsUsers(r) || relationshipMutation(r)
 		for _, key := range keys {
 			i := int(stateHash(key) % stateShardCount)
 			if !sharedUsers || !strings.HasPrefix(key, "user:") {
@@ -149,6 +149,11 @@ func interactionReadsUsers(r *http.Request) bool {
 	return r.Method == "DELETE" && (strings.HasPrefix(p, "/api/comments/") || strings.HasPrefix(p, "/api/realmojis/"))
 }
 
+func relationshipMutation(r *http.Request) bool {
+	p := r.URL.Path
+	return p == "/api/friend-requests" || strings.HasPrefix(p, "/api/friend-requests/") || strings.HasPrefix(p, "/api/friendships/") || strings.HasPrefix(p, "/api/follows/") || strings.HasPrefix(p, "/api/blocks/")
+}
+
 func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 	s, path := a.s, r.URL.Path
 	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
@@ -194,20 +199,21 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 		return keys, false
 	}
 	if path == "/api/friend-requests" {
-		return append(keys, "user:"+input.RecipientID), false
+		return append(keys, "user:"+input.RecipientID, "relation:"+pair(actor, input.RecipientID)), false
 	}
 	if strings.HasPrefix(path, "/api/friend-requests/") {
 		parts := strings.Split(strings.TrimPrefix(path, "/api/friend-requests/"), "/")
 		if len(parts) > 0 {
 			if relation := s.Requests.Get(parts[0]); relation != nil {
-				return append(keys, "user:"+relation.RequesterID, "user:"+relation.RecipientID), false
+				return append(keys, "user:"+relation.RequesterID, "user:"+relation.RecipientID, "relation:"+pair(relation.RequesterID, relation.RecipientID)), false
 			}
 		}
 		return nil, true
 	}
 	for _, prefix := range []string{"/api/friendships/", "/api/follows/", "/api/blocks/"} {
 		if strings.HasPrefix(path, prefix) {
-			return append(keys, "user:"+strings.TrimPrefix(path, prefix)), false
+			other := strings.TrimPrefix(path, prefix)
+			return append(keys, "user:"+other, "relation:"+pair(actor, other)), false
 		}
 	}
 	pid := ""

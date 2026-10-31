@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/jpeg"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
 	"runtime"
 	"sync"
@@ -135,6 +136,44 @@ func TestConcurrentUsernameRegistration(t *testing.T) {
 		t.Fatalf("created %d accounts with one name", created)
 	}
 }
+
+func TestIndependentRelationshipsShareTarget(t *testing.T) {
+	a := fixtureApp(t)
+	target := idInRegion("asia")
+	actors := make([]string, 0, 2)
+	used := map[uint64]bool{stateHash("user:"+target) % stateShardCount: true}
+	for len(actors) < 2 {
+		actor := idInRegion("asia")
+		userSlot := stateHash("user:"+actor) % stateShardCount
+		pairSlot := stateHash("relation:"+pair(actor, target)) % stateShardCount
+		if userSlot == pairSlot || used[userSlot] || used[pairSlot] {
+			continue
+		}
+		actors = append(actors, actor)
+		used[userSlot], used[pairSlot] = true, true
+	}
+	request := func(actor string) *http.Request {
+		a.s.Sessions.Set(actor, actor)
+		r := httptest.NewRequest("PUT", "/api/follows/"+target, nil)
+		r.Header.Set("Authorization", "Bearer "+actor)
+		return r
+	}
+	first, second := request(actors[0]), request(actors[1])
+	unlock := a.lockRequest(first)
+	defer unlock()
+	done := make(chan struct{})
+	go func() {
+		release := a.lockRequest(second)
+		release()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("independent relationship waited for the shared target")
+	}
+}
+
 func TestConcurrentReactionReplacement(t *testing.T) {
 	a := fixtureApp(t)
 	_, owner := register(t, a, "reaction_owner")
