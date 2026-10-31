@@ -144,8 +144,7 @@ func interactionReadsUsers(r *http.Request) bool {
 
 func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 	s, path := a.s, r.URL.Path
-	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	actor := s.Sessions.Get(token)
+	actor := a.requestActor(r)
 	keys := []string{"user:" + actor}
 	var input struct{ Username, RecipientID, Region string }
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") || strings.HasPrefix(path, "/api/auth/") || strings.HasPrefix(path, "/api/admin/auth/") || path == "/api/friend-requests" || path == "/api/me" {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/hmac"
 	"fmt"
 	"log"
@@ -73,26 +74,16 @@ func serviceHandler() (http.Handler, *App, error) {
 		if e != nil {
 			return nil, nil, e
 		}
+		if e = a.enableRegionalSessions(region); e != nil {
+			return nil, nil, e
+		}
 		if os.Getenv("REGIONAL_READS") == "1" {
 			a.replication, e = newReplicationHub(a, []string{"europe", "america"})
 			if e != nil {
 				return nil, nil, e
 			}
 		}
-		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if a.replicationHTTP(w, r) || a.ownedOriginalHTTP(w, r) {
-				return
-			}
-			if !isInternal(r) {
-				r.Header.Del("X-ISU-Region")
-				r.Header.Del("X-ISU-Source")
-			} else if !validRegion(r.Header.Get("X-ISU-Region")) {
-				failure(w, 400, "invalid_region")
-				return
-			}
-			a.ServeHTTP(w, r)
-		})
-		return h, a, nil
+		return http.HandlerFunc(a.ownerHTTP), a, nil
 	}
 	target, e := url.Parse(os.Getenv("OWNER_URL"))
 	if e != nil || target.Scheme != "http" || target.Host == "" {
@@ -106,6 +97,9 @@ func serviceHandler() (http.Handler, *App, error) {
 			return nil, nil, e
 		}
 		edge.localCryptoSlots = make(chan struct{}, 2)
+	}
+	if e = edge.enableRegionalSessions(region); e != nil {
+		return nil, nil, e
 	}
 	var uploads *regionalUploads
 	if root := os.Getenv("REGIONAL_STATE_DIR"); root != "" {
@@ -136,11 +130,21 @@ func serviceHandler() (http.Handler, *App, error) {
 		r.Header.Set("X-ISU-Source", region)
 		r.Header.Set("X-ISU-Transport", transportSecret)
 		r.Header.Del(regionalImageRequest)
+		r.Header.Del(authenticatedUserHeader)
+		if user, ok := r.Context().Value(authenticatedUserKey{}).(string); ok {
+			r.Header.Set(authenticatedUserHeader, user)
+			r.Header.Del("Authorization")
+		}
 		if imageRoot != "" && r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/api/images/") {
 			r.Header.Set(regionalImageRequest, "1")
 		}
 	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
+		if edge.sessions != nil {
+			if err := edge.finishIngressFailure(resp.Request, resp); err != nil {
+				return err
+			}
+		}
 		if uploads != nil {
 			uploads.finish(resp)
 		}
@@ -156,6 +160,9 @@ func serviceHandler() (http.Handler, *App, error) {
 	}
 	proxy.FlushInterval = -1
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if edge.sessionInternalHTTP(w, r) {
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, "/api/internal/replication/") {
 			failure(w, 403, "forbidden")
 			return
@@ -176,6 +183,11 @@ func serviceHandler() (http.Handler, *App, error) {
 		r.Header.Del("X-ISU-Source")
 		r.Header.Del(regionalUploadHeader)
 		r.Header.Del(regionalImageRequest)
+		var handled bool
+		r, handled = edge.authenticateIngress(w, r)
+		if handled {
+			return
+		}
 		if edge.replica != nil && edge.replica.ready.Load() && r.Method == "GET" {
 			r.Header.Set("X-ISU-Region", region)
 			edge.ServeHTTP(w, r)
@@ -188,4 +200,31 @@ func serviceHandler() (http.Handler, *App, error) {
 		}
 		proxy.ServeHTTP(w, r)
 	}), edge, nil
+}
+
+func (a *App) ownerHTTP(w http.ResponseWriter, r *http.Request) {
+	if a.replicationHTTP(w, r) || a.ownedOriginalHTTP(w, r) || a.sessionInternalHTTP(w, r) {
+		return
+	}
+	if !isInternal(r) {
+		r.Header.Del("X-ISU-Region")
+		r.Header.Del("X-ISU-Source")
+		var handled bool
+		r, handled = a.authenticateIngress(w, r)
+		if handled {
+			return
+		}
+	} else if !validRegion(r.Header.Get("X-ISU-Region")) {
+		failure(w, 400, "invalid_region")
+		return
+	}
+	if a.sessions != nil && isInternal(r) && needsSession(r) {
+		user := r.Header.Get(authenticatedUserHeader)
+		if user == "" {
+			failure(w, 401, "invalid_session")
+			return
+		}
+		r = r.WithContext(context.WithValue(r.Context(), authenticatedUserKey{}, user))
+	}
+	a.ServeHTTP(w, r)
 }

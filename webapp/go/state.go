@@ -27,6 +27,7 @@ type Account struct {
 	Bio            string  `json:"bio"`
 	ProfileImageID *string `json:"profileImageId"`
 	Region         string  `json:"region"`
+	AuthRegion     string  `json:"authRegion,omitempty"`
 	AccountType    string  `json:"accountType"`
 	Status         string  `json:"status"`
 }
@@ -153,10 +154,13 @@ type State struct {
 }
 type App struct {
 	*appCore
-	pending    []change // Owned by one request, never shared between handlers.
-	syncTicket replicationTicket
+	pending        []change // Owned by one request, never shared between handlers.
+	syncTicket     replicationTicket
+	ingressFailure string
 }
 type appCore struct {
+	region               string
+	sessions             *regionalSessions
 	regionalImages       regionalImageMetrics
 	replication          *replicationHub
 	replica              *replicaReader
@@ -272,6 +276,14 @@ func (s *State) apply(kind string, data []byte) error {
 	case "account":
 		var v Account
 		decode(&v)
+		if v.AuthRegion == "" {
+			if old := s.Accounts.Get(v.ID); old != nil {
+				v.AuthRegion = old.AuthRegion
+			}
+			if v.AuthRegion == "" {
+				v.AuthRegion = v.Region
+			}
+		}
 		v.searchUsername = foldSearch(v.Username)
 		v.searchDisplay = foldSearch(v.DisplayName)
 		s.search.replace(s.Accounts.Get(v.ID), &v)
@@ -654,6 +666,11 @@ func (a *App) resetLocal() error {
 	}
 	if _, e := a.journal.Seek(0, io.SeekEnd); e != nil {
 		return e
+	}
+	if a.sessions != nil {
+		if err := a.sessions.reset(); err != nil {
+			return err
+		}
 	}
 	// Only initialize removes uploaded bytes. Ordinary restarts replay them.
 	if e := os.RemoveAll(filepath.Join(a.durable, "images")); e != nil {

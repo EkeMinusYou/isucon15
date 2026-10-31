@@ -102,6 +102,10 @@ func ipOf(r *http.Request) string {
 	return h
 }
 func (a *App) failIP(r *http.Request, kind string, limit int, period time.Duration) {
+	if a.sessions != nil {
+		a.ingressFailure = kind
+		return
+	}
 	key := r.Header.Get("X-ISU-Source") + "/" + kind + "/" + ipOf(r)
 	now := time.Now()
 	xs := a.failures.Get(key)[:0]
@@ -121,12 +125,11 @@ func (a *App) failIP(r *http.Request, kind string, limit int, period time.Durati
 	a.failures.Set(key, xs)
 }
 func (a *App) auth(w http.ResponseWriter, r *http.Request, region bool) *Account {
-	if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+	if a.sessions == nil && !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
 		failure(w, 401, "invalid_session")
 		return nil
 	}
-	t := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	u := a.s.Accounts.Get(a.s.Sessions.Get(t))
+	u := a.s.Accounts.Get(a.requestActor(r))
 	if u == nil || u.Status != "active" {
 		failure(w, 401, "invalid_session")
 		return nil
@@ -373,6 +376,14 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	stats.holdNS.Add(uint64(time.Since(locked)))
 	unlock()
 	unlock = nil
+	if a.ingressFailure != "" {
+		if isInternal(r) && r.Header.Get("X-ISU-Source") != a.region {
+			rr.Header().Set(ingressFailureHeader, a.ingressFailure)
+		} else if !a.recordIngressFailure(r, a.ingressFailure) {
+			failure(w, 503, "replication_unavailable")
+			return
+		}
+	}
 	if !a.waitReplication(r.Context(), ticket) {
 		failure(w, 503, "replication_unavailable")
 		return
@@ -421,7 +432,7 @@ func (a *App) dispatch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		secret := id()
-		u := &Account{ID: id(), Username: v.Username, Secret: secretHash(secret), DisplayName: v.DisplayName, Region: v.Region, AccountType: "regular", Status: "active"}
+		u := &Account{ID: id(), Username: v.Username, Secret: secretHash(secret), DisplayName: v.DisplayName, Region: v.Region, AuthRegion: v.Region, AccountType: "regular", Status: "active"}
 		a.put("account", u)
 		output(w, 201, object{"secretKey": secret, "user": sessionUser(u)})
 		return
@@ -773,7 +784,12 @@ func (a *App) getImage(w http.ResponseWriter, r *http.Request, i string) {
 	secret := a.s.Accounts.Get(im.OwnerID).Secret
 	responseWork(w, func(w http.ResponseWriter) {
 		if !hmac.Equal([]byte(ss[0]), []byte(a.signImage(i, secret, exp))) {
-			if a.replica != nil {
+			if a.sessions != nil {
+				if !a.recordIngressFailure(r, "signature") {
+					failure(w, 503, "replication_unavailable")
+					return
+				}
+			} else if a.replica != nil {
 				if !a.reportReplicaFailure(r) {
 					failure(w, 503, "replication_unavailable")
 					return

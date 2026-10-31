@@ -85,6 +85,13 @@ func (a *App) snapshot() measurement.Snapshot {
 		"app_sig_rpc_failed_total":       a.signatureRPCFailures.Load(),
 		"app_remote_sig_total":           a.remoteSignatures.Load(),
 	}
+	if a.sessions != nil {
+		m["app_session_updates_total"] = a.sessions.updates.Load()
+		m["app_session_checks_total"] = a.sessions.checks.Load()
+		m["app_session_remote_total"] = a.sessions.remote.Load()
+		m["app_ingress_failures_total"] = a.sessions.failed.Load()
+		m["app_ingress_bans_total"] = a.sessions.bans.Load()
+	}
 	if a.replica != nil {
 		p := a.replica.progress.Load()
 		m["app_replica_applied_seq"] = p.Seq

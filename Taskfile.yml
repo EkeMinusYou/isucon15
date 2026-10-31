@@ -44,6 +44,7 @@ vars:
       REGION_AMERICA_URL: http://192.168.3.10
       REGION_ASIA_URL: http://192.168.1.10
       REGIONAL_READS: '1'
+      REGIONAL_SESSIONS: '1'
   TARGET_OS: linux
   TARGET_ARCH: amd64
   # Optional Go PGO profile path for build/build-pgo; unset uses -pgo=auto (default.pgo).

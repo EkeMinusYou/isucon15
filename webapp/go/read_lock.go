@@ -32,7 +32,7 @@ func (a *App) readKeys(r *http.Request) ([]string, bool) {
 		}
 		return keys, false
 	}
-	actor := s.Sessions.Get(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+	actor := a.requestActor(r)
 	if actor == "" {
 		return nil, true
 	}

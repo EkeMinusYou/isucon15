@@ -24,6 +24,7 @@ type replicationFixture struct {
 	handlers              map[string]http.Handler
 	servers               map[string]*httptest.Server
 	stateDirs, uploadDirs map[string]string
+	sessionDirs           map[string]string
 	blockAck              atomic.Bool
 	releaseAck            chan struct{}
 	releaseOnce           sync.Once
@@ -59,13 +60,22 @@ func awaitReplica(t *testing.T, app *App) {
 		time.Sleep(time.Millisecond)
 	}
 }
-func newReplicationFixture(t *testing.T) *replicationFixture {
+func newReplicationFixture(t *testing.T, sessions ...bool) *replicationFixture {
 	t.Helper()
 	oldSecret, oldRegion := transportSecret, fixedRegion
 	transportSecret, fixedRegion = "replication-test", "asia"
 	t.Cleanup(func() { transportSecret, fixedRegion = oldSecret, oldRegion })
 	f := &replicationFixture{primary: fixtureApp(t), apps: map[string]*App{}, handlers: map[string]http.Handler{}, servers: map[string]*httptest.Server{}, stateDirs: map[string]string{}, uploadDirs: map[string]string{}, releaseAck: make(chan struct{})}
 	var err error
+	t.Setenv("REGIONAL_SESSIONS", "0")
+	if len(sessions) != 0 && sessions[0] {
+		t.Setenv("REGIONAL_SESSIONS", "1")
+		t.Setenv("SESSION_DIR", t.TempDir())
+		if err := f.primary.enableRegionalSessions("asia"); err != nil {
+			t.Fatal(err)
+		}
+		f.sessionDirs = map[string]string{"europe": t.TempDir(), "america": t.TempDir()}
+	}
 	f.primary.replication, err = newReplicationHub(f.primary, []string{"europe", "america"})
 	if err != nil {
 		t.Fatal(err)
@@ -77,13 +87,7 @@ func newReplicationFixture(t *testing.T) *replicationFixture {
 		if !strings.HasPrefix(r.URL.Path, "/api/internal/replication/") {
 			f.business.Add(1)
 		}
-		if f.primary.replicationHTTP(w, r) || f.primary.ownedOriginalHTTP(w, r) {
-			return
-		}
-		if !isInternal(r) {
-			r.Header.Set("X-ISU-Region", "asia")
-		}
-		f.primary.ServeHTTP(w, r)
+		f.primary.ownerHTTP(w, r)
 	}))
 	f.handlers["asia"] = f.server.Config.Handler
 	f.keyFile = filepath.Join(t.TempDir(), "key")
@@ -111,9 +115,15 @@ func newReplicationFixture(t *testing.T) *replicationFixture {
 		for _, app := range f.apps {
 			app.journal.Close()
 			app.s.closeHistory()
+			if app.sessions != nil {
+				app.sessions.file.Close()
+			}
 		}
 		f.primary.stopReplication()
 		f.server.Close()
+		if f.primary.sessions != nil {
+			f.primary.sessions.file.Close()
+		}
 	})
 	return f
 }
@@ -122,6 +132,9 @@ func (f *replicationFixture) start(t *testing.T, region string) {
 	t.Setenv("REGION", region)
 	t.Setenv("REPLICA_STATE_DIR", f.stateDirs[region])
 	t.Setenv("REGIONAL_STATE_DIR", f.uploadDirs[region])
+	if f.sessionDirs != nil {
+		t.Setenv("SESSION_DIR", f.sessionDirs[region])
+	}
 	t.Setenv("IMAGE_CACHE_DIR", filepath.Join(f.primary.initial, "images"))
 	h, app, err := serviceHandler()
 	fixedRegion = "asia"
@@ -134,13 +147,16 @@ func (f *replicationFixture) start(t *testing.T, region string) {
 	awaitReplica(t, app)
 }
 func (f *replicationFixture) record(region, method, path, token string, body any) *httptest.ResponseRecorder {
+	return f.recordIP(region, method, path, token, body, "192.0.2.41")
+}
+func (f *replicationFixture) recordIP(region, method, path, token string, body any, ip string) *httptest.ResponseRecorder {
 	var data io.Reader
 	if body != nil {
 		b, _ := json.Marshal(body)
 		data = bytes.NewReader(b)
 	}
 	r := httptest.NewRequest(method, path, data)
-	r.Header.Set("X-Client-IP", "192.0.2.41")
+	r.Header.Set("X-Client-IP", ip)
 	r.Header.Set("Content-Type", "application/json")
 	if token != "" {
 		r.Header.Set("Authorization", "Bearer "+token)

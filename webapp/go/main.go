@@ -28,6 +28,9 @@ func main() {
 		if app.journal != nil {
 			defer app.journal.Close()
 		}
+		if app.sessions != nil {
+			defer app.sessions.file.Close()
+		}
 	}
 	if err := serve(ctx, config, handler); err != nil {
 		log.Print(err)
