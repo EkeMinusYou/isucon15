@@ -18,13 +18,12 @@ motd-news.timer motd-news.service apt-news.service
 ua-timer.timer ua-timer.service
 man-db.timer man-db.service
 dpkg-db-backup.timer dpkg-db-backup.service
-e2scrub_all.timer e2scrub_all.service e2scrub_reap.service
+e2scrub_all.timer e2scrub_all.service
 fstrim.timer fstrim.service
 sysstat-collect.timer sysstat-collect.service
 sysstat-summary.timer sysstat-summary.service sysstat.service
-systemd-tmpfiles-clean.timer systemd-tmpfiles-clean.service
 apport-autoreport.timer apport-autoreport.path apport-autoreport.service
-apport-forward.socket apport.service
+apport-forward.socket
 snapd.snap-repair.timer snapd.snap-repair.service
 cron.service
 '
@@ -44,9 +43,15 @@ if [ "$mode" = apply ]; then
     # Word splitting is intentional for this fixed list of unit names.
     systemctl disable --now $present
     systemctl mask --now $present
-    # OS logs remain active, so retain their existing size/retention policy.
+    # Preserve capacity management and local crash diagnostics. Temporary
+    # files use the distribution's age limits (30 days for /tmp here).
     systemctl unmask logrotate.service logrotate.timer
-    systemctl enable --now logrotate.timer
+    systemctl unmask systemd-tmpfiles-clean.service systemd-tmpfiles-clean.timer
+    systemctl unmask apport.service e2scrub_reap.service
+    systemctl enable --now logrotate.timer apport.service
+    systemctl enable e2scrub_reap.service
+    # This static timer is already linked from the vendor timers.target.
+    systemctl start systemd-tmpfiles-clean.timer
 fi
 
 for unit in $present; do
@@ -63,7 +68,15 @@ systemctl is-active --quiet chrony.service
 systemctl is-active --quiet systemd-journald.service
 systemctl is-active --quiet logrotate.timer
 systemctl is-enabled --quiet logrotate.timer
+systemctl is-active --quiet systemd-tmpfiles-clean.timer
+systemctl is-active --quiet apport.service
+systemctl is-enabled --quiet apport.service
+systemctl is-enabled --quiet e2scrub_reap.service
+case "$(sysctl -n kernel.core_pattern)" in
+    *apport*) ;;
+    *) echo 'Local crash handler is not installed' >&2; exit 1;;
+esac
 systemctl is-active --quiet snap.amazon-ssm-agent.amazon-ssm-agent.service
 systemctl is-enabled --quiet envcheck.service
 systemctl is-enabled --quiet envcheck-baseline.service
-echo "$(hostname): maintenance masked; Snap updates held forever; SSH, SSM, clock, logging, log rotation and envcheck preserved"
+echo "$(hostname): unrelated maintenance masked; Snap updates held; required services, cleanup and crash diagnostics preserved"
