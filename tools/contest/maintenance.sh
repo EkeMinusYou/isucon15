@@ -20,7 +20,6 @@ man-db.timer man-db.service
 dpkg-db-backup.timer dpkg-db-backup.service
 e2scrub_all.timer e2scrub_all.service e2scrub_reap.service
 fstrim.timer fstrim.service
-logrotate.timer logrotate.service
 sysstat-collect.timer sysstat-collect.service
 sysstat-summary.timer sysstat-summary.service sysstat.service
 systemd-tmpfiles-clean.timer systemd-tmpfiles-clean.service
@@ -45,6 +44,9 @@ if [ "$mode" = apply ]; then
     # Word splitting is intentional for this fixed list of unit names.
     systemctl disable --now $present
     systemctl mask --now $present
+    # OS logs remain active, so retain their existing size/retention policy.
+    systemctl unmask logrotate.service logrotate.timer
+    systemctl enable --now logrotate.timer
 fi
 
 for unit in $present; do
@@ -59,7 +61,9 @@ hold=$(snap get system refresh.hold)
 systemctl is-active --quiet ssh.service
 systemctl is-active --quiet chrony.service
 systemctl is-active --quiet systemd-journald.service
+systemctl is-active --quiet logrotate.timer
+systemctl is-enabled --quiet logrotate.timer
 systemctl is-active --quiet snap.amazon-ssm-agent.amazon-ssm-agent.service
 systemctl is-enabled --quiet envcheck.service
 systemctl is-enabled --quiet envcheck-baseline.service
-echo "$(hostname): maintenance masked; Snap updates held forever; SSH, SSM, clock, logging and envcheck preserved"
+echo "$(hostname): maintenance masked; Snap updates held forever; SSH, SSM, clock, logging, log rotation and envcheck preserved"
