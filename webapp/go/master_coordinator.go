@@ -20,22 +20,87 @@ func (a *App) masterHome(uid string) string {
 	return a.master.homes.user(uid)
 }
 
+// Image servers only need identity, validity and signing state. Display names,
+// biography and the user's current location are authoritative at the coordinator.
+func imageAccountState(u *Account) Account {
+	return Account{ID: u.ID, HomeRegion: u.HomeRegion, Secret: u.Secret, Status: u.Status, ProfileImageID: u.ProfileImageID}
+}
+
+func sameImageAccountState(a, b *Account) bool {
+	if a == nil || b == nil || a.ID != b.ID || a.HomeRegion != b.HomeRegion || a.Secret != b.Secret || a.Status != b.Status {
+		return false
+	}
+	if a.ProfileImageID == nil || b.ProfileImageID == nil {
+		return a.ProfileImageID == nil && b.ProfileImageID == nil
+	}
+	return *a.ProfileImageID == *b.ProfileImageID
+}
+
 func (a *App) masterGroups(txn masterTransaction) map[string]masterTransaction {
 	groups := map[string]masterTransaction{}
+	accounts := map[string]*Account{}
+	for _, c := range txn.Changes {
+		if c.Kind == "account" {
+			var v Account
+			json.Unmarshal(c.Data, &v)
+			accounts[v.ID] = &v
+		}
+	}
+	appendChange := func(home string, c change) {
+		if !validRegion(home) {
+			panic("image transaction has no region")
+		}
+		part := groups[home]
+		part.ID, part.Epoch = txn.ID, txn.Epoch
+		part.Changes = append(part.Changes, c)
+		groups[home] = part
+	}
+	sentAccounts := map[string]bool{}
+	appendAccount := func(u *Account) {
+		if sentAccounts[u.ID] {
+			return
+		}
+		data, err := json.Marshal(imageAccountState(u))
+		if err != nil {
+			panic(err)
+		}
+		appendChange(u.HomeRegion, change{Kind: "account", Data: data})
+		sentAccounts[u.ID] = true
+	}
 	for _, c := range txn.Changes {
 		var home string
 		switch c.Kind {
 		case "account":
 			var v Account
 			json.Unmarshal(c.Data, &v)
-			home = v.HomeRegion
+			old := a.appCore.s.Accounts.Get(v.ID)
+			// A new account has no images to invalidate. Its first image carries
+			// the required owner record in the same regional transaction.
+			if old == nil && v.Status == "active" && v.ProfileImageID == nil || sameImageAccountState(old, &v) {
+				continue
+			}
+			appendAccount(&v)
+			continue
 		case "image":
 			var v Image
 			json.Unmarshal(c.Data, &v)
+			u := accounts[v.OwnerID]
+			if u == nil {
+				u = a.s.Accounts.Get(v.OwnerID)
+			}
+			if u == nil {
+				panic("image owner does not exist")
+			}
+			appendAccount(u)
 			home = a.masterHome(v.OwnerID)
 		case "post":
 			var v Post
 			json.Unmarshal(c.Data, &v)
+			old := a.appCore.s.Posts.get(v.ID)
+			if old != nil && old.AuthorID == v.AuthorID && old.ImageID == v.ImageID &&
+				(old.DeletedAt == nil && v.DeletedAt == nil || old.DeletedAt != nil && v.DeletedAt != nil && old.DeletedAt.Equal(*v.DeletedAt)) {
+				continue
+			}
 			home = a.masterHome(v.AuthorID)
 		case "reaction":
 			var v Reaction
@@ -43,22 +108,13 @@ func (a *App) masterGroups(txn masterTransaction) map[string]masterTransaction {
 			home = a.masterHome(v.ReactorID)
 		case "ban", "window":
 			for _, region := range masterRegions {
-				part := groups[region]
-				part.ID, part.Epoch = txn.ID, txn.Epoch
-				part.Changes = append(part.Changes, c)
-				groups[region] = part
+				appendChange(region, c)
 			}
 			continue
 		default:
 			continue
 		}
-		if !validRegion(home) {
-			panic("owned transaction has no master")
-		}
-		part := groups[home]
-		part.ID, part.Epoch = txn.ID, txn.Epoch
-		part.Changes = append(part.Changes, c)
-		groups[home] = part
+		appendChange(home, c)
 	}
 	return groups
 }
@@ -199,6 +255,11 @@ func (a *App) enableRegionalMasters(master *regionalMaster) error {
 		for region, part := range a.masterGroups(txn) {
 			byRegion[region] = append(byRegion[region], part)
 		}
+		for _, c := range txn.Changes {
+			if err := a.s.apply(c.Kind, c.Data); err != nil {
+				return err
+			}
+		}
 	}
 	var replay sync.WaitGroup
 	for region, txns := range byRegion {
@@ -211,13 +272,6 @@ func (a *App) enableRegionalMasters(master *regionalMaster) error {
 		}(region, txns)
 	}
 	replay.Wait()
-	for _, txn := range entries {
-		for _, c := range txn.Changes {
-			if err := a.s.apply(c.Kind, c.Data); err != nil {
-				return err
-			}
-		}
-	}
 	return nil
 }
 
