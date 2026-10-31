@@ -12,6 +12,7 @@ import (
 	"io"
 	"isuconapp/internal/jpegvalidate"
 	"math"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -781,16 +782,8 @@ func multipartImage(r *http.Request, max int) ([]byte, bool) {
 	if p, ok := r.Context().Value(uploadKey{}).(preparedUpload); ok {
 		return p.data, p.ok
 	}
-	if e := r.ParseMultipartForm(32 << 20); e != nil {
-		return nil, false
-	}
-	f, _, e := r.FormFile("image")
-	if e != nil {
-		return nil, false
-	}
-	defer f.Close()
-	b, e := io.ReadAll(f)
-	if e != nil {
+	b, ok := readMultipartImage(r)
+	if !ok {
 		return nil, false
 	}
 	cfg, e := jpeg.DecodeConfig(bytes.NewReader(b))
@@ -808,6 +801,52 @@ func multipartImage(r *http.Request, max int) ([]byte, bool) {
 		return nil, false
 	}
 	return b, true
+}
+
+// Read the selected file once. ParseMultipartForm would retain a second copy
+// before callers read the file back. Preserve its query/form value ordering.
+func readMultipartImage(r *http.Request) ([]byte, bool) {
+	if err := r.ParseForm(); err != nil {
+		return nil, false
+	}
+	mr, err := r.MultipartReader()
+	if err != nil {
+		return nil, false
+	}
+	form := &multipart.Form{Value: make(map[string][]string)}
+	var image []byte
+	found := false
+	for n := 0; ; n++ {
+		part, err := mr.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil || n >= 1000 {
+			return nil, false
+		}
+		name := part.FormName()
+		if name == "" || part.FileName() != "" && (name != "image" || found) {
+			_, err = io.Copy(io.Discard, part)
+		} else {
+			var data []byte
+			data, err = io.ReadAll(part)
+			if part.FileName() == "" {
+				form.Value[name] = append(form.Value[name], string(data))
+			} else {
+				image, found = data, true
+			}
+		}
+		part.Close()
+		if err != nil {
+			return nil, false
+		}
+	}
+	for key, values := range form.Value {
+		r.Form[key] = append(r.Form[key], values...)
+		r.PostForm[key] = append(r.PostForm[key], values...)
+	}
+	r.MultipartForm = form
+	return image, found
 }
 func (a *App) createPost(w http.ResponseWriter, r *http.Request, u *Account) {
 	b, ok := multipartImage(r, 4096)
