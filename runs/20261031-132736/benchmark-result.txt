@@ -1,0 +1,52 @@
+time=2026-10-31T04:28:17.746Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T04:28:20.731Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T04:28:23.729Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T04:28:26.752Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T04:28:29.731Z level=INFO msg="europe 2 日目: 16 人"
+time=2026-10-31T04:28:29.751Z level=INFO msg="user moved" user=miya.5342 from=asia to=america
+time=2026-10-31T04:28:32.729Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T04:28:34.871Z level=INFO msg="user moved" user=nanoayo_5453 from=america to=asia
+time=2026-10-31T04:28:35.781Z level=INFO msg="asia 3 日目: 154 人"
+time=2026-10-31T04:28:37.304Z level=INFO msg="user moved" user=nanoayo_5453 from=asia to=america
+time=2026-10-31T04:28:38.551Z level=INFO msg="user moved" user=tatortsu6008 from=asia to=europe
+time=2026-10-31T04:28:38.728Z level=INFO msg="europe 3 日目: 42 人"
+time=2026-10-31T04:28:41.747Z level=INFO msg="america 3 日目: 41 人"
+time=2026-10-31T04:28:44.758Z level=INFO msg="asia 4 日目: 456 人"
+time=2026-10-31T04:28:47.759Z level=INFO msg="europe 4 日目: 104 人"
+time=2026-10-31T04:28:48.347Z level=INFO msg="user moved" user=nechi_7411 from=asia to=america
+time=2026-10-31T04:28:50.502Z level=INFO msg="user moved" user=nechi_7411 from=america to=europe
+time=2026-10-31T04:28:50.904Z level=INFO msg="america 4 日目: 101 人"
+time=2026-10-31T04:28:53.273Z level=INFO msg="user moved" user=heis-7901 from=asia to=america
+time=2026-10-31T04:28:53.815Z level=INFO msg="asia 5 日目: 1289 人"
+time=2026-10-31T04:28:56.739Z level=INFO msg="europe 5 日目: 222 人"
+time=2026-10-31T04:28:59.843Z level=INFO msg="america 5 日目: 170 人"
+time=2026-10-31T04:29:08.754Z level=INFO msg="europe 最終日（グランプリ）: 221 人"
+time=2026-10-31T04:29:08.766Z level=INFO msg="america 最終日（グランプリ）: 169 人"
+time=2026-10-31T04:29:09.045Z level=INFO msg="asia 最終日（グランプリ）: 1285 人"
+time=2026-10-31T04:29:17.886Z level=INFO msg="グランプリ: アジア 1151 人, ヨーロッパ 197 人, アメリカ 150 人"
+{
+  "pass": true,
+  "score": 173824,
+  "messages": [
+    "training_at_the_bakery_1006: ログインできません: POST /api/auth/login: ステータスコード 502 が返りました（期待値 200、unknown）",
+    "manuela_almeida_2494: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "elsute_8763: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "shadingyu_menfan_4773: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hina_nakamura_843: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hanako_sato_720: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "duncai_ayi_3336: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "gansik_yesan_4693: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "jing_chen_77: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "koka9504: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "sanchong_yanjiu_601: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "ethan_miller_4503: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "gansik_yesan_3695: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "nemonoa9806: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "kiivy-9745: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "capybaras_en_promenade_4662: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "yui_kato_2644: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "minjun_kim_600: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "vinku.10007: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "tois-10075: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました"
+  ]
+}
