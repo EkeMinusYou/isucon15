@@ -1,0 +1,558 @@
+{
+  "schema_version": 3,
+  "identity_field": "session_id",
+  "ordering": "request_start_time; ties by response_end_time then input order",
+  "scenario_grouping": "exact set of normalized method-route nodes observed in one Cookie session",
+  "summary": {
+    "input_files": 2,
+    "input_lines": 11,
+    "malformed_lines": 0,
+    "invalid_time_lines": 0,
+    "api_requests": 11,
+    "classified_requests": 11,
+    "unmatched_api_requests": 0,
+    "requests_with_identity": 6,
+    "missing_identity_requests": 5,
+    "sessions": 1,
+    "transitions": 5,
+    "overlapping_transitions": 0,
+    "ambiguous_order_transitions": 0,
+    "window_start_unix_ms": 1793414600610,
+    "window_end_unix_ms": 1793414600833,
+    "scenario_groups": 1,
+    "scenarios_emitted": 1,
+    "scenario_sessions_omitted": 0
+  },
+  "edges": [
+    {
+      "from_method": "GET",
+      "from_route": "/api/feeds/:feed",
+      "to_method": "GET",
+      "to_route": "/api/posts/me/current",
+      "transitions": 1,
+      "sessions": 1,
+      "overlap_transitions": 0,
+      "ambiguous_order_transitions": 0,
+      "start_gap_avg_ms": 2.937,
+      "start_gap_p50_ms": 2.937,
+      "start_gap_p95_ms": 2.937,
+      "idle_gap_avg_ms": 2.897,
+      "from_status_2xx": 1,
+      "from_status_3xx": 0,
+      "from_status_4xx": 0,
+      "from_status_5xx": 0,
+      "from_status_other": 0,
+      "to_status_2xx": 0,
+      "to_status_3xx": 0,
+      "to_status_4xx": 1,
+      "to_status_5xx": 0,
+      "to_status_other": 0
+    },
+    {
+      "from_method": "GET",
+      "from_route": "/api/me",
+      "to_method": "GET",
+      "to_route": "/api/feeds/:feed",
+      "transitions": 1,
+      "sessions": 1,
+      "overlap_transitions": 0,
+      "ambiguous_order_transitions": 0,
+      "start_gap_avg_ms": 2.911,
+      "start_gap_p50_ms": 2.911,
+      "start_gap_p95_ms": 2.911,
+      "idle_gap_avg_ms": 2.891,
+      "from_status_2xx": 1,
+      "from_status_3xx": 0,
+      "from_status_4xx": 0,
+      "from_status_5xx": 0,
+      "from_status_other": 0,
+      "to_status_2xx": 1,
+      "to_status_3xx": 0,
+      "to_status_4xx": 0,
+      "to_status_5xx": 0,
+      "to_status_other": 0
+    },
+    {
+      "from_method": "GET",
+      "from_route": "/api/me",
+      "to_method": "PUT",
+      "to_route": "/api/me/profile-image",
+      "transitions": 1,
+      "sessions": 1,
+      "overlap_transitions": 0,
+      "ambiguous_order_transitions": 0,
+      "start_gap_avg_ms": 205.019,
+      "start_gap_p50_ms": 205.019,
+      "start_gap_p95_ms": 205.019,
+      "idle_gap_avg_ms": 2.881,
+      "from_status_2xx": 0,
+      "from_status_3xx": 0,
+      "from_status_4xx": 1,
+      "from_status_5xx": 0,
+      "from_status_other": 0,
+      "to_status_2xx": 1,
+      "to_status_3xx": 0,
+      "to_status_4xx": 0,
+      "to_status_5xx": 0,
+      "to_status_other": 0
+    },
+    {
+      "from_method": "GET",
+      "from_route": "/api/posts/me/current",
+      "to_method": "GET",
+      "to_route": "/api/me",
+      "transitions": 1,
+      "sessions": 1,
+      "overlap_transitions": 0,
+      "ambiguous_order_transitions": 0,
+      "start_gap_avg_ms": 3.094,
+      "start_gap_p50_ms": 3.094,
+      "start_gap_p95_ms": 3.094,
+      "idle_gap_avg_ms": 3.077,
+      "from_status_2xx": 0,
+      "from_status_3xx": 0,
+      "from_status_4xx": 1,
+      "from_status_5xx": 0,
+      "from_status_other": 0,
+      "to_status_2xx": 0,
+      "to_status_3xx": 0,
+      "to_status_4xx": 1,
+      "to_status_5xx": 0,
+      "to_status_other": 0
+    },
+    {
+      "from_method": "POST",
+      "from_route": "/api/auth/login",
+      "to_method": "GET",
+      "to_route": "/api/me",
+      "transitions": 1,
+      "sessions": 1,
+      "overlap_transitions": 0,
+      "ambiguous_order_transitions": 0,
+      "start_gap_avg_ms": 8.69,
+      "start_gap_p50_ms": 8.69,
+      "start_gap_p95_ms": 8.69,
+      "idle_gap_avg_ms": 8.618,
+      "from_status_2xx": 1,
+      "from_status_3xx": 0,
+      "from_status_4xx": 0,
+      "from_status_5xx": 0,
+      "from_status_other": 0,
+      "to_status_2xx": 1,
+      "to_status_3xx": 0,
+      "to_status_4xx": 0,
+      "to_status_5xx": 0,
+      "to_status_other": 0
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario-2c498ba2ac86",
+      "signature": [
+        "GET /api/feeds/:feed",
+        "GET /api/me",
+        "GET /api/posts/me/current",
+        "POST /api/auth/login",
+        "PUT /api/me/profile-image"
+      ],
+      "sessions": 1,
+      "requests": 6,
+      "transitions": 5,
+      "overlap_transitions": 0,
+      "ambiguous_order_transitions": 0,
+      "requests_per_session_avg": 6,
+      "duration_p50_ms": 222.832,
+      "duration_p95_ms": 222.832,
+      "nodes": [
+        {
+          "method": "GET",
+          "route": "/api/me",
+          "requests": 2,
+          "sessions": 1,
+          "first_sessions": 0,
+          "last_sessions": 0,
+          "first_position_avg": 0.2,
+          "first_offset_avg_ms": 8.69
+        },
+        {
+          "method": "GET",
+          "route": "/api/feeds/:feed",
+          "requests": 1,
+          "sessions": 1,
+          "first_sessions": 0,
+          "last_sessions": 0,
+          "first_position_avg": 0.4,
+          "first_offset_avg_ms": 11.601
+        },
+        {
+          "method": "GET",
+          "route": "/api/posts/me/current",
+          "requests": 1,
+          "sessions": 1,
+          "first_sessions": 0,
+          "last_sessions": 0,
+          "first_position_avg": 0.6,
+          "first_offset_avg_ms": 14.538
+        },
+        {
+          "method": "POST",
+          "route": "/api/auth/login",
+          "requests": 1,
+          "sessions": 1,
+          "first_sessions": 1,
+          "last_sessions": 0,
+          "first_position_avg": 0,
+          "first_offset_avg_ms": 0
+        },
+        {
+          "method": "PUT",
+          "route": "/api/me/profile-image",
+          "requests": 1,
+          "sessions": 1,
+          "first_sessions": 0,
+          "last_sessions": 1,
+          "first_position_avg": 1,
+          "first_offset_avg_ms": 222.651
+        }
+      ],
+      "edges": [
+        {
+          "from_method": "GET",
+          "from_route": "/api/feeds/:feed",
+          "to_method": "GET",
+          "to_route": "/api/posts/me/current",
+          "transitions": 1,
+          "sessions": 1,
+          "overlap_transitions": 0,
+          "ambiguous_order_transitions": 0,
+          "start_gap_avg_ms": 2.937,
+          "start_gap_p50_ms": 2.937,
+          "start_gap_p95_ms": 2.937,
+          "idle_gap_avg_ms": 2.897,
+          "from_status_2xx": 1,
+          "from_status_3xx": 0,
+          "from_status_4xx": 0,
+          "from_status_5xx": 0,
+          "from_status_other": 0,
+          "to_status_2xx": 0,
+          "to_status_3xx": 0,
+          "to_status_4xx": 1,
+          "to_status_5xx": 0,
+          "to_status_other": 0
+        },
+        {
+          "from_method": "GET",
+          "from_route": "/api/me",
+          "to_method": "GET",
+          "to_route": "/api/feeds/:feed",
+          "transitions": 1,
+          "sessions": 1,
+          "overlap_transitions": 0,
+          "ambiguous_order_transitions": 0,
+          "start_gap_avg_ms": 2.911,
+          "start_gap_p50_ms": 2.911,
+          "start_gap_p95_ms": 2.911,
+          "idle_gap_avg_ms": 2.891,
+          "from_status_2xx": 1,
+          "from_status_3xx": 0,
+          "from_status_4xx": 0,
+          "from_status_5xx": 0,
+          "from_status_other": 0,
+          "to_status_2xx": 1,
+          "to_status_3xx": 0,
+          "to_status_4xx": 0,
+          "to_status_5xx": 0,
+          "to_status_other": 0
+        },
+        {
+          "from_method": "GET",
+          "from_route": "/api/me",
+          "to_method": "PUT",
+          "to_route": "/api/me/profile-image",
+          "transitions": 1,
+          "sessions": 1,
+          "overlap_transitions": 0,
+          "ambiguous_order_transitions": 0,
+          "start_gap_avg_ms": 205.019,
+          "start_gap_p50_ms": 205.019,
+          "start_gap_p95_ms": 205.019,
+          "idle_gap_avg_ms": 2.881,
+          "from_status_2xx": 0,
+          "from_status_3xx": 0,
+          "from_status_4xx": 1,
+          "from_status_5xx": 0,
+          "from_status_other": 0,
+          "to_status_2xx": 1,
+          "to_status_3xx": 0,
+          "to_status_4xx": 0,
+          "to_status_5xx": 0,
+          "to_status_other": 0
+        },
+        {
+          "from_method": "GET",
+          "from_route": "/api/posts/me/current",
+          "to_method": "GET",
+          "to_route": "/api/me",
+          "transitions": 1,
+          "sessions": 1,
+          "overlap_transitions": 0,
+          "ambiguous_order_transitions": 0,
+          "start_gap_avg_ms": 3.094,
+          "start_gap_p50_ms": 3.094,
+          "start_gap_p95_ms": 3.094,
+          "idle_gap_avg_ms": 3.077,
+          "from_status_2xx": 0,
+          "from_status_3xx": 0,
+          "from_status_4xx": 1,
+          "from_status_5xx": 0,
+          "from_status_other": 0,
+          "to_status_2xx": 0,
+          "to_status_3xx": 0,
+          "to_status_4xx": 1,
+          "to_status_5xx": 0,
+          "to_status_other": 0
+        },
+        {
+          "from_method": "POST",
+          "from_route": "/api/auth/login",
+          "to_method": "GET",
+          "to_route": "/api/me",
+          "transitions": 1,
+          "sessions": 1,
+          "overlap_transitions": 0,
+          "ambiguous_order_transitions": 0,
+          "start_gap_avg_ms": 8.69,
+          "start_gap_p50_ms": 8.69,
+          "start_gap_p95_ms": 8.69,
+          "idle_gap_avg_ms": 8.618,
+          "from_status_2xx": 1,
+          "from_status_3xx": 0,
+          "from_status_4xx": 0,
+          "from_status_5xx": 0,
+          "from_status_other": 0,
+          "to_status_2xx": 1,
+          "to_status_3xx": 0,
+          "to_status_4xx": 0,
+          "to_status_5xx": 0,
+          "to_status_other": 0
+        }
+      ]
+    }
+  ],
+  "operation_config": {
+    "_comment": "Authenticated account IDs are hashed by the Go access observer. Internal forwarded requests are only logged at their public ingress.",
+    "cookie_field": "session_id",
+    "api_prefix": "/api/",
+    "routes": [
+      {
+        "name": "/api/initialize",
+        "pattern": "^/api/initialize$"
+      },
+      {
+        "name": "/api/auth/register",
+        "pattern": "^/api/auth/register$"
+      },
+      {
+        "name": "/api/auth/login",
+        "pattern": "^/api/auth/login$"
+      },
+      {
+        "name": "/api/auth/logout",
+        "pattern": "^/api/auth/logout$"
+      },
+      {
+        "name": "/api/users",
+        "pattern": "^/api/users$"
+      },
+      {
+        "name": "/api/users/:userId",
+        "pattern": "^/api/users/[^/]+$"
+      },
+      {
+        "name": "/api/me/export",
+        "pattern": "^/api/me/export$"
+      },
+      {
+        "name": "/api/me",
+        "pattern": "^/api/me$"
+      },
+      {
+        "name": "/api/me/profile-image",
+        "pattern": "^/api/me/profile-image$"
+      },
+      {
+        "name": "/api/me/account-deletion",
+        "pattern": "^/api/me/account-deletion$"
+      },
+      {
+        "name": "/api/posts",
+        "pattern": "^/api/posts$"
+      },
+      {
+        "name": "/api/posting-window/current",
+        "pattern": "^/api/posting-window/current$"
+      },
+      {
+        "name": "/api/posts/me/current",
+        "pattern": "^/api/posts/me/current$"
+      },
+      {
+        "name": "/api/posts/:postId",
+        "pattern": "^/api/posts/[^/]+$"
+      },
+      {
+        "name": "/api/feeds/:feed",
+        "pattern": "^/api/feeds/[^/]+$"
+      },
+      {
+        "name": "/api/memories",
+        "pattern": "^/api/memories$"
+      },
+      {
+        "name": "/api/memories/:date",
+        "pattern": "^/api/memories/[^/]+$"
+      },
+      {
+        "name": "/api/posts/:postId/comments",
+        "pattern": "^/api/posts/[^/]+/comments$"
+      },
+      {
+        "name": "/api/comments/:commentId",
+        "pattern": "^/api/comments/[^/]+$"
+      },
+      {
+        "name": "/api/posts/:postId/realmojis",
+        "pattern": "^/api/posts/[^/]+/realmojis$"
+      },
+      {
+        "name": "/api/realmojis/:realMojiId",
+        "pattern": "^/api/realmojis/[^/]+$"
+      },
+      {
+        "name": "/api/images/:imageId",
+        "pattern": "^/api/images/[^/]+$"
+      },
+      {
+        "name": "/api/notifications",
+        "pattern": "^/api/notifications$"
+      },
+      {
+        "name": "/api/friend-requests",
+        "pattern": "^/api/friend-requests$"
+      },
+      {
+        "name": "/api/friend-requests/:requestId/:action",
+        "pattern": "^/api/friend-requests/[^/]+/[^/]+$"
+      },
+      {
+        "name": "/api/relationships/:kind",
+        "pattern": "^/api/relationships/[^/]+$"
+      },
+      {
+        "name": "/api/friendships/:userId",
+        "pattern": "^/api/friendships/[^/]+$"
+      },
+      {
+        "name": "/api/follows/:userId",
+        "pattern": "^/api/follows/[^/]+$"
+      },
+      {
+        "name": "/api/blocks/:userId",
+        "pattern": "^/api/blocks/[^/]+$"
+      },
+      {
+        "name": "/api/admin/auth/login",
+        "pattern": "^/api/admin/auth/login$"
+      },
+      {
+        "name": "/api/admin/auth/logout",
+        "pattern": "^/api/admin/auth/logout$"
+      },
+      {
+        "name": "/api/admin/users/:userId/certification",
+        "pattern": "^/api/admin/users/[^/]+/certification$"
+      },
+      {
+        "name": "/api/admin/posting-window",
+        "pattern": "^/api/admin/posting-window$"
+      }
+    ],
+    "operation_pairs": [
+      {
+        "name": "notification_to_post",
+        "from": {
+          "method": "GET",
+          "route": "/api/notifications"
+        },
+        "to": {
+          "method": "POST",
+          "route": "/api/posts",
+          "statuses": [
+            201
+          ]
+        }
+      },
+      {
+        "name": "post_to_feed",
+        "from": {
+          "method": "POST",
+          "route": "/api/posts",
+          "statuses": [
+            201
+          ]
+        },
+        "to": {
+          "method": "GET",
+          "route": "/api/feeds/:feed"
+        }
+      },
+      {
+        "name": "post_to_reaction",
+        "from": {
+          "method": "POST",
+          "route": "/api/posts",
+          "statuses": [
+            201
+          ]
+        },
+        "to": {
+          "method": "POST",
+          "route": "/api/posts/:postId/realmojis",
+          "statuses": [
+            201
+          ]
+        }
+      }
+    ],
+    "operation_intervals": [
+      {
+        "name": "notification_to_post",
+        "start": {
+          "method": "GET",
+          "route": "/api/notifications"
+        },
+        "end": {
+          "method": "POST",
+          "route": "/api/posts",
+          "statuses": [
+            201
+          ]
+        }
+      },
+      {
+        "name": "post_to_feed",
+        "start": {
+          "method": "POST",
+          "route": "/api/posts",
+          "statuses": [
+            201
+          ]
+        },
+        "end": {
+          "method": "GET",
+          "route": "/api/feeds/:feed"
+        }
+      }
+    ]
+  }
+}

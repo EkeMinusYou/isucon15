@@ -1,0 +1,20 @@
+2026-10-31T02:42:49.363926491Z	BENCHMARK_START
+PORTAL_JOB_ID: 5034
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "JPEG でないプロフィール画像が 400 になりません: \u003cnil\u003e"
+  ]
+}
+SCORE: 0
+BENCHMARK_FAIL
+portal-bench: benchmark failed
+2026-10-31T02:43:24.806777280Z	BENCHMARK_END
+BENCHMARK_FAIL	exit_status=1
+
+SCORE: 0
+BENCHMARK_FAIL

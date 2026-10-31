@@ -1,0 +1,10 @@
+ingress_host	count	method	uri	2xx	3xx	4xx	5xx	max	avg	sum	p90	p99	sum_body	avg_body
+asia1	1	POST	/api/initialize	1	0	0	0	30.888	30.888	30.888	30.888	30.888	68	68
+asia1	1	PUT	/api/me/profile-image	1	0	0	0	0	0	0	0	0	0	0
+asia1	2	POST	/api/auth/register	1	0	1	0	0	0	0	0	0	251	125.5
+asia1	1	POST	/api/admin/auth/login	1	0	0	0	0	0	0	0	0	106	106
+asia1	2	POST	/api/auth/login	1	0	1	0	0	0	0	0	0	252	126
+asia1	1	GET	/api/feeds/:feed	1	0	0	0	0	0	0	0	0	29	29
+asia1	1	GET	/api/me	1	0	0	0	0	0	0	0	0	187	187
+asia1	1	GET	/api/posts/me/current	0	0	1	0	0	0	0	0	0	27	27
+europe1	1	GET	/api/me	0	0	1	0	0.202	0.202	0.202	0.202	0.202	28	28

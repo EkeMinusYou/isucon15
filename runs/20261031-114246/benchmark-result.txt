@@ -1,0 +1,7 @@
+{
+  "pass": false,
+  "score": 0,
+  "messages": [
+    "JPEG でないプロフィール画像が 400 になりません: \u003cnil\u003e"
+  ]
+}
