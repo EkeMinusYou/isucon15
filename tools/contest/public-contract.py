@@ -22,11 +22,19 @@ def api(method, path, token='', body=None, region='asia', expected=200):
         headers['Content-Type'] = 'application/json'
         body = json.dumps(body).encode()
     request = urllib.request.Request(BASE + path, data=body, headers=headers, method=method)
-    try:
-        response = urllib.request.urlopen(request, timeout=120)
-    except urllib.error.HTTPError as e:
-        response = e
-    payload = response.read()
+    for attempt in range(3 if method == 'GET' else 1):
+        try:
+            response = urllib.request.urlopen(request, timeout=10 if method == 'GET' else 30)
+            payload = response.read()
+            break
+        except urllib.error.HTTPError as e:
+            response = e
+            payload = response.read()
+            break
+        except (urllib.error.URLError, TimeoutError):
+            if method != 'GET' or attempt == 2:
+                raise
+            print('retrying a public read after a connection timeout', flush=True)
     assert response.status == expected, (method, path.split('?')[0], response.status, expected)
     if 'json' in response.headers.get('Content-Type', ''):
         return json.loads(payload)
