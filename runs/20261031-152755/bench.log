@@ -1,0 +1,68 @@
+2026-10-31T06:27:58.663425787Z	BENCHMARK_START
+PORTAL_JOB_ID: 22704
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T06:28:04.652Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T06:28:07.628Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T06:28:10.627Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T06:28:13.661Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T06:28:16.631Z level=INFO msg="europe 2 日目: 18 人"
+time=2026-10-31T06:28:19.662Z level=INFO msg="user moved" user=kera.5335 from=europe to=asia
+time=2026-10-31T06:28:19.714Z level=INFO msg="america 2 日目: 17 人"
+time=2026-10-31T06:28:22.771Z level=INFO msg="asia 3 日目: 139 人"
+time=2026-10-31T06:28:24.536Z level=INFO msg="user moved" user=kera.5335 from=asia to=europe
+time=2026-10-31T06:28:24.832Z level=INFO msg="user moved" user=roeva5695 from=asia to=europe
+time=2026-10-31T06:28:25.760Z level=INFO msg="europe 3 日目: 51 人"
+time=2026-10-31T06:28:25.882Z level=INFO msg="user moved" user=tofuso-5814 from=asia to=america
+time=2026-10-31T06:28:26.821Z level=INFO msg="user moved" user=mafuto6188 from=asia to=america
+time=2026-10-31T06:28:27.923Z level=INFO msg="user moved" user=zoemiaeva_6159 from=asia to=europe
+time=2026-10-31T06:28:28.585Z level=INFO msg="user moved" user=mafuto6188 from=america to=asia
+time=2026-10-31T06:28:28.723Z level=INFO msg="america 3 日目: 51 人"
+time=2026-10-31T06:28:31.781Z level=INFO msg="asia 4 日目: 395 人"
+time=2026-10-31T06:28:34.836Z level=INFO msg="europe 4 日目: 136 人"
+time=2026-10-31T06:28:34.845Z level=INFO msg="user moved" user=mafuto6188 from=asia to=america
+time=2026-10-31T06:28:37.247Z level=INFO msg="user moved" user=vinreho8072 from=asia to=america
+time=2026-10-31T06:28:37.822Z level=INFO msg="america 4 日目: 134 人"
+time=2026-10-31T06:28:38.706Z level=INFO msg="user moved" user=chini_7616 from=asia to=europe
+time=2026-10-31T06:28:38.943Z level=INFO msg="user moved" user=ronael-7518 from=asia to=europe
+time=2026-10-31T06:28:40.887Z level=INFO msg="asia 5 日目: 991 人"
+time=2026-10-31T06:28:41.740Z level=INFO msg="user moved" user=kera.5335 from=europe to=asia
+time=2026-10-31T06:28:43.962Z level=INFO msg="europe 5 日目: 181 人"
+time=2026-10-31T06:28:46.715Z level=INFO msg="america 5 日目: 134 人"
+time=2026-10-31T06:28:56.063Z level=INFO msg="asia 最終日（グランプリ）: 992 人"
+time=2026-10-31T06:28:56.314Z level=INFO msg="america 最終日（グランプリ）: 134 人"
+time=2026-10-31T06:28:56.552Z level=INFO msg="europe 最終日（グランプリ）: 180 人"
+time=2026-10-31T06:29:04.582Z level=INFO msg="グランプリ: アジア 635 人, ヨーロッパ 120 人, アメリカ 91 人"
+{
+  "pass": true,
+  "score": 132927,
+  "messages": [
+    "maul8648: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "zoemo-7024: 友達申請を取り下げられません: POST /api/friend-requests/2a5a934c-a4d4-4e59-96ec-f820dd5a2338/cancel: 応答がタイムアウトしました",
+    "leoreso-8437: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "solseme-9134: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "ramuyu6136: 友達申請を承認できません: POST /api/friend-requests/14497f34-b909-4b59-bf45-3650547b6e75/accept: 応答がタイムアウトしました",
+    "marliame_8876: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "chitako.10299: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "marmia-5433: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "tamoko.11637: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "toyaben.9167: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "teta_10428: 認定公開アカウントをフォローできません: PUT /api/follows/843dbcb3-b55f-44ce-8cac-78a7a4f67efc: 応答がタイムアウトしました",
+    "tare-12396: 認定公開アカウントをフォローできません: PUT /api/follows/34ff7eca-42fa-4d91-9ef7-de08d20a27cc: 応答がタイムアウトしました",
+    "nutamo_5435: 友達申請を承認できません: POST /api/friend-requests/a27996ef-f6d6-4fa0-9892-eb4172f8a75f/accept: 応答がタイムアウトしました",
+    "tosol10677: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "shihemu.5575: 友達申請を承認できません: POST /api/friend-requests/9350f9f7-cb27-4fe0-bfba-be425569f50a/accept: 応答がタイムアウトしました",
+    "mochi-13062: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "nohate11079: 認定公開アカウントをフォローできません: PUT /api/follows/ef1ff477-36fd-43a6-b2d4-f20c2d28a9bb: 応答がタイムアウトしました",
+    "vinmimo-13387: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "nokiis.13488: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました",
+    "mesoho.10942: 友達申請を送れません: POST /api/friend-requests: 応答がタイムアウトしました"
+  ]
+}
+SCORE: 132927
+BENCHMARK_PASS
+2026-10-31T06:29:34.463586314Z	BENCHMARK_END
+
+SCORE: 132927
+BENCHMARK_PASS
