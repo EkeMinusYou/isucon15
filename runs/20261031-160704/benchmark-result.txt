@@ -1,0 +1,55 @@
+time=2026-10-31T07:07:44.234Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T07:07:47.215Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T07:07:50.215Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T07:07:53.239Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T07:07:56.217Z level=INFO msg="europe 2 日目: 21 人"
+time=2026-10-31T07:07:59.217Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T07:08:02.240Z level=INFO msg="asia 3 日目: 138 人"
+time=2026-10-31T07:08:02.501Z level=INFO msg="user moved" user=fuulmi_5538 from=asia to=europe
+time=2026-10-31T07:08:03.622Z level=INFO msg="user moved" user=fuulmi_5538 from=europe to=asia
+time=2026-10-31T07:08:03.713Z level=INFO msg="user moved" user=nafu_5732 from=asia to=america
+time=2026-10-31T07:08:05.239Z level=INFO msg="europe 3 日目: 64 人"
+time=2026-10-31T07:08:05.998Z level=INFO msg="user moved" user=evaya_6099 from=asia to=america
+time=2026-10-31T07:08:08.215Z level=INFO msg="america 3 日目: 51 人"
+time=2026-10-31T07:08:11.341Z level=INFO msg="asia 4 日目: 404 人"
+time=2026-10-31T07:08:13.110Z level=INFO msg="user moved" user=ismarsol_7052 from=asia to=america
+time=2026-10-31T07:08:13.231Z level=INFO msg="user moved" user=fuulmi_5538 from=asia to=europe
+time=2026-10-31T07:08:14.250Z level=INFO msg="europe 4 日目: 185 人"
+time=2026-10-31T07:08:14.262Z level=INFO msg="user moved" user=ismarsol_7052 from=america to=asia
+time=2026-10-31T07:08:17.295Z level=INFO msg="america 4 日目: 142 人"
+time=2026-10-31T07:08:17.536Z level=INFO msg="user moved" user=solbenki7801 from=asia to=europe
+time=2026-10-31T07:08:17.644Z level=INFO msg="user moved" user=saanis.8307 from=europe to=asia
+time=2026-10-31T07:08:19.250Z level=INFO msg="user moved" user=evael-7248 from=asia to=europe
+time=2026-10-31T07:08:20.305Z level=INFO msg="asia 5 日目: 1170 人"
+time=2026-10-31T07:08:23.326Z level=INFO msg="europe 5 日目: 498 人"
+time=2026-10-31T07:08:26.258Z level=INFO msg="america 5 日目: 304 人"
+time=2026-10-31T07:08:35.232Z level=INFO msg="europe 最終日（グランプリ）: 497 人"
+time=2026-10-31T07:08:35.314Z level=INFO msg="asia 最終日（グランプリ）: 1169 人"
+time=2026-10-31T07:08:35.390Z level=INFO msg="america 最終日（グランプリ）: 303 人"
+time=2026-10-31T07:08:44.482Z level=INFO msg="グランプリ: アジア 1023 人, ヨーロッパ 404 人, アメリカ 235 人"
+{
+  "pass": true,
+  "score": 207766,
+  "messages": [
+    "yang_liu_4787: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "hirasa_5794: ログインし直せません: POST /api/auth/login: 応答がタイムアウトしました",
+    "charcoal_mini_turkey_2371: ログインできません: POST /api/auth/login: 応答がタイムアウトしました",
+    "solmax-10647: 新しいユーザーを登録できません: POST /api/auth/login: 応答がタイムアウトしました",
+    "nasa12010: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "nevin_14490: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "kekuma12684: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "nisohi18076: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "noleoya12675: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "heme_14433: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "moleoeva-18311: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "vinru-16428: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "maxkake15360: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "kimetor-18572: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "orte-16699: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "hasoya.16856: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sameto16649: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "waliamia.17845: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "chinimu.18011: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "teshi9159: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）"
+  ]
+}
