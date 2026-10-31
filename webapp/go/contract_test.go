@@ -45,6 +45,16 @@ func TestProfileStreamValidation(t *testing.T) {
 	}
 }
 
+func BenchmarkSignedAlternatingExpiration(b *testing.B) {
+	a := &App{s: emptyState(), signatures: map[string]string{}}
+	a.s.Accounts["owner"] = &Account{Secret: secretHash("key")}
+	im := &Image{ID: "image", OwnerID: "owner"}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		a.signed(im, 1800000000+int64(i%2))
+	}
+}
+
 func fixtureApp(t *testing.T) *App {
 	t.Helper()
 	dir := t.TempDir()

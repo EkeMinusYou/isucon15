@@ -147,10 +147,6 @@ func requestRegion(r *http.Request) string {
 }
 func (a *App) signed(im *Image, exp int64) string {
 	key := im.ID + ":" + strconv.FormatInt(exp, 10)
-	if a.signatureSecond != exp {
-		a.signatures = map[string]string{}
-		a.signatureSecond = exp
-	}
 	if v := a.signatures[key]; v != "" {
 		return v
 	}
@@ -165,6 +161,11 @@ func (a *App) signed(im *Image, exp int64) string {
 		v = mac.Sum(sum[:0])
 	}
 	sig := base64.RawURLEncoding.EncodeToString(v)
+	// Issued URLs from different seconds coexist. A read of an older URL must
+	// not evict signatures being reused by current feeds and image requests.
+	if len(a.signatures) >= 65536 {
+		a.signatures = make(map[string]string)
+	}
 	a.signatures[key] = sig
 	return sig
 }

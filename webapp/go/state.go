@@ -149,7 +149,6 @@ type App struct {
 	failures         map[string][]time.Time
 	signal           chan struct{}
 	signatures       map[string]string
-	signatureSecond  int64
 	requests         uint64
 	writes           uint64
 }
