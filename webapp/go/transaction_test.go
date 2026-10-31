@@ -248,3 +248,42 @@ func TestPostingWindowDoesNotDrainQueuedUpdates(t *testing.T) {
 		t.Fatalf("update returned %d", status)
 	}
 }
+
+func TestWaitingForOneStripeReleasesOtherStripes(t *testing.T) {
+	for _, exclusive := range []bool{false, true} {
+		t.Run(fmt.Sprintf("exclusive=%v", exclusive), func(t *testing.T) {
+			a := &App{appCore: &appCore{}}
+			a.transactions[1].Lock()
+			acquired, release, finished := make(chan struct{}), make(chan struct{}), make(chan struct{})
+			go func() {
+				a.acquireStripes([]int{0, 1}, exclusive)
+				close(acquired)
+				<-release
+				if exclusive {
+					a.transactions[1].Unlock()
+					a.transactions[0].Unlock()
+				} else {
+					a.transactions[1].RUnlock()
+					a.transactions[0].RUnlock()
+				}
+				close(finished)
+			}()
+			deadline := time.Now().Add(time.Second)
+			for a.stripeRetries.Load() == 0 && time.Now().Before(deadline) {
+				runtime.Gosched()
+			}
+			if a.stripeRetries.Load() == 0 {
+				t.Error("request did not wait for the busy stripe")
+			}
+			if a.transactions[0].TryLock() {
+				a.transactions[0].Unlock()
+			} else {
+				t.Error("waiting request retained an unrelated stripe")
+			}
+			a.transactions[1].Unlock()
+			<-acquired
+			close(release)
+			<-finished
+		})
+	}
+}

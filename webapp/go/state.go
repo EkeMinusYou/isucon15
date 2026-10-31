@@ -162,6 +162,7 @@ type appCore struct {
 	transactionRequests  atomic.Uint64
 	transactionShards    atomic.Uint64
 	transactionGlobal    atomic.Uint64
+	stripeRetries        atomic.Uint64
 	journalWaitNS        atomic.Uint64
 	journalWriteNS       atomic.Uint64
 	s                    *State

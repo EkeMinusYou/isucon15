@@ -9,11 +9,66 @@ import (
 	"strings"
 )
 
+var allStateStripes = func() (indices [stateShardCount]int) {
+	for i := range indices {
+		indices[i] = i
+	}
+	return
+}()
+
+// Never wait for one resource while retaining locks on unrelated resources.
+// After waking, retain that resource and try the rest without blocking.
+func (a *App) acquireStripes(indices []int, exclusive bool) {
+	held := -1
+	for {
+		var acquired [stateShardCount]int
+		n := 0
+		if held >= 0 {
+			acquired[n] = held
+			n++
+		}
+		blocked := -1
+		for _, i := range indices {
+			if i == held {
+				continue
+			}
+			ok := false
+			if exclusive {
+				ok = a.transactions[i].TryLock()
+			} else {
+				ok = a.transactions[i].TryRLock()
+			}
+			if !ok {
+				blocked = i
+				break
+			}
+			acquired[n] = i
+			n++
+		}
+		if blocked < 0 {
+			return
+		}
+		for n > 0 {
+			n--
+			if exclusive {
+				a.transactions[acquired[n]].Unlock()
+			} else {
+				a.transactions[acquired[n]].RUnlock()
+			}
+		}
+		a.stripeRetries.Add(1)
+		if exclusive {
+			a.transactions[blocked].Lock()
+		} else {
+			a.transactions[blocked].RLock()
+		}
+		held = blocked
+	}
+}
+
 func (a *App) lockSnapshot() {
 	a.mu.RLock()
-	for i := range a.transactions {
-		a.transactions[i].RLock()
-	}
+	a.acquireStripes(allStateStripes[:], false)
 	a.globalGate.RLock()
 }
 func (a *App) unlockSnapshot() {
@@ -24,7 +79,7 @@ func (a *App) unlockSnapshot() {
 	a.mu.RUnlock()
 }
 
-// All transactions acquire logical resource stripes in the same order.
+// All transactions acquire logical resource stripes before using state.
 // The lifecycle lock excludes initialize. The global gate is acquired after
 // stripes, so global updates wait only for executing operations, not queues.
 func (a *App) lockRequest(r *http.Request) func() {
@@ -59,9 +114,7 @@ func (a *App) lockRequest(r *http.Request) func() {
 			}
 		}
 		sort.Ints(indices)
-		for _, i := range indices {
-			a.transactions[i].Lock()
-		}
+		a.acquireStripes(indices, true)
 		a.globalGate.RLock()
 		unlock := func() {
 			a.globalGate.RUnlock()
