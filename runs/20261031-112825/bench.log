@@ -1,0 +1,41 @@
+2026-10-31T02:28:28.662870169Z	BENCHMARK_START
+PORTAL_JOB_ID: 4058
+PORTAL_STATUS: "0"
+PORTAL_STATUS: "1"
+PORTAL_STATUS: "4"
+time=2026-10-31T02:29:03.589Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T02:29:06.573Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T02:29:09.569Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T02:29:12.595Z level=INFO msg="asia 2 日目: 48 人"
+time=2026-10-31T02:29:12.645Z level=INFO msg="user moved" user=raleo.5135 from=america to=asia
+time=2026-10-31T02:29:12.796Z level=INFO msg="user moved" user=raleo.5135 from=asia to=europe
+time=2026-10-31T02:29:15.099Z level=INFO msg="user moved" user=noaretsu-5285 from=asia to=america
+time=2026-10-31T02:29:15.573Z level=INFO msg="europe 2 日目: 17 人"
+time=2026-10-31T02:29:18.570Z level=INFO msg="america 2 日目: 16 人"
+time=2026-10-31T02:29:21.595Z level=INFO msg="asia 3 日目: 139 人"
+time=2026-10-31T02:29:24.660Z level=INFO msg="europe 3 日目: 39 人"
+time=2026-10-31T02:29:27.692Z level=INFO msg="america 3 日目: 29 人"
+time=2026-10-31T02:29:29.038Z level=INFO msg="user moved" user=raleo.5135 from=europe to=asia
+time=2026-10-31T02:29:30.724Z level=INFO msg="asia 4 日目: 358 人"
+time=2026-10-31T02:29:34.608Z level=INFO msg="europe 4 日目: 48 人"
+time=2026-10-31T02:29:37.109Z level=INFO msg="america 4 日目: 29 人"
+time=2026-10-31T02:29:40.449Z level=INFO msg="asia 5 日目: 358 人"
+time=2026-10-31T02:29:43.981Z level=INFO msg="europe 5 日目: 48 人"
+time=2026-10-31T02:29:46.727Z level=INFO msg="america 5 日目: 29 人"
+time=2026-10-31T02:29:55.249Z level=INFO msg="america 最終日（グランプリ）: 28 人"
+time=2026-10-31T02:29:55.292Z level=INFO msg="asia 最終日（グランプリ）: 357 人"
+time=2026-10-31T02:29:55.293Z level=INFO msg="europe 最終日（グランプリ）: 48 人"
+time=2026-10-31T02:30:03.585Z level=INFO msg="グランプリ: アジア 189 人, ヨーロッパ 9 人, アメリカ 15 人"
+{
+  "pass": true,
+  "score": 59177,
+  "messages": [
+    "sophie_evans_2479: ログインできません: POST /api/auth/login: ステータスコード 502 が返りました（期待値 200、unknown）"
+  ]
+}
+SCORE: 59177
+BENCHMARK_PASS
+2026-10-31T02:30:19.527490731Z	BENCHMARK_END
+
+SCORE: 59177
+BENCHMARK_PASS
