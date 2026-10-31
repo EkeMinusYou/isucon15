@@ -23,7 +23,7 @@ func (a *App) unlockSnapshot() {
 }
 
 // All transactions acquire logical resource stripes in the same order.
-// The lifecycle lock only excludes initialize; it does not serialize updates.
+// The lifecycle lock excludes initialize and the infrequent global updates.
 func (a *App) lockRequest(r *http.Request) func() {
 	if r.URL.Path == "/api/initialize" {
 		a.mu.Lock()
@@ -33,39 +33,57 @@ func (a *App) lockRequest(r *http.Request) func() {
 		a.lockSnapshot()
 		return a.unlockSnapshot
 	}
-	a.mu.RLock()
-	keys, all := a.mutationKeys(r)
-	if all {
-		// Stop admitting requests before draining the existing transactions.
-		// Walking every stripe as a writer lets new readers queue between
-		// stripes and can delay a posting-window transition indefinitely.
-		a.mu.RUnlock()
-		a.mu.Lock()
+	for {
+		a.mu.RLock()
+		keys, all := a.mutationKeys(r)
+		if all {
+			// Stop admitting requests before draining the existing transactions.
+			// Walking every stripe as a writer lets new readers queue between
+			// stripes and can delay a posting-window transition indefinitely.
+			a.mu.RUnlock()
+			a.mu.Lock()
+			a.transactionRequests.Add(1)
+			a.transactionShards.Add(stateShardCount)
+			a.transactionGlobal.Add(1)
+			return a.mu.Unlock
+		}
+		indices := []int{}
+		seen := [stateShardCount]bool{}
+		for _, key := range keys {
+			i := int(stateHash(key) % stateShardCount)
+			if !seen[i] {
+				seen[i] = true
+				indices = append(indices, i)
+			}
+		}
+		sort.Ints(indices)
+		for _, i := range indices {
+			a.transactions[i].Lock()
+		}
+		unlock := func() {
+			for i := len(indices) - 1; i >= 0; i-- {
+				a.transactions[indices[i]].Unlock()
+			}
+			a.mu.RUnlock()
+		}
+		if r.URL.Path == "/api/auth/login" {
+			// A registration may have published the name while locks were being
+			// acquired. Retry if its actual user requires an additional stripe.
+			current, _ := a.mutationKeys(r)
+			retry := false
+			for _, key := range current {
+				if !seen[stateHash(key)%stateShardCount] {
+					retry = true
+				}
+			}
+			if retry {
+				unlock()
+				continue
+			}
+		}
 		a.transactionRequests.Add(1)
-		a.transactionShards.Add(stateShardCount)
-		a.transactionGlobal.Add(1)
-		return a.mu.Unlock
-	}
-	indices := []int{}
-	seen := [stateShardCount]bool{}
-	for _, key := range keys {
-		i := int(stateHash(key) % stateShardCount)
-		if !seen[i] {
-			seen[i] = true
-			indices = append(indices, i)
-		}
-	}
-	sort.Ints(indices)
-	a.transactionRequests.Add(1)
-	a.transactionShards.Add(uint64(len(indices)))
-	for _, i := range indices {
-		a.transactions[i].Lock()
-	}
-	return func() {
-		for i := len(indices) - 1; i >= 0; i-- {
-			a.transactions[indices[i]].Unlock()
-		}
-		a.mu.RUnlock()
+		a.transactionShards.Add(uint64(len(indices)))
+		return unlock
 	}
 }
 
@@ -87,11 +105,6 @@ func (a *App) mutationKeys(r *http.Request) ([]string, bool) {
 	}
 	if path == "/api/auth/login" {
 		uid := s.Names.Get(input.Username)
-		// Registration may publish this name before its stripe is acquired.
-		// Without a known user, exclude all updates until login resolves it.
-		if uid == "" {
-			return nil, true
-		}
 		return []string{"name:" + input.Username, "user:" + uid, "ip:" + ipOf(r)}, false
 	}
 	if strings.HasPrefix(path, "/api/admin/") {
