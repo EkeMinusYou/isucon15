@@ -1,0 +1,45 @@
+time=2026-10-31T08:11:44.770Z level=INFO msg="asia 1 日目: 18 人"
+time=2026-10-31T08:11:47.769Z level=INFO msg="europe 1 日目: 7 人"
+time=2026-10-31T08:11:50.749Z level=INFO msg="america 1 日目: 6 人"
+time=2026-10-31T08:11:53.773Z level=INFO msg="asia 2 日目: 52 人"
+time=2026-10-31T08:11:54.486Z level=INFO msg="user moved" user=ivychi5185 from=asia to=america
+time=2026-10-31T08:11:56.754Z level=INFO msg="europe 2 日目: 21 人"
+time=2026-10-31T08:11:58.259Z level=INFO msg="user moved" user=ivychi5185 from=america to=asia
+time=2026-10-31T08:11:59.750Z level=INFO msg="america 2 日目: 20 人"
+time=2026-10-31T08:12:02.783Z level=INFO msg="asia 3 日目: 154 人"
+time=2026-10-31T08:12:04.459Z level=INFO msg="user moved" user=tsuyo.5877 from=asia to=america
+time=2026-10-31T08:12:04.645Z level=INFO msg="user moved" user=ivychi5185 from=asia to=america
+time=2026-10-31T08:12:05.394Z level=INFO msg="user moved" user=zoeivymi-5997 from=asia to=america
+time=2026-10-31T08:12:05.564Z level=INFO msg="user moved" user=tsuyo.5877 from=america to=europe
+time=2026-10-31T08:12:05.763Z level=INFO msg="europe 3 日目: 63 人"
+time=2026-10-31T08:12:08.288Z level=INFO msg="user moved" user=zoeivymi-5997 from=america to=asia
+time=2026-10-31T08:12:08.759Z level=INFO msg="america 3 日目: 64 人"
+time=2026-10-31T08:12:10.006Z level=INFO msg="user moved" user=miamihe_6486 from=europe to=america
+time=2026-10-31T08:12:11.945Z level=INFO msg="asia 4 日目: 450 人"
+time=2026-10-31T08:12:14.948Z level=INFO msg="europe 4 日目: 179 人"
+time=2026-10-31T08:12:15.039Z level=INFO msg="user moved" user=zoeivymi-5997 from=asia to=america
+time=2026-10-31T08:12:17.946Z level=INFO msg="america 4 日目: 179 人"
+time=2026-10-31T08:12:18.000Z level=INFO msg="user moved" user=chinoaul.8719 from=asia to=america
+time=2026-10-31T08:12:18.154Z level=INFO msg="user moved" user=tame-7713 from=asia to=america
+time=2026-10-31T08:12:18.331Z level=INFO msg="user moved" user=ivyma.6901 from=asia to=america
+time=2026-10-31T08:12:18.506Z level=INFO msg="user moved" user=nitsuse_7438 from=asia to=america
+time=2026-10-31T08:12:21.124Z level=INFO msg="asia 5 日目: 1066 人"
+time=2026-10-31T08:12:21.200Z level=INFO msg="user moved" user=kuanki7810 from=asia to=europe
+time=2026-10-31T08:12:23.267Z level=INFO msg="user moved" user=miamihe_6486 from=america to=asia
+time=2026-10-31T08:12:24.170Z level=INFO msg="europe 5 日目: 321 人"
+time=2026-10-31T08:12:27.244Z level=INFO msg="america 5 日目: 207 人"
+time=2026-10-31T08:12:38.740Z level=INFO msg="europe 最終日（グランプリ）: 320 人"
+time=2026-10-31T08:12:38.751Z level=INFO msg="america 最終日（グランプリ）: 207 人"
+time=2026-10-31T08:12:38.892Z level=INFO msg="asia 最終日（グランプリ）: 1066 人"
+time=2026-10-31T08:12:44.835Z level=INFO msg="グランプリ: アジア 413 人, ヨーロッパ 127 人, アメリカ 76 人"
+{
+  "pass": true,
+  "score": 168620,
+  "messages": [
+    "ankosa_15676: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "runuma_15878: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "sokimu-16087: 通知を購読できません: GET /api/notifications: ステータスコード 503 が返りました（期待値 200、unknown）",
+    "danshi.7137: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": EOF",
+    "zoeta.14885: 投稿できません: POST /api/posts: 通信に失敗しました: Post \"http://13.192.72.111:8080/api/posts\": readfrom tcp 10.27.33.246:60210-\u003e13.192.72.111:8080: write tcp 10.27.33.246:60210-\u003e13.192.72.111:8080: use of closed network connection"
+  ]
+}
